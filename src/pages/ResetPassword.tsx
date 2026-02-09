@@ -20,6 +20,9 @@ const ResetPassword = () => {
   useEffect(() => {
     // Check if we have a valid session from the reset link
     const checkSession = async () => {
+      // Small delay to allow Supabase client to process the URL fragment/tokens
+      await new Promise(resolve => setTimeout(resolve, 500));
+
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
         toast({
@@ -35,7 +38,7 @@ const ResetPassword = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!password || !confirmPassword) {
       toast({
         title: "Missing fields",
@@ -79,7 +82,7 @@ const ResetPassword = () => {
 
     setIsSuccess(true);
     setIsLoading(false);
-    
+
     // Redirect after 3 seconds
     setTimeout(() => {
       navigate("/");
@@ -97,7 +100,7 @@ const ResetPassword = () => {
                 {isSuccess ? "Password Updated" : "Set New Password"}
               </h1>
               <p className="text-muted-foreground text-sm">
-                {isSuccess 
+                {isSuccess
                   ? "Your password has been successfully updated"
                   : "Enter your new password below"
                 }

@@ -21,7 +21,7 @@ const Register = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!fullName || !email || !password || !confirmPassword) {
       toast({
         title: "Missing fields",
@@ -51,14 +51,14 @@ const Register = () => {
 
     setIsLoading(true);
 
-    const { error } = await signUp(email, password, fullName);
+    const { session, error } = await signUp(email, password, fullName);
 
     if (error) {
       let message = error.message;
       if (error.message.includes("already registered")) {
         message = "This email is already registered. Please sign in instead.";
       }
-      
+
       toast({
         title: "Registration failed",
         description: message,
@@ -68,12 +68,19 @@ const Register = () => {
       return;
     }
 
-    toast({
-      title: "Account created!",
-      description: "Welcome to Fikr-e-Islam. You are now signed in.",
-    });
-    
-    navigate("/");
+    if (!session) {
+      toast({
+        title: "Check your email",
+        description: "We've sent a verification link to your email address. Please click it to complete registration.",
+      });
+      navigate("/login");
+    } else {
+      toast({
+        title: "Account created!",
+        description: "Welcome to Fikr-e-Islam. You are now signed in.",
+      });
+      navigate("/");
+    }
   };
 
   return (

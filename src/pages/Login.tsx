@@ -19,7 +19,7 @@ const Login = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!email || !password) {
       toast({
         title: "Missing fields",
@@ -34,11 +34,16 @@ const Login = () => {
     const { error } = await signIn(email, password);
 
     if (error) {
+      let description = error.message;
+      if (error.message === "Invalid login credentials") {
+        description = "Invalid email or password. Please try again.";
+      } else if (error.message.includes("Email not confirmed")) {
+        description = "Please confirm your email address before signing in. Check your inbox for a verification link.";
+      }
+
       toast({
         title: "Login failed",
-        description: error.message === "Invalid login credentials" 
-          ? "Invalid email or password. Please try again."
-          : error.message,
+        description,
         variant: "destructive",
       });
       setIsLoading(false);
@@ -49,7 +54,7 @@ const Login = () => {
       title: "Welcome back!",
       description: "You have successfully signed in.",
     });
-    
+
     navigate("/");
   };
 
@@ -85,8 +90,8 @@ const Login = () => {
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <Label htmlFor="password">Password</Label>
-                  <Link 
-                    to="/forgot-password" 
+                  <Link
+                    to="/forgot-password"
                     className="text-xs text-primary hover:underline"
                   >
                     Forgot password?
