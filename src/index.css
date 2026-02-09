@@ -1,0 +1,216 @@
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 45 20% 97%;
+    --foreground: 150 30% 15%;
+
+    --card: 45 25% 95%;
+    --card-foreground: 150 30% 15%;
+
+    --popover: 45 25% 95%;
+    --popover-foreground: 150 30% 15%;
+
+    --primary: 158 64% 25%;
+    --primary-foreground: 45 20% 97%;
+
+    --secondary: 45 40% 90%;
+    --secondary-foreground: 150 30% 20%;
+
+    --muted: 45 20% 92%;
+    --muted-foreground: 150 15% 45%;
+
+    --accent: 43 80% 55%;
+    --accent-foreground: 150 30% 15%;
+
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 150 15% 85%;
+    --input: 150 15% 85%;
+    --ring: 158 64% 25%;
+
+    --radius: 0.75rem;
+
+    /* Custom tokens */
+    --gold: 43 80% 55%;
+    --gold-light: 43 70% 75%;
+    --emerald: 158 64% 25%;
+    --emerald-light: 158 50% 40%;
+    --emerald-dark: 158 70% 18%;
+    --cream: 45 30% 96%;
+    --cream-dark: 45 25% 90%;
+
+    /* Gradients */
+    --gradient-primary: linear-gradient(135deg, hsl(var(--emerald)) 0%, hsl(var(--emerald-light)) 100%);
+    --gradient-gold: linear-gradient(135deg, hsl(var(--gold)) 0%, hsl(var(--gold-light)) 100%);
+    --gradient-hero: linear-gradient(180deg, hsl(var(--cream)) 0%, hsl(var(--cream-dark)) 100%);
+
+    /* Shadows */
+    --shadow-soft: 0 4px 20px -4px hsl(var(--emerald) / 0.15);
+    --shadow-glow: 0 0 40px hsl(var(--gold) / 0.3);
+    --shadow-card: 0 8px 30px -8px hsl(var(--foreground) / 0.1);
+
+    /* Fonts */
+    --font-display: 'Playfair Display', serif;
+    --font-body: 'Inter', sans-serif;
+
+    --sidebar-background: 0 0% 98%;
+    --sidebar-foreground: 240 5.3% 26.1%;
+    --sidebar-primary: 240 5.9% 10%;
+    --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-accent: 240 4.8% 95.9%;
+    --sidebar-accent-foreground: 240 5.9% 10%;
+    --sidebar-border: 220 13% 91%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+
+  .dark {
+    --background: 150 30% 8%;
+    --foreground: 45 20% 95%;
+
+    --card: 150 25% 12%;
+    --card-foreground: 45 20% 95%;
+
+    --popover: 150 25% 12%;
+    --popover-foreground: 45 20% 95%;
+
+    --primary: 158 55% 45%;
+    --primary-foreground: 150 30% 8%;
+
+    --secondary: 150 20% 18%;
+    --secondary-foreground: 45 20% 90%;
+
+    --muted: 150 20% 18%;
+    --muted-foreground: 45 15% 60%;
+
+    --accent: 43 75% 50%;
+    --accent-foreground: 150 30% 8%;
+
+    --destructive: 0 62% 50%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 150 20% 20%;
+    --input: 150 20% 20%;
+    --ring: 158 55% 45%;
+
+    --gold: 43 75% 50%;
+    --gold-light: 43 60% 65%;
+    --emerald: 158 55% 45%;
+    --emerald-light: 158 45% 55%;
+    --emerald-dark: 158 60% 30%;
+    --cream: 150 25% 12%;
+    --cream-dark: 150 30% 8%;
+
+    --sidebar-background: 240 5.9% 10%;
+    --sidebar-foreground: 240 4.8% 95.9%;
+    --sidebar-primary: 224.3 76.3% 48%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 240 3.7% 15.9%;
+    --sidebar-accent-foreground: 240 4.8% 95.9%;
+    --sidebar-border: 240 3.7% 15.9%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-body antialiased;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-display;
+  }
+}
+
+@layer utilities {
+  .font-display {
+    font-family: var(--font-display);
+  }
+
+  .font-body {
+    font-family: var(--font-body);
+  }
+
+  .gradient-primary {
+    background: var(--gradient-primary);
+  }
+
+  .gradient-gold {
+    background: var(--gradient-gold);
+  }
+
+  .gradient-hero {
+    background: var(--gradient-hero);
+  }
+
+  .shadow-soft {
+    box-shadow: var(--shadow-soft);
+  }
+
+  .shadow-glow {
+    box-shadow: var(--shadow-glow);
+  }
+
+  .shadow-card {
+    box-shadow: var(--shadow-card);
+  }
+
+  .text-gradient {
+    background: linear-gradient(135deg, hsl(158 64% 25%) 0%, hsl(158 50% 40%) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .islamic-pattern {
+    background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23166534' fill-opacity='0.05'%3E%3Cpath d='M30 0l30 30-30 30L0 30 30 0zm0 10L10 30l20 20 20-20-20-20z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+  }
+}
+
+/* Animations */
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slide-up {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.6s ease-out forwards;
+}
+
+.animate-slide-up {
+  animation: slide-up 0.8s ease-out forwards;
+}
+
+.animate-float {
+  animation: float 6s ease-in-out infinite;
+}
+
+.animate-shimmer {
+  background: linear-gradient(90deg, transparent 0%, hsl(var(--gold) / 0.3) 50%, transparent 100%);
+  background-size: 200% 100%;
+  animation: shimmer 3s infinite;
+}
