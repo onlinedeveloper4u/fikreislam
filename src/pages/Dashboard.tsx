@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useEffect, useState, useMemo } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { useTranslation } from 'react-i18next';
 import { DashboardLayout } from '@/components/dashboard/DashboardLayout';
 import { ContentUploadForm } from '@/components/contributor/ContentUploadForm';
 import { MyContentList } from '@/components/contributor/MyContentList';
@@ -11,88 +12,102 @@ import { UserManagement } from '@/components/admin/UserManagement';
 import { AdminAnalytics } from '@/components/admin/AdminAnalytics';
 import { PendingAnswersList } from '@/components/admin/PendingAnswersList';
 
-const tabTitles: Record<string, string> = {
-  'stats': 'Overview',
-  'upload': 'Upload Content',
-  'my-content': 'My Content',
-  'analytics': 'Analytics',
-  'pending': 'Pending Content',
-  'pending-answers': 'Pending Q&A',
-  'all-content': 'All Content',
-  'users': 'User Management',
-};
-
 export default function Dashboard() {
-  const { user, role, loading } = useAuth();
-  const navigate = useNavigate();
-  const isAdmin = role === 'admin';
-  
-  const [activeTab, setActiveTab] = useState(() => {
-    // Default tab based on role
-    return isAdmin ? 'analytics' : 'stats';
-  });
+    const { user, role, loading } = useAuth();
+    const { t } = useTranslation();
+    const navigate = useNavigate();
+    const [searchParams, setSearchParams] = useSearchParams();
+    const isAdmin = role === 'admin';
 
-  // Update default tab when role changes
-  useEffect(() => {
-    if (!loading && role) {
-      if (role === 'admin' && activeTab === 'upload') {
-        setActiveTab('analytics');
-      }
-    }
-  }, [role, loading]);
+    const tabTitles: Record<string, string> = useMemo(() => ({
+        'stats': t('dashboard.stats'),
+        'upload': t('dashboard.upload'),
+        'my-content': t('dashboard.myContent'),
+        'analytics': t('dashboard.analytics'),
+        'pending': t('dashboard.pending'),
+        'pending-answers': t('dashboard.qaAdmin'),
+        'all-content': t('dashboard.allContent'),
+        'users': t('dashboard.users'),
+    }), [t]);
 
-  useEffect(() => {
-    if (!loading && (!user || (role !== 'contributor' && role !== 'admin'))) {
-      navigate('/login');
-    }
-  }, [user, role, loading, navigate]);
+    const [activeTab, setActiveTab] = useState(() => {
+        return searchParams.get('tab') || (isAdmin ? 'analytics' : 'stats');
+    });
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-background">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-      </div>
-    );
-  }
+    // Sync tab with URL
+    useEffect(() => {
+        const tab = searchParams.get('tab');
+        if (tab && tabTitles[tab]) {
+            setActiveTab(tab);
+        }
+    }, [searchParams, tabTitles]);
 
-  if (!user || (role !== 'contributor' && role !== 'admin')) {
-    return null;
-  }
+    // Update default tab when role becomes available
+    useEffect(() => {
+        if (!loading && role && !searchParams.get('tab')) {
+            const defaultTab = role === 'admin' ? 'analytics' : 'stats';
+            setActiveTab(defaultTab);
+        }
+    }, [role, loading, searchParams]);
 
-  const renderContent = () => {
-    switch (activeTab) {
-      case 'stats':
-        return <ContributorOverview />;
-      case 'upload':
+    const handleTabChange = (tab: string) => {
+        setActiveTab(tab);
+        setSearchParams({ tab });
+    };
+
+    useEffect(() => {
+        if (!loading && (!user || (role !== 'contributor' && role !== 'admin'))) {
+            navigate('/login');
+        }
+    }, [user, role, loading, navigate]);
+
+    if (loading) {
         return (
-          <div className="max-w-2xl">
-            <ContentUploadForm />
-          </div>
+            <div className="flex items-center justify-center min-h-screen bg-background">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+            </div>
         );
-      case 'my-content':
-        return <MyContentList />;
-      case 'analytics':
-        return isAdmin ? <AdminAnalytics /> : null;
-      case 'pending':
-        return isAdmin ? <PendingContentList /> : null;
-      case 'pending-answers':
-        return isAdmin ? <PendingAnswersList /> : null;
-      case 'all-content':
-        return isAdmin ? <AllContentList /> : null;
-      case 'users':
-        return isAdmin ? <UserManagement /> : null;
-      default:
+    }
+
+    if (!user || (role !== 'contributor' && role !== 'admin')) {
         return null;
     }
-  };
 
-  return (
-    <DashboardLayout
-      activeTab={activeTab}
-      onTabChange={setActiveTab}
-      pageTitle={tabTitles[activeTab] || 'Dashboard'}
-    >
-      {renderContent()}
-    </DashboardLayout>
-  );
+    const renderContent = () => {
+        switch (activeTab) {
+            case 'stats':
+                return <ContributorOverview />;
+            case 'upload':
+                return (
+                    <div className="max-w-2xl">
+                        <ContentUploadForm />
+                    </div>
+                );
+            case 'my-content':
+                return <MyContentList />;
+            case 'analytics':
+                return isAdmin ? <AdminAnalytics /> : <ContributorOverview />;
+            case 'pending':
+                return isAdmin ? <PendingContentList /> : null;
+            case 'pending-answers':
+                return isAdmin ? <PendingAnswersList /> : null;
+            case 'all-content':
+                return isAdmin ? <AllContentList /> : null;
+            case 'users':
+                return isAdmin ? <UserManagement /> : null;
+            default:
+                return isAdmin ? <AdminAnalytics /> : <ContributorOverview />;
+        }
+    };
+
+    return (
+        <DashboardLayout
+            activeTab={activeTab}
+            onTabChange={handleTabChange}
+            pageTitle={tabTitles[activeTab] || t('nav.dashboard')}
+            isDashboard={true}
+        >
+            {renderContent()}
+        </DashboardLayout>
+    );
 }

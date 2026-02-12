@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -15,6 +15,7 @@ import {
 import { toast } from 'sonner';
 import { Loader2, Save } from 'lucide-react';
 import { z } from 'zod';
+import { useTranslation } from 'react-i18next';
 
 type ContentType = 'book' | 'audio' | 'video';
 type ContentStatus = 'pending' | 'approved' | 'rejected';
@@ -39,23 +40,30 @@ interface ContentEditDialogProps {
 
 const LANGUAGES = ['English', 'Arabic', 'Urdu', 'Turkish', 'Malay', 'Indonesian', 'French', 'Spanish'];
 
-const contentSchema = z.object({
-  title: z.string().trim().min(1, 'Title is required').max(200, 'Title must be less than 200 characters'),
-  description: z.string().trim().max(2000, 'Description must be less than 2000 characters').optional().transform(val => val || ''),
-  author: z.string().trim().max(200, 'Author name must be less than 200 characters').optional().transform(val => val || ''),
-  language: z.string(),
-  tags: z.string().transform(val => 
-    val.split(',').map(t => t.trim().slice(0, 50)).filter(Boolean).slice(0, 20)
-  ),
-});
-
 export function ContentEditDialog({ content, open, onOpenChange, onSuccess }: ContentEditDialogProps) {
+  const { t } = useTranslation();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [author, setAuthor] = useState('');
   const [language, setLanguage] = useState('English');
   const [tags, setTags] = useState('');
+
+  const contentSchema = useMemo(() => z.object({
+    title: z.string().trim()
+      .min(1, t('dashboard.upload.validation.titleRequired'))
+      .max(200, t('dashboard.upload.validation.titleTooLong')),
+    description: z.string().trim()
+      .max(2000, t('dashboard.upload.validation.descTooLong'))
+      .optional().transform(val => val || ''),
+    author: z.string().trim()
+      .max(200, t('dashboard.upload.validation.authorTooLong'))
+      .optional().transform(val => val || ''),
+    language: z.string(),
+    tags: z.string().transform(val =>
+      val.split(',').map(t => t.trim().slice(0, 50)).filter(Boolean).slice(0, 20)
+    ),
+  }), [t]);
 
   useEffect(() => {
     if (content) {
@@ -69,7 +77,7 @@ export function ContentEditDialog({ content, open, onOpenChange, onSuccess }: Co
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!content) return;
 
     const validationResult = contentSchema.safeParse({
@@ -108,16 +116,16 @@ export function ContentEditDialog({ content, open, onOpenChange, onSuccess }: Co
 
       if (error) throw error;
 
-      const message = content.status === 'rejected' 
-        ? 'Content updated and resubmitted for review!'
-        : 'Content updated successfully!';
-      
+      const message = content.status === 'rejected'
+        ? t('dashboard.myContent.edit.resubmitSuccess')
+        : t('dashboard.myContent.edit.updateSuccess');
+
       toast.success(message);
       onSuccess();
       onOpenChange(false);
     } catch (error: any) {
       console.error('Update error:', error);
-      toast.error(error.message || 'Failed to update content');
+      toast.error(error.message || t('dashboard.myContent.edit.loadFailed'));
     } finally {
       setIsSubmitting(false);
     }
@@ -127,16 +135,16 @@ export function ContentEditDialog({ content, open, onOpenChange, onSuccess }: Co
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle>Edit Content</DialogTitle>
+          <DialogTitle>{t('dashboard.myContent.edit.title')}</DialogTitle>
           <DialogDescription>
-            {content?.status === 'rejected' 
-              ? 'Make changes and resubmit for review'
-              : 'Update your content details'}
+            {content?.status === 'rejected'
+              ? t('dashboard.myContent.edit.resubmitDesc')
+              : t('dashboard.myContent.edit.updateDesc')}
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="edit-title">Title *</Label>
+            <Label htmlFor="edit-title">{t('dashboard.upload.titleLabel')}</Label>
             <Input
               id="edit-title"
               value={title}
@@ -147,7 +155,7 @@ export function ContentEditDialog({ content, open, onOpenChange, onSuccess }: Co
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="edit-author">Author / Speaker</Label>
+            <Label htmlFor="edit-author">{t('dashboard.upload.authorLabel')}</Label>
             <Input
               id="edit-author"
               value={author}
@@ -157,7 +165,7 @@ export function ContentEditDialog({ content, open, onOpenChange, onSuccess }: Co
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="edit-description">Description</Label>
+            <Label htmlFor="edit-description">{t('dashboard.upload.descLabel')}</Label>
             <Textarea
               id="edit-description"
               value={description}
@@ -168,7 +176,7 @@ export function ContentEditDialog({ content, open, onOpenChange, onSuccess }: Co
           </div>
 
           <div className="space-y-2">
-            <Label>Language</Label>
+            <Label>{t('dashboard.upload.langLabel')}</Label>
             <Select value={language} onValueChange={setLanguage}>
               <SelectTrigger>
                 <SelectValue />
@@ -182,18 +190,18 @@ export function ContentEditDialog({ content, open, onOpenChange, onSuccess }: Co
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="edit-tags">Tags (comma-separated)</Label>
+            <Label htmlFor="edit-tags">{t('dashboard.upload.tagsLabel')}</Label>
             <Input
               id="edit-tags"
               value={tags}
               onChange={(e) => setTags(e.target.value)}
-              placeholder="e.g., Quran, Tafsir, Fiqh"
+              placeholder={t('dashboard.upload.tagsPlaceholder')}
             />
           </div>
 
           <div className="flex gap-2 pt-4">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)} className="flex-1">
-              Cancel
+              {t('common.cancel')}
             </Button>
             <Button type="submit" className="flex-1" disabled={isSubmitting}>
               {isSubmitting ? (
@@ -201,7 +209,7 @@ export function ContentEditDialog({ content, open, onOpenChange, onSuccess }: Co
               ) : (
                 <>
                   <Save className="mr-2 h-4 w-4" />
-                  {content?.status === 'rejected' ? 'Resubmit' : 'Save'}
+                  {content?.status === 'rejected' ? t('dashboard.myContent.edit.resubmit') : t('dashboard.myContent.edit.save')}
                 </>
               )}
             </Button>

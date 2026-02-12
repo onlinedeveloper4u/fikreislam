@@ -4,6 +4,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { useTranslation } from 'react-i18next';
 import { Loader2, Check, X, MessageCircle } from 'lucide-react';
 
 interface PendingAnswer {
@@ -19,6 +20,7 @@ interface PendingAnswer {
 
 export function PendingAnswersList() {
   const { toast } = useToast();
+  const { t } = useTranslation();
   const [answers, setAnswers] = useState<PendingAnswer[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -33,7 +35,6 @@ export function PendingAnswersList() {
 
       if (error) throw error;
 
-      // Fetch associated questions
       if (data && data.length > 0) {
         const questionIds = [...new Set(data.map(a => a.question_id))];
         const { data: questionsData } = await supabase
@@ -70,11 +71,11 @@ export function PendingAnswersList() {
 
       if (error) throw error;
 
-      toast({ title: 'Answer approved', description: 'The answer is now visible.' });
+      toast({ title: t('moderation.answerApproved'), description: t('moderation.answerVisible') });
       fetchPendingAnswers();
     } catch (error) {
       console.error('Error approving answer:', error);
-      toast({ title: 'Error', description: 'Failed to approve answer.', variant: 'destructive' });
+      toast({ title: t('common.error'), description: t('moderation.approveAnswerFailed'), variant: 'destructive' });
     }
   };
 
@@ -87,11 +88,11 @@ export function PendingAnswersList() {
 
       if (error) throw error;
 
-      toast({ title: 'Answer rejected', description: 'The answer has been rejected.' });
+      toast({ title: t('moderation.answerRejected'), description: t('moderation.answerRejectedDesc') });
       fetchPendingAnswers();
     } catch (error) {
       console.error('Error rejecting answer:', error);
-      toast({ title: 'Error', description: 'Failed to reject answer.', variant: 'destructive' });
+      toast({ title: t('common.error'), description: t('moderation.rejectAnswerFailed'), variant: 'destructive' });
     }
   };
 
@@ -108,7 +109,7 @@ export function PendingAnswersList() {
       <Card className="border-border/50">
         <CardContent className="py-8 text-center text-muted-foreground">
           <MessageCircle className="h-10 w-10 mx-auto mb-2 opacity-50" />
-          <p>No pending answers to review.</p>
+          <p>{t('moderation.noPendingAnswers')}</p>
         </CardContent>
       </Card>
     );
@@ -116,15 +117,15 @@ export function PendingAnswersList() {
 
   return (
     <div className="space-y-4">
-      <h3 className="font-semibold text-lg">Pending Answers ({answers.length})</h3>
+      <h3 className="font-semibold text-lg">{t('moderation.pendingAnswers')} ({answers.length})</h3>
       {answers.map(answer => (
         <Card key={answer.id} className="border-border/50">
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
               <CardTitle className="text-sm font-medium">
-                Question: {answer.question?.question || 'Unknown'}
+                {t('moderation.questionLabel')}: {answer.question?.question || t('moderation.unknown')}
               </CardTitle>
-              <Badge variant="outline">{answer.question?.content_type}</Badge>
+              <Badge variant="outline">{t(`dashboard.${answer.question?.content_type === 'book' ? 'books' : answer.question?.content_type}`)}</Badge>
             </div>
           </CardHeader>
           <CardContent className="space-y-3">
@@ -138,11 +139,11 @@ export function PendingAnswersList() {
               <div className="flex gap-2">
                 <Button size="sm" variant="outline" onClick={() => handleReject(answer.id)}>
                   <X className="h-4 w-4 mr-1" />
-                  Reject
+                  {t('moderation.reject')}
                 </Button>
                 <Button size="sm" onClick={() => handleApprove(answer.id)}>
                   <Check className="h-4 w-4 mr-1" />
-                  Approve
+                  {t('moderation.approve')}
                 </Button>
               </div>
             </div>

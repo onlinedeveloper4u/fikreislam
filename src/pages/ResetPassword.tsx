@@ -95,7 +95,7 @@ const ResetPassword = () => {
         <div className="w-full max-w-md mx-4">
           <div className="bg-card border border-border rounded-2xl p-8 shadow-card">
             <div className="text-center mb-8">
-              <img src={logo} alt="Fikr-e-Islam" className="w-14 h-14 object-contain mx-auto mb-4" />
+              <img src={logo} alt="Fikr-e-Islam" className="w-48 h-48 object-contain mx-auto mb-4" />
               <h1 className="font-display text-2xl font-bold text-foreground mb-2">
                 {isSuccess ? "Password Updated" : "Set New Password"}
               </h1>

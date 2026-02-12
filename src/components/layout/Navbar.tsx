@@ -3,7 +3,10 @@ import { Button } from "@/components/ui/button";
 import { Book, Headphones, Video, Menu, X, LogOut, User, Heart, LayoutDashboard, HelpCircle, Settings } from "lucide-react";
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useLanguage } from "@/contexts/LanguageContext";
+import { useTranslation } from "react-i18next";
 import logo from "@/assets/logo.png";
+import { Languages } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -15,6 +18,8 @@ import {
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
   const { user, role, signOut, loading } = useAuth();
+  const { language, toggleLanguage } = useLanguage();
+  const { t } = useTranslation();
   const navigate = useNavigate();
 
   const handleSignOut = async () => {
@@ -23,10 +28,10 @@ const Navbar = () => {
   };
 
   const navLinks = [
-    { name: "Books", href: "/books", icon: Book },
-    { name: "Audio", href: "/audio", icon: Headphones },
-    { name: "Video", href: "/video", icon: Video },
-   { name: "Q&A", href: "/qa", icon: HelpCircle },
+    { name: t("nav.books"), href: "/books", icon: Book },
+    { name: t("nav.audio"), href: "/audio", icon: Headphones },
+    { name: t("nav.video"), href: "/video", icon: Video },
+    { name: t("nav.qa"), href: "/qa", icon: HelpCircle },
   ];
 
   const getRoleBadge = () => {
@@ -38,7 +43,7 @@ const Navbar = () => {
     };
     return (
       <span className={`text-xs px-2 py-0.5 rounded-full capitalize ${colors[role]}`}>
-        {role}
+        {t(`dashboard.${role}`)}
       </span>
     );
   };
@@ -48,9 +53,9 @@ const Navbar = () => {
       <nav className="container mx-auto px-4 h-16 flex items-center justify-between">
         {/* Logo */}
         <Link to="/" className="flex items-center gap-2">
-          <img src={logo} alt="Fikr-e-Islam" className="w-10 h-10 object-contain" />
+          <img src={logo} alt={t("common.brand")} className="w-10 h-10 object-contain" />
           <span className="font-display text-xl font-semibold text-foreground">
-            Fikr-e-Islam
+            {t("common.brand")}
           </span>
         </Link>
 
@@ -68,8 +73,18 @@ const Navbar = () => {
           ))}
         </div>
 
-        {/* Auth Buttons */}
+        {/* Language & Auth Buttons */}
         <div className="hidden md:flex items-center gap-3">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={toggleLanguage}
+            className="flex items-center gap-2 font-medium"
+          >
+            <Languages className="w-4 h-4" />
+            <span>{language === 'en' ? t("common.languages.ur") : t("common.languages.en")}</span>
+          </Button>
+
           {loading ? (
             <div className="w-8 h-8 rounded-full bg-muted animate-pulse" />
           ) : user ? (
@@ -92,37 +107,37 @@ const Navbar = () => {
                 <DropdownMenuItem asChild className="cursor-pointer">
                   <Link to="/library">
                     <Heart className="w-4 h-4 mr-2" />
-                    My Library
+                    {t("nav.library")}
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild className="cursor-pointer">
                   <Link to="/settings">
                     <Settings className="w-4 h-4 mr-2" />
-                    Settings
+                    {t("nav.settings")}
                   </Link>
                 </DropdownMenuItem>
                 {(role === 'contributor' || role === 'admin') && (
                   <DropdownMenuItem asChild className="cursor-pointer">
                     <Link to="/dashboard">
                       <LayoutDashboard className="w-4 h-4 mr-2" />
-                      Dashboard
+                      {t("nav.dashboard")}
                     </Link>
                   </DropdownMenuItem>
                 )}
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={handleSignOut} className="text-destructive cursor-pointer">
                   <LogOut className="w-4 h-4 mr-2" />
-                  Sign out
+                  {t("nav.signOut")}
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           ) : (
             <>
               <Button variant="ghost" asChild>
-                <Link to="/login">Sign In</Link>
+                <Link to="/login">{t("nav.signIn")}</Link>
               </Button>
               <Button variant="hero" asChild>
-                <Link to="/register">Get Started</Link>
+                <Link to="/register">{t("nav.getStarted")}</Link>
               </Button>
             </>
           )}
@@ -161,16 +176,32 @@ const Navbar = () => {
                   </div>
                   <Button variant="outline" onClick={handleSignOut}>
                     <LogOut className="w-4 h-4 mr-2" />
-                    Sign out
+                    {t("nav.signOut")}
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    onClick={toggleLanguage}
+                    className="flex items-center justify-center gap-2 font-medium"
+                  >
+                    <Languages className="w-5 h-5" />
+                    <span>{language === 'en' ? t("common.languages.ur") : t("common.languages.en")}</span>
                   </Button>
                 </>
               ) : (
                 <>
                   <Button variant="outline" asChild>
-                    <Link to="/login">Sign In</Link>
+                    <Link to="/login">{t("nav.signIn")}</Link>
                   </Button>
                   <Button variant="hero" asChild>
-                    <Link to="/register">Get Started</Link>
+                    <Link to="/register">{t("nav.getStarted")}</Link>
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    onClick={toggleLanguage}
+                    className="flex items-center justify-center gap-2 font-medium"
+                  >
+                    <Languages className="w-5 h-5" />
+                    <span>{language === 'en' ? t("common.languages.ur") : t("common.languages.en")}</span>
                   </Button>
                 </>
               )}

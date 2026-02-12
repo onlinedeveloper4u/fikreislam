@@ -17,7 +17,7 @@ const ForgotPassword = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!email) {
       toast({
         title: "Email required",
@@ -53,12 +53,12 @@ const ForgotPassword = () => {
         <div className="w-full max-w-md mx-4">
           <div className="bg-card border border-border rounded-2xl p-8 shadow-card">
             <div className="text-center mb-8">
-              <img src={logo} alt="Fikr-e-Islam" className="w-14 h-14 object-contain mx-auto mb-4" />
+              <img src={logo} alt="Fikr-e-Islam" className="w-48 h-48 object-contain mx-auto mb-4" />
               <h1 className="font-display text-2xl font-bold text-foreground mb-2">
                 Reset Password
               </h1>
               <p className="text-muted-foreground text-sm">
-                {isEmailSent 
+                {isEmailSent
                   ? "Check your email for a reset link"
                   : "Enter your email to receive a reset link"
                 }
@@ -71,12 +71,12 @@ const ForgotPassword = () => {
                   <Mail className="w-8 h-8 text-primary" />
                 </div>
                 <p className="text-sm text-muted-foreground">
-                  We've sent a password reset link to <strong>{email}</strong>. 
+                  We've sent a password reset link to <strong>{email}</strong>.
                   Please check your inbox and follow the instructions.
                 </p>
-                <Button 
-                  variant="outline" 
-                  className="w-full" 
+                <Button
+                  variant="outline"
+                  className="w-full"
                   onClick={() => setIsEmailSent(false)}
                 >
                   Try a different email
@@ -110,8 +110,8 @@ const ForgotPassword = () => {
               </form>
             )}
 
-            <Link 
-              to="/login" 
+            <Link
+              to="/login"
               className="flex items-center justify-center gap-2 text-sm text-muted-foreground hover:text-primary mt-6 transition-colors"
             >
               <ArrowLeft className="w-4 h-4" />

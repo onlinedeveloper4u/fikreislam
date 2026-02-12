@@ -4,16 +4,18 @@ import { ArrowRight, Upload, Sparkles } from "lucide-react";
 import logo from "@/assets/logo.png";
 import { useContentStats } from "@/hooks/useContentStats";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useTranslation } from "react-i18next";
 
 const CallToAction = () => {
   const { data: stats, isLoading } = useContentStats();
+  const { t } = useTranslation();
 
   return (
     <section className="py-24 bg-background relative overflow-hidden">
       {/* Background decorations */}
       <div className="absolute inset-0 islamic-pattern opacity-20" />
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-primary/5 rounded-full blur-3xl" />
-      
+
       <div className="container mx-auto px-4 relative z-10">
         <div className="max-w-5xl mx-auto">
           <div className="grid md:grid-cols-2 gap-8">
@@ -23,23 +25,22 @@ const CallToAction = () => {
               <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent rounded-3xl" />
               <div className="relative p-10 text-primary-foreground">
                 <div className="w-14 h-14 rounded-2xl bg-white/20 flex items-center justify-center mb-6">
-                  <Sparkles className="w-7 h-7" />
+                  <span className="w-7 h-7"><Sparkles /></span>
                 </div>
                 <h3 className="font-display text-2xl md:text-3xl font-bold mb-4">
-                  Begin Your Journey
+                  {t("home.cta.userTitle")}
                 </h3>
                 <p className="opacity-90 mb-8 leading-relaxed text-lg">
-                  Create a free account to access thousands of authentic Islamic resources, 
-                  save your favorites, and build personalized playlists for your learning.
+                  {t("home.cta.userDesc")}
                 </p>
-                <Button 
-                  variant="secondary" 
-                  size="lg" 
+                <Button
+                  variant="secondary"
+                  size="lg"
                   className="group/btn bg-white text-primary hover:bg-white/90 shadow-lg"
                   asChild
                 >
                   <Link to="/register">
-                    Get Started Free
+                    {t("home.cta.getStarted")}
                     <ArrowRight className="w-5 h-5 ml-2 group-hover/btn:translate-x-1 transition-transform" />
                   </Link>
                 </Button>
@@ -55,21 +56,20 @@ const CallToAction = () => {
                   <Upload className="w-7 h-7 text-accent-foreground" />
                 </div>
                 <h3 className="font-display text-2xl md:text-3xl font-bold text-foreground mb-4">
-                  Become a Contributor
+                  {t("home.cta.contributorTitle")}
                 </h3>
                 <p className="text-muted-foreground mb-8 leading-relaxed text-lg">
-                  Share your knowledge with the Ummah. Upload books, lectures, and educational 
-                  content to benefit Muslims worldwide.
+                  {t("home.cta.contributorDesc")}
                 </p>
-                <Button 
-                  variant="outline" 
-                  size="lg" 
+                <Button
+                  variant="outline"
+                  size="lg"
                   className="border-accent/50 hover:bg-accent/10 hover:border-accent"
                   asChild
                 >
                   <Link to="/register">
                     <Upload className="w-5 h-5 mr-2" />
-                    Start Contributing
+                    {t("home.cta.startContributing")}
                   </Link>
                 </Button>
               </div>
@@ -79,11 +79,11 @@ const CallToAction = () => {
           {/* Stats Section */}
           <div className="mt-20 text-center">
             <div className="inline-flex items-center gap-3 mb-8">
-              <img src={logo} alt="Fikr-e-Islam" className="w-10 h-10" />
-              <span className="font-display text-xl font-semibold text-foreground">Fikr-e-Islam</span>
+              <img src={logo} alt={t("common.brand")} className="w-10 h-10" />
+              <span className="font-display text-xl font-semibold text-foreground">{t("common.brand")}</span>
             </div>
             <p className="text-muted-foreground max-w-xl mx-auto mb-10">
-              Join thousands of Muslims worldwide in their pursuit of Islamic knowledge
+              {t("home.cta.joinThousands")}
             </p>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
               <div className="text-center">
@@ -94,7 +94,7 @@ const CallToAction = () => {
                     {stats?.books || 0}
                   </div>
                 )}
-                <div className="text-muted-foreground text-sm">Islamic Books</div>
+                <div className="text-muted-foreground text-sm">{t("home.cta.islamicBooks")}</div>
               </div>
               <div className="text-center">
                 {isLoading ? (
@@ -104,7 +104,7 @@ const CallToAction = () => {
                     {stats?.audio || 0}
                   </div>
                 )}
-                <div className="text-muted-foreground text-sm">Audio Lectures</div>
+                <div className="text-muted-foreground text-sm">{t("home.cta.audioLectures")}</div>
               </div>
               <div className="text-center">
                 {isLoading ? (
@@ -114,7 +114,7 @@ const CallToAction = () => {
                     {stats?.video || 0}
                   </div>
                 )}
-                <div className="text-muted-foreground text-sm">Video Content</div>
+                <div className="text-muted-foreground text-sm">{t("home.cta.videoContent")}</div>
               </div>
               <div className="text-center">
                 {isLoading ? (
@@ -124,7 +124,7 @@ const CallToAction = () => {
                     {stats?.contributors || 0}
                   </div>
                 )}
-                <div className="text-muted-foreground text-sm">Contributors</div>
+                <div className="text-muted-foreground text-sm">{t("home.cta.contributors")}</div>
               </div>
             </div>
           </div>

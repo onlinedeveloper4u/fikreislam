@@ -1,14 +1,16 @@
 import Layout from "@/components/layout/Layout";
 import { ContentBrowser } from "@/components/content/ContentBrowser";
+import { useTranslation } from "react-i18next";
 
 const Books = () => {
+  const { t } = useTranslation();
   return (
     <Layout>
-       <div className="container mx-auto px-4 py-8">
-        <ContentBrowser 
+      <div className="container mx-auto px-4 py-8">
+        <ContentBrowser
           contentType="book"
-          title="Books Library"
-          description="Browse our collection of Islamic books and PDFs"
+          title={t('content.browser.booksLibrary')}
+          description={t('content.browser.booksDesc')}
         />
       </div>
     </Layout>

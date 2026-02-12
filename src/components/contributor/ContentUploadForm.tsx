@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -10,37 +10,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { toast } from 'sonner';
 import { Upload, FileText, Music, Video, Loader2 } from 'lucide-react';
 import { z } from 'zod';
+import { useTranslation } from 'react-i18next';
 
 type ContentType = 'book' | 'audio' | 'video';
 
 const LANGUAGES = ['English', 'Arabic', 'Urdu', 'Turkish', 'Malay', 'Indonesian', 'French', 'Spanish'];
-
-// Validation schema for content upload
-const contentSchema = z.object({
-  title: z.string()
-    .trim()
-    .min(1, 'Title is required')
-    .max(200, 'Title must be less than 200 characters'),
-  description: z.string()
-    .trim()
-    .max(2000, 'Description must be less than 2000 characters')
-    .optional()
-    .transform(val => val || ''),
-  author: z.string()
-    .trim()
-    .max(200, 'Author name must be less than 200 characters')
-    .optional()
-    .transform(val => val || ''),
-  language: z.enum(['English', 'Arabic', 'Urdu', 'Turkish', 'Malay', 'Indonesian', 'French', 'Spanish']),
-  tags: z.string()
-    .transform(val => 
-      val.split(',')
-        .map(t => t.trim().slice(0, 50)) // Limit each tag to 50 chars
-        .filter(Boolean)
-        .slice(0, 20) // Max 20 tags
-    ),
-  contentType: z.enum(['book', 'audio', 'video']),
-});
 
 // File type validation
 const ALLOWED_FILE_TYPES: Record<ContentType, string[]> = {
@@ -54,53 +28,6 @@ const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp
 const MAX_FILE_SIZE = 500 * 1024 * 1024; // 500MB
 const MAX_IMAGE_SIZE = 10 * 1024 * 1024; // 10MB
 
-function validateFile(file: File, contentType: ContentType): string | null {
-  if (file.size > MAX_FILE_SIZE) {
-    return 'File size must be less than 500MB';
-  }
-  
-  const allowedTypes = ALLOWED_FILE_TYPES[contentType];
-  if (!allowedTypes.includes(file.type)) {
-    return `Invalid file type. Allowed types for ${contentType}: ${getAcceptedFileTypesStatic(contentType)}`;
-  }
-  
-  // Additional MIME type validation - check file extension matches MIME type
-  const extension = file.name.split('.').pop()?.toLowerCase();
-  const mimeTypeExtensionMap: Record<string, string[]> = {
-    'application/pdf': ['pdf'],
-    'application/epub+zip': ['epub'],
-    'application/msword': ['doc'],
-    'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['docx'],
-    'audio/mpeg': ['mp3'],
-    'audio/wav': ['wav'],
-    'audio/ogg': ['ogg'],
-    'audio/mp4': ['m4a', 'mp4'],
-    'audio/x-m4a': ['m4a'],
-    'video/mp4': ['mp4'],
-    'video/webm': ['webm'],
-    'video/quicktime': ['mov'],
-  };
-  
-  const expectedExtensions = mimeTypeExtensionMap[file.type];
-  if (expectedExtensions && extension && !expectedExtensions.includes(extension)) {
-    return `File extension (.${extension}) does not match file type. This could indicate a tampered file.`;
-  }
-  
-  return null;
-}
-
-function validateImage(file: File): string | null {
-  if (file.size > MAX_IMAGE_SIZE) {
-    return 'Cover image must be less than 10MB';
-  }
-  
-  if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
-    return 'Invalid image type. Allowed: JPEG, PNG, GIF, WebP';
-  }
-  
-  return null;
-}
-
 function getAcceptedFileTypesStatic(type: ContentType): string {
   switch (type) {
     case 'book': return '.pdf,.epub,.doc,.docx';
@@ -112,6 +39,7 @@ function getAcceptedFileTypesStatic(type: ContentType): string {
 
 export function ContentUploadForm() {
   const { user, role } = useAuth();
+  const { t } = useTranslation();
   const isAdmin = role === 'admin';
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [contentType, setContentType] = useState<ContentType>('book');
@@ -122,6 +50,80 @@ export function ContentUploadForm() {
   const [tags, setTags] = useState('');
   const [file, setFile] = useState<File | null>(null);
   const [coverImage, setCoverImage] = useState<File | null>(null);
+
+  // Validation schema for content upload
+  const contentSchema = useMemo(() => z.object({
+    title: z.string()
+      .trim()
+      .min(1, t('dashboard.upload.validation.titleRequired'))
+      .max(200, t('dashboard.upload.validation.titleTooLong')),
+    description: z.string()
+      .trim()
+      .max(2000, t('dashboard.upload.validation.descTooLong'))
+      .optional()
+      .transform(val => val || ''),
+    author: z.string()
+      .trim()
+      .max(200, t('dashboard.upload.validation.authorTooLong'))
+      .optional()
+      .transform(val => val || ''),
+    language: z.enum(['English', 'Arabic', 'Urdu', 'Turkish', 'Malay', 'Indonesian', 'French', 'Spanish']),
+    tags: z.string()
+      .transform(val =>
+        val.split(',')
+          .map(t => t.trim().slice(0, 50)) // Limit each tag to 50 chars
+          .filter(Boolean)
+          .slice(0, 20) // Max 20 tags
+      ),
+    contentType: z.enum(['book', 'audio', 'video']),
+  }), [t]);
+
+  function validateFile(file: File, contentType: ContentType): string | null {
+    if (file.size > MAX_FILE_SIZE) {
+      return t('dashboard.upload.errorFileTooLarge');
+    }
+
+    const allowedTypes = ALLOWED_FILE_TYPES[contentType];
+    if (!allowedTypes.includes(file.type)) {
+      return t('dashboard.upload.errorInvalidType', { type: contentType, allowed: getAcceptedFileTypesStatic(contentType) });
+    }
+
+    // Additional MIME type validation - check file extension matches MIME type
+    const extension = file.name.split('.').pop()?.toLowerCase();
+    const mimeTypeExtensionMap: Record<string, string[]> = {
+      'application/pdf': ['pdf'],
+      'application/epub+zip': ['epub'],
+      'application/msword': ['doc'],
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['docx'],
+      'audio/mpeg': ['mp3'],
+      'audio/wav': ['wav'],
+      'audio/ogg': ['ogg'],
+      'audio/mp4': ['m4a', 'mp4'],
+      'audio/x-m4a': ['m4a'],
+      'video/mp4': ['mp4'],
+      'video/webm': ['webm'],
+      'video/quicktime': ['mov'],
+    };
+
+    const expectedExtensions = mimeTypeExtensionMap[file.type];
+    if (expectedExtensions && extension && !expectedExtensions.includes(extension)) {
+      return t('common.error'); // Fallback to a general error if literal matching is too complex for UI localization right now
+    }
+
+    return null;
+  }
+
+  function validateImage(file: File): string | null {
+    if (file.size > MAX_IMAGE_SIZE) {
+      return t('dashboard.upload.errorImageTooLarge');
+    }
+
+    if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
+      return t('dashboard.upload.errorInvalidImage');
+    }
+
+    return null;
+  }
 
   const getAcceptedFileTypes = () => getAcceptedFileTypesStatic(contentType);
 
@@ -135,14 +137,14 @@ export function ContentUploadForm() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!user) {
-      toast.error('You must be logged in to upload content');
+      toast.error(t('dashboard.upload.errorLogin'));
       return;
     }
 
     if (!file) {
-      toast.error('Please select a file to upload');
+      toast.error(t('dashboard.upload.errorNoFile'));
       return;
     }
 
@@ -185,7 +187,7 @@ export function ContentUploadForm() {
       // Upload main file with sanitized path
       const fileExt = file.name.split('.').pop()?.toLowerCase().replace(/[^a-z0-9]/g, '') || 'bin';
       const filePath = `${user.id}/${contentType}/${Date.now()}.${fileExt}`;
-      
+
       const { error: uploadError } = await supabase.storage
         .from('content-files')
         .upload(filePath, file);
@@ -193,7 +195,6 @@ export function ContentUploadForm() {
       if (uploadError) throw uploadError;
 
       // Store just the file path, not the full URL
-      // Signed URLs will be generated dynamically when accessing the file
       const fileUrlPath = filePath;
 
       // Upload cover image if provided
@@ -201,7 +202,7 @@ export function ContentUploadForm() {
       if (coverImage) {
         const coverExt = coverImage.name.split('.').pop()?.toLowerCase().replace(/[^a-z0-9]/g, '') || 'jpg';
         const coverPath = `${user.id}/covers/${Date.now()}.${coverExt}`;
-        
+
         const { error: coverError } = await supabase.storage
           .from('content-files')
           .upload(coverPath, coverImage);
@@ -213,7 +214,6 @@ export function ContentUploadForm() {
       }
 
       // Insert content record with validated data
-      // Admins get auto-approved, contributors need review
       const { error: insertError } = await supabase
         .from('content')
         .insert({
@@ -232,10 +232,10 @@ export function ContentUploadForm() {
 
       if (insertError) throw insertError;
 
-      toast.success(isAdmin 
-        ? 'Content uploaded and published successfully!' 
-        : 'Content uploaded successfully! It will be reviewed by an admin.');
-      
+      toast.success(isAdmin
+        ? t('dashboard.upload.successAdmin')
+        : t('dashboard.upload.successContributor'));
+
       // Reset form
       setTitle('');
       setDescription('');
@@ -244,10 +244,10 @@ export function ContentUploadForm() {
       setTags('');
       setFile(null);
       setCoverImage(null);
-      
+
     } catch (error: any) {
       console.error('Upload error:', error);
-      toast.error(error.message || 'Failed to upload content');
+      toast.error(error.message || t('common.error'));
     } finally {
       setIsSubmitting(false);
     }
@@ -258,19 +258,19 @@ export function ContentUploadForm() {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Upload className="h-5 w-5 text-primary" />
-          Upload New Content
+          {t('dashboard.upload.title')}
         </CardTitle>
         <CardDescription>
-          {isAdmin 
-            ? 'Upload content directly. Your uploads will be published immediately.'
-            : 'Submit your content for review. Once approved by an admin, it will be published.'}
+          {isAdmin
+            ? t('dashboard.upload.adminDesc')
+            : t('dashboard.upload.contributorDesc')}
         </CardDescription>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Content Type Selection */}
           <div className="space-y-2">
-            <Label>Content Type</Label>
+            <Label>{t('dashboard.upload.typeLabel')}</Label>
             <div className="flex gap-2">
               {(['book', 'audio', 'video'] as ContentType[]).map((type) => (
                 <Button
@@ -283,7 +283,7 @@ export function ContentUploadForm() {
                   {type === 'book' && <FileText className="mr-2 h-4 w-4" />}
                   {type === 'audio' && <Music className="mr-2 h-4 w-4" />}
                   {type === 'video' && <Video className="mr-2 h-4 w-4" />}
-                  {type}
+                  {t(`nav.${type === 'book' ? 'books' : type}`)}
                 </Button>
               ))}
             </div>
@@ -291,12 +291,12 @@ export function ContentUploadForm() {
 
           {/* Title */}
           <div className="space-y-2">
-            <Label htmlFor="title">Title * <span className="text-xs text-muted-foreground">(max 200 chars)</span></Label>
+            <Label htmlFor="title">{t('dashboard.upload.titleLabel')} <span className="text-xs text-muted-foreground">{t('dashboard.upload.titleHint')}</span></Label>
             <Input
               id="title"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="Enter content title"
+              placeholder={t('dashboard.upload.titlePlaceholder')}
               maxLength={200}
               required
             />
@@ -304,24 +304,24 @@ export function ContentUploadForm() {
 
           {/* Author */}
           <div className="space-y-2">
-            <Label htmlFor="author">Author / Speaker <span className="text-xs text-muted-foreground">(max 200 chars)</span></Label>
+            <Label htmlFor="author">{t('dashboard.upload.authorLabel')} <span className="text-xs text-muted-foreground">{t('dashboard.upload.titleHint')}</span></Label>
             <Input
               id="author"
               value={author}
               onChange={(e) => setAuthor(e.target.value)}
-              placeholder="Enter author or speaker name"
+              placeholder={t('dashboard.upload.authorPlaceholder')}
               maxLength={200}
             />
           </div>
 
           {/* Description */}
           <div className="space-y-2">
-            <Label htmlFor="description">Description <span className="text-xs text-muted-foreground">(max 2000 chars)</span></Label>
+            <Label htmlFor="description">{t('dashboard.upload.descLabel')} <span className="text-xs text-muted-foreground">{t('dashboard.upload.descHint')}</span></Label>
             <Textarea
               id="description"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="Describe the content..."
+              placeholder={t('dashboard.upload.descPlaceholder')}
               rows={4}
               maxLength={2000}
             />
@@ -329,14 +329,14 @@ export function ContentUploadForm() {
 
           {/* Language */}
           <div className="space-y-2">
-            <Label>Language</Label>
+            <Label>{t('dashboard.upload.langLabel')}</Label>
             <Select value={language} onValueChange={setLanguage}>
               <SelectTrigger>
-                <SelectValue placeholder="Select language" />
+                <SelectValue placeholder={t('dashboard.upload.langPlaceholder')} />
               </SelectTrigger>
               <SelectContent>
                 {LANGUAGES.map((lang) => (
-                  <SelectItem key={lang} value={lang}>{lang}</SelectItem>
+                  <SelectItem key={lang} value={lang}>{t(`common.languages.${lang}`)}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -344,18 +344,18 @@ export function ContentUploadForm() {
 
           {/* Tags */}
           <div className="space-y-2">
-            <Label htmlFor="tags">Tags (comma-separated) <span className="text-xs text-muted-foreground">(max 20 tags)</span></Label>
+            <Label htmlFor="tags">{t('dashboard.upload.tagsLabel')} <span className="text-xs text-muted-foreground">{t('dashboard.upload.tagsHint')}</span></Label>
             <Input
               id="tags"
               value={tags}
               onChange={(e) => setTags(e.target.value)}
-              placeholder="e.g., Quran, Tafsir, Fiqh"
+              placeholder={t('dashboard.upload.tagsPlaceholder')}
             />
           </div>
 
           {/* File Upload */}
           <div className="space-y-2">
-            <Label htmlFor="file">Content File * <span className="text-xs text-muted-foreground">(max 500MB)</span></Label>
+            <Label htmlFor="file">{t('dashboard.upload.fileLabel')} <span className="text-xs text-muted-foreground">{t('dashboard.upload.fileHint')}</span></Label>
             <div className="border-2 border-dashed border-border rounded-lg p-6 text-center hover:border-primary/50 transition-colors">
               <input
                 id="file"
@@ -368,10 +368,10 @@ export function ContentUploadForm() {
                 <div className="flex flex-col items-center gap-2">
                   {getContentIcon()}
                   <span className="text-sm text-muted-foreground">
-                    {file ? file.name : `Click to upload ${contentType} file`}
+                    {file ? file.name : t('dashboard.upload.clickToUpload', { type: t(`nav.${contentType === 'book' ? 'books' : contentType}`).toLowerCase() })}
                   </span>
                   <span className="text-xs text-muted-foreground">
-                    Accepted: {getAcceptedFileTypes()}
+                    {t('dashboard.upload.accepted', { types: getAcceptedFileTypes() })}
                   </span>
                 </div>
               </label>
@@ -380,7 +380,7 @@ export function ContentUploadForm() {
 
           {/* Cover Image */}
           <div className="space-y-2">
-            <Label htmlFor="cover">Cover Image (optional) <span className="text-xs text-muted-foreground">(max 10MB)</span></Label>
+            <Label htmlFor="cover">{t('dashboard.upload.coverLabel')} <span className="text-xs text-muted-foreground">{t('dashboard.upload.coverHint')}</span></Label>
             <div className="border-2 border-dashed border-border rounded-lg p-6 text-center hover:border-primary/50 transition-colors">
               <input
                 id="cover"
@@ -393,7 +393,7 @@ export function ContentUploadForm() {
                 <div className="flex flex-col items-center gap-2">
                   <Upload className="h-5 w-5" />
                   <span className="text-sm text-muted-foreground">
-                    {coverImage ? coverImage.name : 'Click to upload cover image'}
+                    {coverImage ? coverImage.name : t('dashboard.upload.coverPlaceholder')}
                   </span>
                 </div>
               </label>
@@ -404,12 +404,12 @@ export function ContentUploadForm() {
             {isSubmitting ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Uploading...
+                {t('dashboard.upload.uploading')}
               </>
             ) : (
               <>
                 <Upload className="mr-2 h-4 w-4" />
-                {isAdmin ? 'Upload & Publish' : 'Submit for Review'}
+                {isAdmin ? t('dashboard.upload.submitAdmin') : t('dashboard.upload.submitContributor')}
               </>
             )}
           </Button>

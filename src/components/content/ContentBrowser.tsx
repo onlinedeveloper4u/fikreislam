@@ -10,10 +10,12 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { AddToPlaylistDialog } from './AddToPlaylistDialog';
-import { 
-  Search, Download, Play, FileText, Music, Video, 
+import { useTranslation } from 'react-i18next';
+import {
+  Search, Download, Play, FileText, Music, Video,
   Loader2, Filter, X, User, Calendar, Heart, ListPlus
 } from 'lucide-react';
+
 type ContentType = 'book' | 'audio' | 'video';
 
 interface Content {
@@ -42,16 +44,11 @@ interface ContentBrowserProps {
 
 const LANGUAGES = ['All', 'English', 'Arabic', 'Urdu', 'Turkish', 'Malay', 'Indonesian', 'French', 'Spanish'];
 
-const typeConfig: Record<ContentType, { icon: React.ElementType; actionLabel: string; actionIcon: React.ElementType }> = {
-  book: { icon: FileText, actionLabel: 'Download', actionIcon: Download },
-  audio: { icon: Music, actionLabel: 'Play', actionIcon: Play },
-  video: { icon: Video, actionLabel: 'Watch', actionIcon: Play },
-};
-
 export function ContentBrowser({ contentType, title, description }: ContentBrowserProps) {
   const { user } = useAuth();
   const { isFavorite, toggleFavorite } = useFavorites();
   const { trackDownload, trackPlay } = useAnalytics();
+  const { t } = useTranslation();
   const [content, setContent] = useState<ContentWithSignedUrls[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -59,6 +56,12 @@ export function ContentBrowser({ contentType, title, description }: ContentBrows
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
   const [playlistDialogOpen, setPlaylistDialogOpen] = useState(false);
   const [selectedContentId, setSelectedContentId] = useState<string | null>(null);
+
+  const typeConfig: Record<ContentType, { icon: React.ElementType; actionLabel: string; actionIcon: React.ElementType }> = {
+    book: { icon: FileText, actionLabel: t('content.browser.download'), actionIcon: Download },
+    audio: { icon: Music, actionLabel: t('content.browser.play'), actionIcon: Play },
+    video: { icon: Video, actionLabel: t('content.browser.watch'), actionIcon: Play },
+  };
 
   const config = typeConfig[contentType];
   const TypeIcon = config.icon;
@@ -70,7 +73,6 @@ export function ContentBrowser({ contentType, title, description }: ContentBrows
   const fetchContent = async () => {
     setLoading(true);
     try {
-      // Use content_public view to avoid exposing sensitive fields (admin_notes, contributor_id)
       const { data, error } = await supabase
         .from('content_public')
         .select('id, title, description, author, type, language, tags, file_url, cover_image_url, published_at')
@@ -78,8 +80,7 @@ export function ContentBrowser({ contentType, title, description }: ContentBrows
         .order('published_at', { ascending: false });
 
       if (error) throw error;
-      
-      // Generate signed URLs for all content
+
       const contentWithSignedUrls = await Promise.all(
         ((data as Content[]) || []).map(async (item) => {
           const [signedFileUrl, signedCoverUrl] = await Promise.all([
@@ -93,7 +94,7 @@ export function ContentBrowser({ contentType, title, description }: ContentBrows
           };
         })
       );
-      
+
       setContent(contentWithSignedUrls);
     } catch (error) {
       console.error('Error fetching content:', error);
@@ -102,7 +103,6 @@ export function ContentBrowser({ contentType, title, description }: ContentBrows
     }
   };
 
-  // Extract all unique tags from content
   const allTags = useMemo(() => {
     const tags = new Set<string>();
     content.forEach(item => {
@@ -111,16 +111,14 @@ export function ContentBrowser({ contentType, title, description }: ContentBrows
     return Array.from(tags).sort();
   }, [content]);
 
-  // Filter content based on search, language, and tags
   const filteredContent = useMemo(() => {
     return content.filter(item => {
-      const matchesSearch = !searchQuery || 
+      const matchesSearch = !searchQuery ||
         item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
         item.author?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         item.description?.toLowerCase().includes(searchQuery.toLowerCase());
-      
+
       const matchesLanguage = selectedLanguage === 'All' || item.language === selectedLanguage;
-      
       const matchesTag = !selectedTag || item.tags?.includes(selectedTag);
 
       return matchesSearch && matchesLanguage && matchesTag;
@@ -130,7 +128,6 @@ export function ContentBrowser({ contentType, title, description }: ContentBrows
   const handleAction = (item: ContentWithSignedUrls) => {
     const fileUrl = item.signed_file_url || item.file_url;
     if (fileUrl) {
-      // Track the action
       if (item.type === 'book') {
         trackDownload(item.id);
       } else {
@@ -141,9 +138,7 @@ export function ContentBrowser({ contentType, title, description }: ContentBrows
   };
 
   const handleAddToPlaylist = (contentId: string) => {
-    if (!user) {
-      return;
-    }
+    if (!user) return;
     setSelectedContentId(contentId);
     setPlaylistDialogOpen(true);
   };
@@ -164,6 +159,20 @@ export function ContentBrowser({ contentType, title, description }: ContentBrows
     );
   }
 
+  const LANGUAGE_MAP: Record<string, string> = {
+    'All': 'all',
+    'English': 'en',
+    'Arabic': 'ar',
+    'Urdu': 'ur',
+    'Turkish': 'tr',
+    'Malay': 'ms',
+    'Indonesian': 'id',
+    'French': 'fr',
+    'Spanish': 'es'
+  };
+
+  const LANGUAGES = ['All', 'English', 'Arabic', 'Urdu', 'Turkish', 'Malay', 'Indonesian', 'French', 'Spanish'];
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -180,20 +189,22 @@ export function ContentBrowser({ contentType, title, description }: ContentBrows
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Search by title, author, or description..."
+            placeholder={t('content.browser.searchPlaceholder')}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="pl-10"
           />
         </div>
-        
+
         <Select value={selectedLanguage} onValueChange={setSelectedLanguage}>
           <SelectTrigger className="w-full sm:w-40">
-            <SelectValue placeholder="Language" />
+            <SelectValue placeholder={t('content.browser.language')} />
           </SelectTrigger>
           <SelectContent>
             {LANGUAGES.map(lang => (
-              <SelectItem key={lang} value={lang}>{lang}</SelectItem>
+              <SelectItem key={lang} value={lang}>
+                {t(`common.languages.${LANGUAGE_MAP[lang]}`)}
+              </SelectItem>
             ))}
           </SelectContent>
         </Select>
@@ -201,10 +212,10 @@ export function ContentBrowser({ contentType, title, description }: ContentBrows
         {allTags.length > 0 && (
           <Select value={selectedTag || '_all'} onValueChange={(v) => setSelectedTag(v === '_all' ? null : v)}>
             <SelectTrigger className="w-full sm:w-40">
-              <SelectValue placeholder="All Tags" />
+              <SelectValue placeholder={t('content.browser.allTags')} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="_all">All Tags</SelectItem>
+              <SelectItem value="_all">{t('content.browser.allTags')}</SelectItem>
               {allTags.map(tag => (
                 <SelectItem key={tag} value={tag}>{tag}</SelectItem>
               ))}
@@ -222,11 +233,11 @@ export function ContentBrowser({ contentType, title, description }: ContentBrows
       {/* Results Count */}
       <div className="flex items-center justify-between text-sm text-muted-foreground">
         <span>
-          {filteredContent.length} {filteredContent.length === 1 ? 'item' : 'items'} found
+          {t('content.browser.itemsFoundCount', { count: filteredContent.length })}
         </span>
         {hasActiveFilters && (
           <Button variant="link" size="sm" onClick={clearFilters} className="h-auto p-0">
-            Clear filters
+            {t('content.browser.clearFilters')}
           </Button>
         )}
       </div>
@@ -235,25 +246,25 @@ export function ContentBrowser({ contentType, title, description }: ContentBrows
       {filteredContent.length === 0 ? (
         <div className="text-center py-16">
           <Filter className="h-12 w-12 mx-auto text-muted-foreground/50 mb-4" />
-          <h3 className="text-lg font-medium text-foreground mb-2">No content found</h3>
+          <h3 className="text-lg font-medium text-foreground mb-2">{t('content.browser.noContentFound')}</h3>
           <p className="text-sm text-muted-foreground">
-            {content.length === 0 
-              ? 'No approved content available yet' 
-              : 'Try adjusting your search or filters'}
+            {content.length === 0
+              ? t('content.browser.noApprovedContent')
+              : t('content.browser.adjustSearch')}
           </p>
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {filteredContent.map((item) => (
-            <Card 
-              key={item.id} 
+            <Card
+              key={item.id}
               className="border-border/50 bg-card/50 hover:bg-card/80 transition-colors overflow-hidden group"
             >
               {/* Cover Image */}
               <div className="aspect-[3/4] relative bg-muted">
                 {item.signed_cover_url || item.cover_image_url ? (
-                  <img 
-                    src={item.signed_cover_url || item.cover_image_url || ''} 
+                  <img
+                    src={item.signed_cover_url || item.cover_image_url || ''}
                     alt={item.title}
                     className="w-full h-full object-cover"
                   />
@@ -262,7 +273,6 @@ export function ContentBrowser({ contentType, title, description }: ContentBrows
                     <TypeIcon className="h-16 w-16 text-muted-foreground/30" />
                   </div>
                 )}
-                {/* Action buttons */}
                 {user && (
                   <div className="absolute top-2 right-2 flex flex-col gap-1">
                     <Button
@@ -289,7 +299,6 @@ export function ContentBrowser({ contentType, title, description }: ContentBrows
                     </Button>
                   </div>
                 )}
-                {/* Overlay with action button */}
                 <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                   <Button onClick={() => handleAction(item)} size="lg">
                     <config.actionIcon className="h-5 w-5 mr-2" />
@@ -300,7 +309,7 @@ export function ContentBrowser({ contentType, title, description }: ContentBrows
 
               <CardContent className="p-4 space-y-2">
                 <h3 className="font-semibold text-foreground line-clamp-2">{item.title}</h3>
-                
+
                 {item.author && (
                   <p className="text-sm text-muted-foreground flex items-center gap-1">
                     <User className="h-3 w-3" />
@@ -321,9 +330,9 @@ export function ContentBrowser({ contentType, title, description }: ContentBrows
                     </Badge>
                   )}
                   {item.tags?.slice(0, 2).map((tag, i) => (
-                    <Badge 
-                      key={i} 
-                      variant="outline" 
+                    <Badge
+                      key={i}
+                      variant="outline"
                       className="text-xs cursor-pointer hover:bg-primary/10"
                       onClick={() => setSelectedTag(tag)}
                     >
@@ -344,7 +353,6 @@ export function ContentBrowser({ contentType, title, description }: ContentBrows
         </div>
       )}
 
-      {/* Add to Playlist Dialog */}
       {selectedContentId && (
         <AddToPlaylistDialog
           contentId={selectedContentId}

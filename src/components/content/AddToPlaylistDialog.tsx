@@ -11,6 +11,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { ListMusic, Plus, Loader2 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 interface AddToPlaylistDialogProps {
   contentId: string;
@@ -30,7 +31,7 @@ export function AddToPlaylistDialog({ contentId, open, onOpenChange }: AddToPlay
 
   const handleCreateAndAdd = async () => {
     if (!newPlaylistName.trim()) return;
-    
+
     setIsCreating(true);
     const playlist = await createPlaylist(newPlaylistName.trim());
     if (playlist) {
@@ -41,32 +42,34 @@ export function AddToPlaylistDialog({ contentId, open, onOpenChange }: AddToPlay
     setIsCreating(false);
   };
 
+  const { t } = useTranslation();
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[400px]">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <ListMusic className="h-5 w-5" />
-            Add to Playlist
+            {t('library.playlists.addTitle')}
           </DialogTitle>
           <DialogDescription>
-            Choose an existing playlist or create a new one
+            {t('library.playlists.addDesc')}
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4">
           {/* Create new playlist */}
           <div className="space-y-2">
-            <Label>Create new playlist</Label>
+            <Label>{t('library.playlists.createLabel')}</Label>
             <div className="flex gap-2">
               <Input
-                placeholder="Playlist name"
+                placeholder={t('library.playlists.namePlaceholder')}
                 value={newPlaylistName}
                 onChange={(e) => setNewPlaylistName(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleCreateAndAdd()}
               />
-              <Button 
-                onClick={handleCreateAndAdd} 
+              <Button
+                onClick={handleCreateAndAdd}
                 disabled={!newPlaylistName.trim() || isCreating}
                 size="icon"
               >
@@ -86,7 +89,7 @@ export function AddToPlaylistDialog({ contentId, open, onOpenChange }: AddToPlay
             </div>
           ) : playlists.length > 0 ? (
             <div className="space-y-2">
-              <Label>Your playlists</Label>
+              <Label>{t('library.playlists.listLabel')}</Label>
               <div className="max-h-48 overflow-y-auto space-y-2">
                 {playlists.map((playlist) => (
                   <button
@@ -97,7 +100,7 @@ export function AddToPlaylistDialog({ contentId, open, onOpenChange }: AddToPlay
                     <div>
                       <p className="font-medium">{playlist.name}</p>
                       <p className="text-xs text-muted-foreground">
-                        {playlist.item_count} {playlist.item_count === 1 ? 'item' : 'items'}
+                        {t('library.playlists.itemCount', { count: playlist.item_count })}
                       </p>
                     </div>
                     <Plus className="h-4 w-4 text-muted-foreground" />
@@ -107,7 +110,7 @@ export function AddToPlaylistDialog({ contentId, open, onOpenChange }: AddToPlay
             </div>
           ) : (
             <p className="text-sm text-muted-foreground text-center py-4">
-              No playlists yet. Create one above!
+              {t('library.playlists.noPlaylists')}
             </p>
           )}
         </div>

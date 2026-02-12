@@ -5,8 +5,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/contexts/AuthContext";
+import { useLanguage } from "@/contexts/LanguageContext";
+import { useTranslation } from "react-i18next";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2 } from "lucide-react";
+import { Loader2, Languages } from "lucide-react";
 import logo from "@/assets/logo.png";
 
 const Login = () => {
@@ -14,6 +16,8 @@ const Login = () => {
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const { signIn } = useAuth();
+  const { language, toggleLanguage } = useLanguage();
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -22,8 +26,8 @@ const Login = () => {
 
     if (!email || !password) {
       toast({
-        title: "Missing fields",
-        description: "Please fill in all fields",
+        title: t("auth.missingFields"),
+        description: t("auth.fillAllFields"),
         variant: "destructive",
       });
       return;
@@ -36,13 +40,13 @@ const Login = () => {
     if (error) {
       let description = error.message;
       if (error.message === "Invalid login credentials") {
-        description = "Invalid email or password. Please try again.";
+        description = t("auth.invalidCredentials");
       } else if (error.message.includes("Email not confirmed")) {
-        description = "Please confirm your email address before signing in. Check your inbox for a verification link.";
+        description = t("auth.emailNotConfirmed");
       }
 
       toast({
-        title: "Login failed",
+        title: t("auth.loginFailed"),
         description,
         variant: "destructive",
       });
@@ -51,8 +55,8 @@ const Login = () => {
     }
 
     toast({
-      title: "Welcome back!",
-      description: "You have successfully signed in.",
+      title: t("auth.welcomeBackToast"),
+      description: t("auth.signedInSuccess"),
     });
 
     navigate("/");
@@ -60,22 +64,34 @@ const Login = () => {
 
   return (
     <Layout>
-      <div className="min-h-[80vh] flex items-center justify-center py-12">
+      <div className="min-h-[80vh] flex items-center justify-center py-12 relative font-urdu-aware">
+        <div className="absolute top-4 right-4 md:top-8 md:right-8">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={toggleLanguage}
+            className="flex items-center gap-2 font-medium"
+          >
+            <Languages className="w-4 h-4" />
+            <span>{language === 'en' ? 'اردو' : 'English'}</span>
+          </Button>
+        </div>
+
         <div className="w-full max-w-md mx-4">
           <div className="bg-card border border-border rounded-2xl p-8 shadow-card">
             <div className="text-center mb-8">
-              <img src={logo} alt="Fikr-e-Islam" className="w-14 h-14 object-contain mx-auto mb-4" />
+              <img src={logo} alt="Fikr-e-Islam" className="w-48 h-48 object-contain mx-auto mb-4" />
               <h1 className="font-display text-2xl font-bold text-foreground mb-2">
-                Welcome Back
+                {t("auth.welcomeBack")}
               </h1>
               <p className="text-muted-foreground text-sm">
-                Sign in to continue your journey
+                {t("auth.signInToContinue")}
               </p>
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
+                <Label htmlFor="email">{t("auth.email")}</Label>
                 <Input
                   id="email"
                   type="email"
@@ -89,12 +105,12 @@ const Login = () => {
 
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <Label htmlFor="password">Password</Label>
+                  <Label htmlFor="password">{t("auth.password")}</Label>
                   <Link
                     to="/forgot-password"
                     className="text-xs text-primary hover:underline"
                   >
-                    Forgot password?
+                    {t("auth.forgotPassword")}
                   </Link>
                 </div>
                 <Input
@@ -112,18 +128,18 @@ const Login = () => {
                 {isLoading ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Signing in...
+                    {t("auth.signingIn")}
                   </>
                 ) : (
-                  "Sign In"
+                  t("auth.signIn")
                 )}
               </Button>
             </form>
 
             <p className="text-center text-sm text-muted-foreground mt-6">
-              Don't have an account?{" "}
+              {t("auth.noAccount")}{" "}
               <Link to="/register" className="text-primary hover:underline font-medium">
-                Create one
+                {t("auth.createOne")}
               </Link>
             </p>
           </div>

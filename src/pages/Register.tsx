@@ -5,8 +5,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/contexts/AuthContext";
+import { useLanguage } from "@/contexts/LanguageContext";
+import { useTranslation } from "react-i18next";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2 } from "lucide-react";
+import { Loader2, Languages, ArrowRight } from "lucide-react";
 import logo from "@/assets/logo.png";
 
 const Register = () => {
@@ -16,6 +18,8 @@ const Register = () => {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const { signUp } = useAuth();
+  const { language, toggleLanguage, dir } = useLanguage();
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -24,8 +28,8 @@ const Register = () => {
 
     if (!fullName || !email || !password || !confirmPassword) {
       toast({
-        title: "Missing fields",
-        description: "Please fill in all fields",
+        title: t("auth.missingFields"),
+        description: t("auth.fillAllFields"),
         variant: "destructive",
       });
       return;
@@ -33,8 +37,8 @@ const Register = () => {
 
     if (password !== confirmPassword) {
       toast({
-        title: "Passwords don't match",
-        description: "Please make sure both passwords are the same",
+        title: t("auth.passwordsNotMatch"),
+        description: t("auth.makeSureSame"),
         variant: "destructive",
       });
       return;
@@ -42,8 +46,8 @@ const Register = () => {
 
     if (password.length < 6) {
       toast({
-        title: "Password too short",
-        description: "Password must be at least 6 characters",
+        title: t("auth.passwordShort"),
+        description: t("auth.passwordMinChar"),
         variant: "destructive",
       });
       return;
@@ -55,12 +59,17 @@ const Register = () => {
 
     if (error) {
       let message = error.message;
+      let title = t("auth.loginFailed");
+
       if (error.message.includes("already registered")) {
-        message = "This email is already registered. Please sign in instead.";
+        message = t("auth.alreadyRegistered");
+      } else if (error.message.toLowerCase().includes("rate limit") || error.message.toLowerCase().includes("too many requests")) {
+        title = t("auth.rateLimitExceeded");
+        message = t("auth.rateLimitMessage");
       }
 
       toast({
-        title: "Registration failed",
+        title: title,
         description: message,
         variant: "destructive",
       });
@@ -70,14 +79,14 @@ const Register = () => {
 
     if (!session) {
       toast({
-        title: "Check your email",
-        description: "We've sent a verification link to your email address. Please click it to complete registration.",
+        title: t("auth.checkEmail"),
+        description: t("auth.verificationSent"),
       });
       navigate("/login");
     } else {
       toast({
-        title: "Account created!",
-        description: "Welcome to Fikr-e-Islam. You are now signed in.",
+        title: t("auth.accountCreated"),
+        description: t("auth.accountCreatedWelcome"),
       });
       navigate("/");
     }
@@ -85,26 +94,38 @@ const Register = () => {
 
   return (
     <Layout>
-      <div className="min-h-[80vh] flex items-center justify-center py-12">
+      <div className="min-h-[80vh] flex items-center justify-center py-12 relative font-urdu-aware">
+        <div className="absolute top-4 right-4 md:top-8 md:right-8">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={toggleLanguage}
+            className="flex items-center gap-2 font-medium"
+          >
+            <Languages className="w-4 h-4" />
+            <span>{language === 'en' ? 'اردو' : 'English'}</span>
+          </Button>
+        </div>
+
         <div className="w-full max-w-md mx-4">
           <div className="bg-card border border-border rounded-2xl p-8 shadow-card">
             <div className="text-center mb-8">
-              <img src={logo} alt="Fikr-e-Islam" className="w-14 h-14 object-contain mx-auto mb-4" />
+              <img src={logo} alt="Fikr-e-Islam" className="w-48 h-48 object-contain mx-auto mb-4" />
               <h1 className="font-display text-2xl font-bold text-foreground mb-2">
-                Create Account
+                {t("auth.createAccount")}
               </h1>
               <p className="text-muted-foreground text-sm">
-                Join the community and start exploring
+                {t("auth.joinCommunity")}
               </p>
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="name">Full Name</Label>
+                <Label htmlFor="name">{t("auth.fullName")}</Label>
                 <Input
                   id="name"
                   type="text"
-                  placeholder="Your name"
+                  placeholder={t("auth.fullNamePlaceholder")}
                   className="h-11"
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
@@ -113,7 +134,7 @@ const Register = () => {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
+                <Label htmlFor="email">{t("auth.email")}</Label>
                 <Input
                   id="email"
                   type="email"
@@ -126,7 +147,7 @@ const Register = () => {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="password">Password</Label>
+                <Label htmlFor="password">{t("auth.password")}</Label>
                 <Input
                   id="password"
                   type="password"
@@ -139,7 +160,7 @@ const Register = () => {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="confirmPassword">Confirm Password</Label>
+                <Label htmlFor="confirmPassword">{t("auth.confirmPassword")}</Label>
                 <Input
                   id="confirmPassword"
                   type="password"
@@ -155,18 +176,18 @@ const Register = () => {
                 {isLoading ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Creating account...
+                    {t("auth.creatingAccount")}
                   </>
                 ) : (
-                  "Create Account"
+                  t("auth.createAccount")
                 )}
               </Button>
             </form>
 
             <p className="text-center text-sm text-muted-foreground mt-6">
-              Already have an account?{" "}
+              {t("auth.alreadyAccount")}{" "}
               <Link to="/login" className="text-primary hover:underline font-medium">
-                Sign in
+                {t("auth.signIn")}
               </Link>
             </p>
           </div>

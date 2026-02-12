@@ -1,5 +1,8 @@
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { useTranslation } from 'react-i18next';
+import logo from '@/assets/logo.png';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import {
@@ -15,6 +18,7 @@ import {
   SidebarMenuItem,
   SidebarMenuBadge,
   SidebarSeparator,
+  SidebarTrigger,
 } from '@/components/ui/sidebar';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -29,6 +33,7 @@ import {
   LogOut,
   Shield,
   PenTool,
+  Languages,
 } from 'lucide-react';
 
 interface DashboardSidebarProps {
@@ -36,25 +41,28 @@ interface DashboardSidebarProps {
   onTabChange: (tab: string) => void;
 }
 
-const contributorItems = [
-  { id: 'stats', title: 'Overview', icon: BarChart3 },
-  { id: 'upload', title: 'Upload Content', icon: Upload },
-  { id: 'my-content', title: 'My Content', icon: FolderOpen },
-];
-
-const adminItems = [
-  { id: 'analytics', title: 'Analytics', icon: BarChart3 },
-  { id: 'pending', title: 'Pending Content', icon: Clock, badgeKey: 'pendingContent' },
-  { id: 'pending-answers', title: 'Pending Q&A', icon: MessageCircle, badgeKey: 'pendingAnswers' },
-  { id: 'all-content', title: 'All Content', icon: FileText },
-  { id: 'users', title: 'User Management', icon: Users },
-];
-
 export function DashboardSidebar({ activeTab, onTabChange }: DashboardSidebarProps) {
   const { role, signOut } = useAuth();
+  const { language, toggleLanguage, dir } = useLanguage();
+  const { t } = useTranslation();
   const location = useLocation();
+  const navigate = useNavigate();
 
   const isAdmin = role === 'admin';
+
+  const contributorItems = [
+    { id: 'stats', title: t('dashboard.stats'), icon: BarChart3 },
+    { id: 'upload', title: t('dashboard.upload.title'), icon: Upload },
+    { id: 'my-content', title: t('dashboard.myContent.title'), icon: FolderOpen },
+  ];
+
+  const adminItems = [
+    { id: 'analytics', title: t('dashboard.analytics'), icon: BarChart3 },
+    { id: 'pending', title: t('dashboard.pending'), icon: Clock, badgeKey: 'pendingContent' },
+    { id: 'pending-answers', title: t('dashboard.qaAdmin'), icon: MessageCircle, badgeKey: 'pendingAnswers' },
+    { id: 'all-content', title: t('dashboard.allContent'), icon: FileText },
+    { id: 'users', title: t('dashboard.users'), icon: Users },
+  ];
 
   // Fetch pending counts for admin badges
   const { data: pendingCounts } = useQuery({
@@ -85,28 +93,31 @@ export function DashboardSidebar({ activeTab, onTabChange }: DashboardSidebarPro
   };
 
   return (
-    <Sidebar collapsible="icon">
+    <Sidebar collapsible="icon" side={dir === 'rtl' ? 'right' : 'left'}>
       <SidebarHeader className="border-b border-sidebar-border">
-        <div className="flex items-center gap-2 px-2 py-2">
-          <div className="w-8 h-8 rounded-lg gradient-primary flex items-center justify-center shrink-0">
-            <span className="text-primary-foreground font-display font-bold text-sm">ف</span>
+        <div className="flex items-center gap-2 group-data-[collapsible=icon]:justify-center px-2 py-2">
+          <div className="flex items-center gap-2 group-data-[collapsible=icon]:hidden">
+            <Link to="/dashboard" className="flex items-center gap-2">
+              <img src={logo} alt="Fikr-e-Islam" className="w-8 h-8 object-contain shrink-0" />
+              <div className="flex flex-col">
+                <span className="font-display text-sm font-semibold text-sidebar-foreground">
+                  {t('nav.dashboard')}
+                </span>
+                <span className="text-xs text-sidebar-foreground/70 capitalize flex items-center gap-1">
+                  {isAdmin ? (
+                    <>
+                      <Shield className="h-3 w-3" /> {t('auth.admin')}
+                    </>
+                  ) : (
+                    <>
+                      <PenTool className="h-3 w-3" /> {t('auth.contributor')}
+                    </>
+                  )}
+                </span>
+              </div>
+            </Link>
           </div>
-          <div className="flex flex-col group-data-[collapsible=icon]:hidden">
-            <span className="font-display text-sm font-semibold text-sidebar-foreground">
-              Dashboard
-            </span>
-            <span className="text-xs text-sidebar-foreground/70 capitalize flex items-center gap-1">
-              {isAdmin ? (
-                <>
-                  <Shield className="h-3 w-3" /> Admin
-                </>
-              ) : (
-                <>
-                  <PenTool className="h-3 w-3" /> Contributor
-                </>
-              )}
-            </span>
-          </div>
+          <SidebarTrigger className="group-data-[collapsible=icon]:block" />
         </div>
       </SidebarHeader>
 
@@ -114,14 +125,14 @@ export function DashboardSidebar({ activeTab, onTabChange }: DashboardSidebarPro
         {/* Admin Section - Only for admins (shown first for admins) */}
         {isAdmin && (
           <SidebarGroup>
-            <SidebarGroupLabel>Administration</SidebarGroupLabel>
+            <SidebarGroupLabel>{t('sidebar.adminArea')}</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
                 {adminItems.map((item) => {
-                  const badgeCount = item.badgeKey && pendingCounts 
-                    ? pendingCounts[item.badgeKey as keyof typeof pendingCounts] 
+                  const badgeCount = item.badgeKey && pendingCounts
+                    ? pendingCounts[item.badgeKey as keyof typeof pendingCounts]
                     : 0;
-                  
+
                   return (
                     <SidebarMenuItem key={item.id}>
                       <SidebarMenuButton
@@ -149,7 +160,7 @@ export function DashboardSidebar({ activeTab, onTabChange }: DashboardSidebarPro
 
         {/* Content Management Section - Available to both */}
         <SidebarGroup>
-          <SidebarGroupLabel>Content Management</SidebarGroupLabel>
+          <SidebarGroupLabel>{t('sidebar.main')}</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {contributorItems.map((item) => (
@@ -172,21 +183,27 @@ export function DashboardSidebar({ activeTab, onTabChange }: DashboardSidebarPro
       <SidebarFooter className="border-t border-sidebar-border">
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton asChild tooltip="Back to Site">
+            <SidebarMenuButton onClick={toggleLanguage} tooltip={t('sidebar.toggleSidebar')}>
+              <Languages className="h-4 w-4" />
+              <span>{language === 'en' ? t("common.languages.ur") : t("common.languages.en")}</span>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+          <SidebarMenuItem>
+            <SidebarMenuButton asChild tooltip={t('common.backToHome')}>
               <Link to="/">
                 <Home className="h-4 w-4" />
-                <span>Back to Site</span>
+                <span>{t('common.backToHome')}</span>
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarMenuItem>
             <SidebarMenuButton
               onClick={handleSignOut}
-              tooltip="Sign Out"
+              tooltip={t('nav.signOut')}
               className="text-destructive hover:text-destructive hover:bg-destructive/10"
             >
-              <LogOut className="h-4 w-4" />
-              <span>Sign Out</span>
+              <LogOut className={`h-4 w-4 ${dir === 'rtl' ? 'rotate-180' : ''}`} />
+              <span>{t('nav.signOut')}</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>

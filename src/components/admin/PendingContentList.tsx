@@ -6,9 +6,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
-import { 
-  FileText, Music, Video, Check, X, Loader2, 
-  Clock, User, Calendar, ExternalLink 
+import { useTranslation } from 'react-i18next';
+import {
+  FileText, Music, Video, Check, X, Loader2,
+  Clock, User, Calendar, ExternalLink
 } from 'lucide-react';
 import {
   Dialog,
@@ -52,6 +53,7 @@ export function PendingContentList() {
   const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
   const [selectedContent, setSelectedContent] = useState<Content | null>(null);
   const [adminNotes, setAdminNotes] = useState('');
+  const { t } = useTranslation();
 
   useEffect(() => {
     fetchPendingContent();
@@ -66,8 +68,7 @@ export function PendingContentList() {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      
-      // Generate signed URLs for files and covers
+
       const contentWithSignedUrls = await Promise.all(
         ((data as Content[]) || []).map(async (item) => {
           const [signedFileUrl, signedCoverUrl] = await Promise.all([
@@ -77,11 +78,11 @@ export function PendingContentList() {
           return { ...item, signed_file_url: signedFileUrl, signed_cover_url: signedCoverUrl };
         })
       );
-      
+
       setContent(contentWithSignedUrls);
     } catch (error: any) {
       console.error('Error fetching pending content:', error);
-      toast.error('Failed to load pending content');
+      toast.error(t('moderation.loadPendingFailed'));
     } finally {
       setLoading(false);
     }
@@ -92,7 +93,7 @@ export function PendingContentList() {
     try {
       const { error } = await supabase
         .from('content')
-        .update({ 
+        .update({
           status: 'approved' as ContentStatus,
           published_at: new Date().toISOString()
         })
@@ -100,11 +101,11 @@ export function PendingContentList() {
 
       if (error) throw error;
 
-      toast.success(`"${item.title}" has been approved`);
+      toast.success(t('moderation.approvedSuccess', { title: item.title }));
       setContent(prev => prev.filter(c => c.id !== item.id));
     } catch (error: any) {
       console.error('Error approving content:', error);
-      toast.error('Failed to approve content');
+      toast.error(t('moderation.approveFailed'));
     } finally {
       setActionLoading(null);
     }
@@ -121,9 +122,8 @@ export function PendingContentList() {
   const handleReject = async () => {
     if (!selectedContent) return;
 
-    // Validate admin notes length
     if (adminNotes.length > MAX_ADMIN_NOTES_LENGTH) {
-      toast.error(`Admin notes must be less than ${MAX_ADMIN_NOTES_LENGTH} characters`);
+      toast.error(t('moderation.notesLimit', { count: MAX_ADMIN_NOTES_LENGTH }));
       return;
     }
 
@@ -131,7 +131,7 @@ export function PendingContentList() {
     try {
       const { error } = await supabase
         .from('content')
-        .update({ 
+        .update({
           status: 'rejected' as ContentStatus,
           admin_notes: adminNotes.trim() || null
         })
@@ -139,13 +139,13 @@ export function PendingContentList() {
 
       if (error) throw error;
 
-      toast.success(`"${selectedContent.title}" has been rejected`);
+      toast.success(t('moderation.rejectedSuccess', { title: selectedContent.title }));
       setContent(prev => prev.filter(c => c.id !== selectedContent.id));
       setRejectDialogOpen(false);
       setSelectedContent(null);
     } catch (error: any) {
       console.error('Error rejecting content:', error);
-      toast.error('Failed to reject content');
+      toast.error(t('moderation.rejectFailed'));
     } finally {
       setActionLoading(null);
     }
@@ -169,9 +169,9 @@ export function PendingContentList() {
       <Card className="border-border/50 bg-card/50">
         <CardContent className="flex flex-col items-center justify-center py-12 text-center">
           <Clock className="h-12 w-12 text-muted-foreground mb-4" />
-          <h3 className="text-lg font-medium text-foreground">No Pending Content</h3>
+          <h3 className="text-lg font-medium text-foreground">{t('moderation.noPending')}</h3>
           <p className="text-sm text-muted-foreground mt-1">
-            All submissions have been reviewed
+            {t('moderation.allReviewed')}
           </p>
         </CardContent>
       </Card>
@@ -183,7 +183,7 @@ export function PendingContentList() {
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <p className="text-sm text-muted-foreground">
-            {content.length} item{content.length !== 1 ? 's' : ''} pending review
+            {t('moderation.itemsPending', { count: content.length })}
           </p>
         </div>
 
@@ -193,8 +193,8 @@ export function PendingContentList() {
               <div className="flex items-start justify-between gap-4">
                 <div className="flex items-start gap-3">
                   {(item.signed_cover_url || item.cover_image_url) ? (
-                    <img 
-                      src={item.signed_cover_url || item.cover_image_url || ''} 
+                    <img
+                      src={item.signed_cover_url || item.cover_image_url || ''}
                       alt={item.title}
                       className="w-16 h-20 object-cover rounded-md"
                     />
@@ -208,7 +208,7 @@ export function PendingContentList() {
                       {item.title}
                       <Badge variant="outline" className="capitalize">
                         {TypeIcon(item.type)}
-                        <span className="ml-1">{item.type}</span>
+                        <span className="ml-1">{t(`dashboard.${item.type === 'book' ? 'books' : item.type}`)}</span>
                       </Badge>
                     </CardTitle>
                     {item.author && (
@@ -221,7 +221,7 @@ export function PendingContentList() {
                 </div>
                 <Badge variant="secondary" className="bg-amber-500/10 text-amber-600">
                   <Clock className="h-3 w-3 mr-1" />
-                  Pending
+                  {t('moderation.pending')}
                 </Badge>
               </div>
             </CardHeader>
@@ -231,10 +231,10 @@ export function PendingContentList() {
                   {item.description}
                 </p>
               )}
-              
+
               <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
                 {item.language && (
-                  <span className="bg-muted px-2 py-1 rounded">{item.language}</span>
+                  <span className="bg-muted px-2 py-1 rounded">{t(`common.languages.${item.language}`)}</span>
                 )}
                 {item.tags?.map((tag, i) => (
                   <span key={i} className="bg-primary/10 text-primary px-2 py-1 rounded">
@@ -250,18 +250,18 @@ export function PendingContentList() {
                     {new Date(item.created_at).toLocaleDateString()}
                   </span>
                   {(item.signed_file_url || item.file_url) && (
-                    <a 
-                      href={item.signed_file_url || item.file_url || ''} 
-                      target="_blank" 
+                    <a
+                      href={item.signed_file_url || item.file_url || ''}
+                      target="_blank"
                       rel="noopener noreferrer"
                       className="flex items-center gap-1 text-primary hover:underline"
                     >
                       <ExternalLink className="h-3 w-3" />
-                      View File
+                      {t('moderation.viewFile')}
                     </a>
                   )}
                 </div>
-                
+
                 <div className="flex gap-2">
                   <Button
                     variant="outline"
@@ -275,7 +275,7 @@ export function PendingContentList() {
                     ) : (
                       <>
                         <X className="h-4 w-4 mr-1" />
-                        Reject
+                        {t('moderation.reject')}
                       </>
                     )}
                   </Button>
@@ -289,7 +289,7 @@ export function PendingContentList() {
                     ) : (
                       <>
                         <Check className="h-4 w-4 mr-1" />
-                        Approve
+                        {t('moderation.approve')}
                       </>
                     )}
                   </Button>
@@ -303,32 +303,32 @@ export function PendingContentList() {
       <Dialog open={rejectDialogOpen} onOpenChange={setRejectDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Reject Content</DialogTitle>
+            <DialogTitle>{t('moderation.rejectDialogTitle')}</DialogTitle>
             <DialogDescription>
-              Provide feedback for the contributor about why this content was rejected.
+              {t('moderation.rejectDialogDesc')}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div>
-              <p className="text-sm font-medium mb-2">Content: {selectedContent?.title}</p>
+              <p className="text-sm font-medium mb-2">{t('dashboard.content')}: {selectedContent?.title}</p>
               <Textarea
-                placeholder="Enter reason for rejection (optional but recommended)"
+                placeholder={t('moderation.rejectionReason')}
                 value={adminNotes}
                 onChange={(e) => setAdminNotes(e.target.value)}
                 rows={4}
                 maxLength={5000}
               />
               <p className="text-xs text-muted-foreground mt-1">
-                {adminNotes.length}/5000 characters
+                {adminNotes.length}/5000 {t('moderation.characters')}
               </p>
             </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setRejectDialogOpen(false)}>
-              Cancel
+              {t('moderation.cancel')}
             </Button>
-            <Button 
-              variant="destructive" 
+            <Button
+              variant="destructive"
               onClick={handleReject}
               disabled={actionLoading !== null}
             >
@@ -337,7 +337,7 @@ export function PendingContentList() {
               ) : (
                 <X className="h-4 w-4 mr-2" />
               )}
-              Reject Content
+              {t('moderation.rejectContent')}
             </Button>
           </DialogFooter>
         </DialogContent>

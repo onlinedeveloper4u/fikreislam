@@ -4,10 +4,12 @@ import { useAuth } from '@/contexts/AuthContext';
 import { ContributorStats } from './ContributorStats';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useTranslation } from 'react-i18next';
 import { Upload, TrendingUp, Eye } from 'lucide-react';
 
 export function ContributorOverview() {
   const { user } = useAuth();
+  const { t } = useTranslation();
 
   const { data: stats, isLoading } = useQuery({
     queryKey: ['contributor-stats', user?.id],
@@ -41,7 +43,7 @@ export function ContributorOverview() {
           .select('*', { count: 'exact', head: true })
           .in('content_id', approvedContentIds)
           .eq('action_type', 'view');
-        
+
         totalViews = count || 0;
       }
 
@@ -72,8 +74,8 @@ export function ContributorOverview() {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-2xl font-bold tracking-tight">Overview</h2>
-        <p className="text-muted-foreground">Your content contribution statistics</p>
+        <h2 className="text-2xl font-bold tracking-tight">{t('dashboard.overview')}</h2>
+        <p className="text-muted-foreground">{t('dashboard.statsTitle')}</p>
       </div>
 
       <ContributorStats
@@ -88,22 +90,22 @@ export function ContributorOverview() {
           <CardHeader className="pb-2">
             <CardDescription className="flex items-center gap-2">
               <Upload className="h-4 w-4" />
-              Content Breakdown
+              {t('dashboard.contentBreakdown')}
             </CardDescription>
-            <CardTitle className="text-lg">By Type</CardTitle>
+            <CardTitle className="text-lg">{t('dashboard.byType')}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
               <div className="flex justify-between items-center">
-                <span className="text-sm text-muted-foreground">Books</span>
+                <span className="text-sm text-muted-foreground">{t('dashboard.books')}</span>
                 <span className="font-medium">{stats.books}</span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-sm text-muted-foreground">Audio</span>
+                <span className="text-sm text-muted-foreground">{t('dashboard.audio')}</span>
                 <span className="font-medium">{stats.audio}</span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-sm text-muted-foreground">Video</span>
+                <span className="text-sm text-muted-foreground">{t('dashboard.video')}</span>
                 <span className="font-medium">{stats.video}</span>
               </div>
             </div>
@@ -114,14 +116,14 @@ export function ContributorOverview() {
           <CardHeader className="pb-2">
             <CardDescription className="flex items-center gap-2">
               <Eye className="h-4 w-4" />
-              Engagement
+              {t('dashboard.engagement')}
             </CardDescription>
-            <CardTitle className="text-lg">Total Views</CardTitle>
+            <CardTitle className="text-lg">{t('dashboard.totalViews')}</CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-3xl font-bold">{stats.totalViews.toLocaleString()}</p>
             <p className="text-xs text-muted-foreground mt-1">
-              Across {stats.approved} approved content
+              {t('dashboard.acrossApproved', { count: stats.approved })}
             </p>
           </CardContent>
         </Card>
@@ -130,18 +132,18 @@ export function ContributorOverview() {
           <CardHeader className="pb-2">
             <CardDescription className="flex items-center gap-2">
               <TrendingUp className="h-4 w-4" />
-              Success Rate
+              {t('dashboard.successRate')}
             </CardDescription>
-            <CardTitle className="text-lg">Approval Rate</CardTitle>
+            <CardTitle className="text-lg">{t('dashboard.approvalRate')}</CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-3xl font-bold">
-              {stats.total > 0 
-                ? Math.round((stats.approved / stats.total) * 100) 
+              {stats.total > 0
+                ? Math.round((stats.approved / stats.total) * 100)
                 : 0}%
             </p>
             <p className="text-xs text-muted-foreground mt-1">
-              {stats.approved} of {stats.total} approved
+              {t('dashboard.ofApproved', { approved: stats.approved, total: stats.total })}
             </p>
           </CardContent>
         </Card>

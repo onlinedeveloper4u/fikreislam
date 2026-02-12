@@ -11,11 +11,13 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2, User, Lock, ArrowLeft } from "lucide-react";
 import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 
 const Settings = () => {
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { t } = useTranslation();
 
   const [fullName, setFullName] = useState("");
   const [isLoadingProfile, setIsLoadingProfile] = useState(false);
@@ -35,7 +37,7 @@ const Settings = () => {
   useEffect(() => {
     const fetchProfile = async () => {
       if (!user) return;
-      
+
       setIsLoadingProfile(true);
       const { data, error } = await supabase
         .from("profiles")
@@ -65,14 +67,14 @@ const Settings = () => {
 
     if (error) {
       toast({
-        title: "Error",
+        title: t('qa.form.errorTitle'),
         description: error.message,
         variant: "destructive",
       });
     } else {
       toast({
-        title: "Profile updated",
-        description: "Your profile has been updated successfully.",
+        title: t('settings.profile.success'),
+        description: t('settings.profile.successDesc'),
       });
     }
 
@@ -84,8 +86,8 @@ const Settings = () => {
 
     if (!newPassword || !confirmPassword) {
       toast({
-        title: "Missing fields",
-        description: "Please fill in all password fields",
+        title: t('settings.password.errorMissing'),
+        description: t('settings.password.errorMissingDesc'),
         variant: "destructive",
       });
       return;
@@ -93,8 +95,8 @@ const Settings = () => {
 
     if (newPassword !== confirmPassword) {
       toast({
-        title: "Passwords don't match",
-        description: "Please make sure both passwords are the same",
+        title: t('settings.password.errorMismatch'),
+        description: t('settings.password.errorMismatchDesc'),
         variant: "destructive",
       });
       return;
@@ -102,8 +104,8 @@ const Settings = () => {
 
     if (newPassword.length < 6) {
       toast({
-        title: "Password too short",
-        description: "Password must be at least 6 characters",
+        title: t('settings.password.errorShort'),
+        description: t('settings.password.errorShortDesc'),
         variant: "destructive",
       });
       return;
@@ -115,14 +117,14 @@ const Settings = () => {
 
     if (error) {
       toast({
-        title: "Error",
+        title: t('qa.form.errorTitle'),
         description: error.message,
         variant: "destructive",
       });
     } else {
       toast({
-        title: "Password updated",
-        description: "Your password has been changed successfully.",
+        title: t('settings.password.success'),
+        description: t('settings.password.successDesc'),
       });
       setCurrentPassword("");
       setNewPassword("");
@@ -149,34 +151,33 @@ const Settings = () => {
   return (
     <Layout>
       <div className="container mx-auto px-4 py-8 max-w-2xl">
-        <Link 
-          to="/" 
+        <Link
+          to="/"
           className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-primary mb-6 transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />
-          Back to Home
+          {t('settings.backToHome')}
         </Link>
 
         <h1 className="font-display text-3xl font-bold text-foreground mb-8">
-          Account Settings
+          {t('settings.title')}
         </h1>
 
         <div className="space-y-6">
-          {/* Profile Settings */}
           <Card>
             <CardHeader>
               <div className="flex items-center gap-2">
                 <User className="w-5 h-5 text-primary" />
-                <CardTitle>Profile Information</CardTitle>
+                <CardTitle>{t('settings.profile.title')}</CardTitle>
               </div>
               <CardDescription>
-                Update your personal information
+                {t('settings.profile.desc')}
               </CardDescription>
             </CardHeader>
             <CardContent>
               <form onSubmit={handleUpdateProfile} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
+                  <Label htmlFor="email">{t('settings.profile.email')}</Label>
                   <Input
                     id="email"
                     type="email"
@@ -185,16 +186,16 @@ const Settings = () => {
                     className="bg-muted"
                   />
                   <p className="text-xs text-muted-foreground">
-                    Email cannot be changed
+                    {t('settings.profile.emailDisabled')}
                   </p>
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="fullName">Full Name</Label>
+                  <Label htmlFor="fullName">{t('settings.profile.fullName')}</Label>
                   <Input
                     id="fullName"
                     type="text"
-                    placeholder="Your name"
+                    placeholder={t('settings.profile.fullNamePlaceholder')}
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
                     disabled={isLoadingProfile || isSavingProfile}
@@ -205,10 +206,10 @@ const Settings = () => {
                   {isSavingProfile ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Saving...
+                      {t('settings.profile.saving')}
                     </>
                   ) : (
-                    "Save Changes"
+                    t('settings.profile.save')
                   )}
                 </Button>
               </form>
@@ -217,25 +218,24 @@ const Settings = () => {
 
           <Separator />
 
-          {/* Password Settings */}
           <Card>
             <CardHeader>
               <div className="flex items-center gap-2">
                 <Lock className="w-5 h-5 text-primary" />
-                <CardTitle>Change Password</CardTitle>
+                <CardTitle>{t('settings.password.title')}</CardTitle>
               </div>
               <CardDescription>
-                Update your password to keep your account secure
+                {t('settings.password.desc')}
               </CardDescription>
             </CardHeader>
             <CardContent>
               <form onSubmit={handleChangePassword} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="newPassword">New Password</Label>
+                  <Label htmlFor="newPassword">{t('settings.password.newPassword')}</Label>
                   <Input
                     id="newPassword"
                     type="password"
-                    placeholder="••••••••"
+                    placeholder={t('settings.password.confirmPlaceholder')}
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
                     disabled={isChangingPassword}
@@ -243,11 +243,11 @@ const Settings = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="confirmNewPassword">Confirm New Password</Label>
+                  <Label htmlFor="confirmNewPassword">{t('settings.password.confirmPassword')}</Label>
                   <Input
                     id="confirmNewPassword"
                     type="password"
-                    placeholder="••••••••"
+                    placeholder={t('settings.password.confirmPlaceholder')}
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     disabled={isChangingPassword}
@@ -258,10 +258,10 @@ const Settings = () => {
                   {isChangingPassword ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Updating...
+                      {t('settings.password.updating')}
                     </>
                   ) : (
-                    "Change Password"
+                    t('settings.password.update')
                   )}
                 </Button>
               </form>

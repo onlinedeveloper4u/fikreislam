@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useTranslation } from 'react-i18next';
 import {
   Dialog,
   DialogContent,
@@ -18,11 +19,10 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import { 
-  Heart, ListMusic, FileText, Music, Video, Loader2, 
+import {
+  Heart, ListMusic, FileText, Music, Video, Loader2,
   Plus, Trash2, Download, Play, User
 } from 'lucide-react';
-import { toast } from 'sonner';
 
 type ContentType = 'book' | 'audio' | 'video';
 
@@ -48,7 +48,8 @@ export default function Library() {
   const navigate = useNavigate();
   const { favorites, toggleFavorite, loading: favLoading } = useFavorites();
   const { playlists, createPlaylist, deletePlaylist, removeFromPlaylist, loading: playlistLoading } = usePlaylists();
-  
+  const { t } = useTranslation();
+
   const [favoriteContent, setFavoriteContent] = useState<Content[]>([]);
   const [selectedPlaylist, setSelectedPlaylist] = useState<Playlist | null>(null);
   const [playlistContent, setPlaylistContent] = useState<Content[]>([]);
@@ -73,7 +74,6 @@ export default function Library() {
   const fetchFavoriteContent = async () => {
     setLoadingContent(true);
     try {
-      // Use content_public view to avoid exposing sensitive fields
       const { data, error } = await supabase
         .from('content_public')
         .select('id, title, description, author, type, language, file_url, cover_image_url')
@@ -100,7 +100,6 @@ export default function Library() {
       if (itemsError) throw itemsError;
 
       if (items && items.length > 0) {
-        // Use content_public view to avoid exposing sensitive fields
         const { data, error } = await supabase
           .from('content_public')
           .select('id, title, description, author, type, language, file_url, cover_image_url')
@@ -156,7 +155,7 @@ export default function Library() {
 
   const ContentCard = ({ item, showRemove = false, onRemove }: { item: Content; showRemove?: boolean; onRemove?: () => void }) => {
     const TypeIcon = typeIcons[item.type];
-    
+
     return (
       <Card className="border-border/50 bg-card/50 overflow-hidden">
         <div className="flex gap-4 p-4">
@@ -190,10 +189,10 @@ export default function Library() {
             <div className="flex items-center gap-2 mt-3">
               <Button size="sm" onClick={() => handleAction(item)}>
                 {item.type === 'book' ? <Download className="h-3 w-3 mr-1" /> : <Play className="h-3 w-3 mr-1" />}
-                {item.type === 'book' ? 'Download' : 'Play'}
+                {item.type === 'book' ? t('library.content.download') : t('library.content.play')}
               </Button>
-              <Button 
-                size="sm" 
+              <Button
+                size="sm"
                 variant="ghost"
                 onClick={() => toggleFavorite(item.id)}
               >
@@ -215,19 +214,19 @@ export default function Library() {
     <Layout>
       <div className="container mx-auto px-4 py-8">
         <div className="mb-8">
-          <h1 className="text-3xl font-display font-bold text-foreground">My Library</h1>
-          <p className="text-muted-foreground mt-2">Your saved favorites and playlists</p>
+          <h1 className="text-3xl font-display font-bold text-foreground">{t('library.title')}</h1>
+          <p className="text-muted-foreground mt-2">{t('library.subtitle')}</p>
         </div>
 
         <Tabs defaultValue="favorites" className="space-y-6">
           <TabsList className="grid w-full max-w-md grid-cols-2">
             <TabsTrigger value="favorites" className="flex items-center gap-2">
               <Heart className="h-4 w-4" />
-              Favorites ({favorites.size})
+              {t('library.tabs.favorites')} ({favorites.size})
             </TabsTrigger>
             <TabsTrigger value="playlists" className="flex items-center gap-2">
               <ListMusic className="h-4 w-4" />
-              Playlists ({playlists.length})
+              {t('library.tabs.playlists')} ({playlists.length})
             </TabsTrigger>
           </TabsList>
 
@@ -236,9 +235,9 @@ export default function Library() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Heart className="h-5 w-5 text-red-500" />
-                  Favorites
+                  {t('library.favorites.title')}
                 </CardTitle>
-                <CardDescription>Content you've saved for later</CardDescription>
+                <CardDescription>{t('library.favorites.desc')}</CardDescription>
               </CardHeader>
               <CardContent>
                 {loadingContent ? (
@@ -247,7 +246,7 @@ export default function Library() {
                   </div>
                 ) : favoriteContent.length === 0 ? (
                   <p className="text-center text-muted-foreground py-8">
-                    No favorites yet. Browse content and click the heart icon to save.
+                    {t('library.favorites.empty')}
                   </p>
                 ) : (
                   <div className="grid gap-4 md:grid-cols-2">
@@ -262,11 +261,10 @@ export default function Library() {
 
           <TabsContent value="playlists">
             <div className="grid md:grid-cols-3 gap-6">
-              {/* Playlists sidebar */}
               <Card className="border-border/50 bg-card/50 backdrop-blur md:col-span-1">
                 <CardHeader>
                   <div className="flex items-center justify-between">
-                    <CardTitle className="text-lg">My Playlists</CardTitle>
+                    <CardTitle className="text-lg">{t('library.playlists.title')}</CardTitle>
                     <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
                       <DialogTrigger asChild>
                         <Button size="sm" variant="outline">
@@ -275,18 +273,18 @@ export default function Library() {
                       </DialogTrigger>
                       <DialogContent>
                         <DialogHeader>
-                          <DialogTitle>Create Playlist</DialogTitle>
-                          <DialogDescription>Give your new playlist a name</DialogDescription>
+                          <DialogTitle>{t('library.playlists.createTitle')}</DialogTitle>
+                          <DialogDescription>{t('library.playlists.createDesc')}</DialogDescription>
                         </DialogHeader>
                         <div className="space-y-4">
                           <Input
-                            placeholder="Playlist name"
+                            placeholder={t('library.playlists.namePlaceholder')}
                             value={newPlaylistName}
                             onChange={(e) => setNewPlaylistName(e.target.value)}
                             onKeyDown={(e) => e.key === 'Enter' && handleCreatePlaylist()}
                           />
                           <Button onClick={handleCreatePlaylist} className="w-full">
-                            Create
+                            {t('moderation.create')}
                           </Button>
                         </div>
                       </DialogContent>
@@ -300,24 +298,23 @@ export default function Library() {
                     </div>
                   ) : playlists.length === 0 ? (
                     <p className="text-sm text-muted-foreground text-center py-4">
-                      No playlists yet
+                      {t('library.playlists.empty')}
                     </p>
                   ) : (
                     <div className="space-y-2">
                       {playlists.map((playlist) => (
                         <div
                           key={playlist.id}
-                          className={`flex items-center justify-between p-3 rounded-lg cursor-pointer transition-colors ${
-                            selectedPlaylist?.id === playlist.id
+                          className={`flex items-center justify-between p-3 rounded-lg cursor-pointer transition-colors ${selectedPlaylist?.id === playlist.id
                               ? 'bg-primary/10 border border-primary/20'
                               : 'hover:bg-muted/50'
-                          }`}
+                            }`}
                           onClick={() => handlePlaylistSelect(playlist)}
                         >
                           <div>
                             <p className="font-medium">{playlist.name}</p>
                             <p className="text-xs text-muted-foreground">
-                              {playlist.item_count} {playlist.item_count === 1 ? 'item' : 'items'}
+                              {t('library.playlists.itemCount', { count: playlist.item_count })}
                             </p>
                           </div>
                           <Button
@@ -342,22 +339,21 @@ export default function Library() {
                 </CardContent>
               </Card>
 
-              {/* Playlist content */}
               <Card className="border-border/50 bg-card/50 backdrop-blur md:col-span-2">
                 <CardHeader>
                   <CardTitle>
-                    {selectedPlaylist ? selectedPlaylist.name : 'Select a playlist'}
+                    {selectedPlaylist ? selectedPlaylist.name : t('library.playlists.selectPrompt')}
                   </CardTitle>
                   <CardDescription>
-                    {selectedPlaylist 
-                      ? `${playlistContent.length} items in this playlist`
-                      : 'Choose a playlist to view its content'}
+                    {selectedPlaylist
+                      ? t('library.playlists.itemCount', { count: playlistContent.length })
+                      : t('library.playlists.selectPrompt')}
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
                   {!selectedPlaylist ? (
                     <p className="text-center text-muted-foreground py-8">
-                      Select a playlist from the left to view its content
+                      {t('library.playlists.selectPrompt')}
                     </p>
                   ) : loadingContent ? (
                     <div className="flex justify-center py-8">
@@ -365,15 +361,15 @@ export default function Library() {
                     </div>
                   ) : playlistContent.length === 0 ? (
                     <p className="text-center text-muted-foreground py-8">
-                      This playlist is empty. Browse content and add items to it.
+                      {t('library.playlists.emptyPlaylist')}
                     </p>
                   ) : (
                     <div className="grid gap-4">
                       {playlistContent.map((item) => (
-                        <ContentCard 
-                          key={item.id} 
-                          item={item} 
-                          showRemove 
+                        <ContentCard
+                          key={item.id}
+                          item={item}
+                          showRemove
                           onRemove={() => handleRemoveFromPlaylist(item.id)}
                         />
                       ))}

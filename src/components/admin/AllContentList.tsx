@@ -7,8 +7,9 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
-import { 
-  FileText, Music, Video, Check, X, Loader2, 
+import { useTranslation } from 'react-i18next';
+import {
+  FileText, Music, Video, Check, X, Loader2,
   Clock, CheckCircle, XCircle, Search, ExternalLink,
   Trash2
 } from 'lucide-react';
@@ -39,18 +40,6 @@ interface Content {
   signed_file_url?: string | null;
 }
 
-const statusConfig: Record<ContentStatus, { icon: React.ElementType; color: string; label: string }> = {
-  pending: { icon: Clock, color: 'bg-amber-500/10 text-amber-600', label: 'Pending' },
-  approved: { icon: CheckCircle, color: 'bg-green-500/10 text-green-600', label: 'Approved' },
-  rejected: { icon: XCircle, color: 'bg-red-500/10 text-red-600', label: 'Rejected' },
-};
-
-const typeIcons: Record<ContentType, React.ElementType> = {
-  book: FileText,
-  audio: Music,
-  video: Video,
-};
-
 export function AllContentList() {
   const [content, setContent] = useState<Content[]>([]);
   const [loading, setLoading] = useState(true);
@@ -58,6 +47,19 @@ export function AllContentList() {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<ContentStatus | 'all'>('all');
   const [typeFilter, setTypeFilter] = useState<ContentType | 'all'>('all');
+  const { t } = useTranslation();
+
+  const statusConfig: Record<ContentStatus, { icon: React.ElementType; color: string; label: string }> = {
+    pending: { icon: Clock, color: 'bg-amber-500/10 text-amber-600', label: t('moderation.pending') },
+    approved: { icon: CheckCircle, color: 'bg-green-500/10 text-green-600', label: t('dashboard.published') },
+    rejected: { icon: XCircle, color: 'bg-red-500/10 text-red-600', label: t('moderation.reject') },
+  };
+
+  const typeIcons: Record<ContentType, React.ElementType> = {
+    book: FileText,
+    audio: Music,
+    video: Video,
+  };
 
   useEffect(() => {
     fetchContent();
@@ -71,19 +73,18 @@ export function AllContentList() {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      
-      // Generate signed URLs for files
+
       const contentWithSignedUrls = await Promise.all(
         ((data as Content[]) || []).map(async (item) => {
           const signedUrl = await getSignedUrl(item.file_url);
           return { ...item, signed_file_url: signedUrl };
         })
       );
-      
+
       setContent(contentWithSignedUrls);
     } catch (error: any) {
       console.error('Error fetching content:', error);
-      toast.error('Failed to load content');
+      toast.error(t('moderation.loadPendingFailed'));
     } finally {
       setLoading(false);
     }
@@ -104,13 +105,13 @@ export function AllContentList() {
 
       if (error) throw error;
 
-      setContent(prev => prev.map(c => 
+      setContent(prev => prev.map(c =>
         c.id === id ? { ...c, status: newStatus } : c
       ));
-      toast.success('Status updated');
+      toast.success(t('moderation.statusUpdated'));
     } catch (error: any) {
       console.error('Error updating status:', error);
-      toast.error('Failed to update status');
+      toast.error(t('dashboard.roleUpdateFailed'));
     } finally {
       setActionLoading(null);
     }
@@ -127,17 +128,17 @@ export function AllContentList() {
       if (error) throw error;
 
       setContent(prev => prev.filter(c => c.id !== id));
-      toast.success('Content deleted');
+      toast.success(t('moderation.contentDeleted'));
     } catch (error: any) {
       console.error('Error deleting content:', error);
-      toast.error('Failed to delete content');
+      toast.error(t('moderation.deleteFailed'));
     } finally {
       setActionLoading(null);
     }
   };
 
   const filteredContent = content.filter(item => {
-    const matchesSearch = !searchQuery || 
+    const matchesSearch = !searchQuery ||
       item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       item.author?.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesStatus = statusFilter === 'all' || item.status === statusFilter;
@@ -160,7 +161,7 @@ export function AllContentList() {
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Search content..."
+            placeholder={t('moderation.searchContent')}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="pl-10"
@@ -168,30 +169,30 @@ export function AllContentList() {
         </div>
         <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as any)}>
           <SelectTrigger className="w-full sm:w-36">
-            <SelectValue placeholder="Status" />
+            <SelectValue placeholder={t('moderation.status')} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All Status</SelectItem>
-            <SelectItem value="pending">Pending</SelectItem>
-            <SelectItem value="approved">Approved</SelectItem>
-            <SelectItem value="rejected">Rejected</SelectItem>
+            <SelectItem value="all">{t('moderation.allStatus')}</SelectItem>
+            <SelectItem value="pending">{t('moderation.pending')}</SelectItem>
+            <SelectItem value="approved">{t('dashboard.published')}</SelectItem>
+            <SelectItem value="rejected">{t('moderation.reject')}</SelectItem>
           </SelectContent>
         </Select>
         <Select value={typeFilter} onValueChange={(v) => setTypeFilter(v as any)}>
           <SelectTrigger className="w-full sm:w-36">
-            <SelectValue placeholder="Type" />
+            <SelectValue placeholder={t('moderation.type')} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All Types</SelectItem>
-            <SelectItem value="book">Books</SelectItem>
-            <SelectItem value="audio">Audio</SelectItem>
-            <SelectItem value="video">Video</SelectItem>
+            <SelectItem value="all">{t('moderation.allTypes')}</SelectItem>
+            <SelectItem value="book">{t('dashboard.books')}</SelectItem>
+            <SelectItem value="audio">{t('dashboard.audio')}</SelectItem>
+            <SelectItem value="video">{t('dashboard.video')}</SelectItem>
           </SelectContent>
         </Select>
       </div>
 
       <p className="text-sm text-muted-foreground">
-        {filteredContent.length} of {content.length} items
+        {t('moderation.itemsCount', { current: filteredContent.length, total: content.length })}
       </p>
 
       {/* Content List */}
@@ -211,7 +212,7 @@ export function AllContentList() {
                   <div className="min-w-0">
                     <p className="font-medium text-foreground truncate">{item.title}</p>
                     <p className="text-xs text-muted-foreground">
-                      {item.author || 'No author'} • {item.language}
+                      {item.author || t('moderation.noAuthor')} • {t(`common.languages.${item.language}`)}
                     </p>
                   </div>
                 </div>
@@ -223,7 +224,7 @@ export function AllContentList() {
                   </Badge>
 
                   {(item.signed_file_url || item.file_url) && (
-                    <Button variant="ghost" size="icon" asChild>
+                    <Button variant="ghost" size="icon" asChild title={t('moderation.viewFile')}>
                       <a href={item.signed_file_url || item.file_url || ''} target="_blank" rel="noopener noreferrer">
                         <ExternalLink className="h-4 w-4" />
                       </a>
@@ -243,32 +244,32 @@ export function AllContentList() {
                       )}
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="pending">Pending</SelectItem>
-                      <SelectItem value="approved">Approved</SelectItem>
-                      <SelectItem value="rejected">Rejected</SelectItem>
+                      <SelectItem value="pending">{t('moderation.pending')}</SelectItem>
+                      <SelectItem value="approved">{t('dashboard.published')}</SelectItem>
+                      <SelectItem value="rejected">{t('moderation.reject')}</SelectItem>
                     </SelectContent>
                   </Select>
 
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
-                      <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive">
+                      <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" title={t('moderation.delete')}>
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     </AlertDialogTrigger>
                     <AlertDialogContent>
                       <AlertDialogHeader>
-                        <AlertDialogTitle>Delete Content</AlertDialogTitle>
+                        <AlertDialogTitle>{t('moderation.deleteContent')}</AlertDialogTitle>
                         <AlertDialogDescription>
-                          Are you sure you want to delete "{item.title}"? This action cannot be undone.
+                          {t('moderation.deleteConfirm', { title: item.title })}
                         </AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction 
+                        <AlertDialogCancel>{t('moderation.cancel')}</AlertDialogCancel>
+                        <AlertDialogAction
                           onClick={() => handleDelete(item.id)}
                           className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                         >
-                          Delete
+                          {t('moderation.delete')}
                         </AlertDialogAction>
                       </AlertDialogFooter>
                     </AlertDialogContent>
@@ -281,10 +282,10 @@ export function AllContentList() {
 
         {filteredContent.length === 0 && (
           <div className="text-center py-12 text-muted-foreground">
-            <p>No content found</p>
+            <p>{t('moderation.noContentFound')}</p>
           </div>
         )}
       </div>
-    </div>
+    </div >
   );
 }

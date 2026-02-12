@@ -9,6 +9,7 @@ import { FileText, Music, Video, Clock, CheckCircle, XCircle, Trash2, Loader2, E
 import { toast } from 'sonner';
 import { ContributorStats } from './ContributorStats';
 import { ContentEditDialog } from './ContentEditDialog';
+import { useTranslation } from 'react-i18next';
 
 type ContentStatus = 'pending' | 'approved' | 'rejected';
 type ContentType = 'book' | 'audio' | 'video';
@@ -26,12 +27,6 @@ interface Content {
   created_at: string;
 }
 
-const statusConfig = {
-  pending: { icon: Clock, color: 'bg-yellow-500/10 text-yellow-600 border-yellow-500/20', label: 'Pending' },
-  approved: { icon: CheckCircle, color: 'bg-green-500/10 text-green-600 border-green-500/20', label: 'Approved' },
-  rejected: { icon: XCircle, color: 'bg-red-500/10 text-red-600 border-red-500/20', label: 'Rejected' },
-};
-
 const typeIcons = {
   book: FileText,
   audio: Music,
@@ -40,12 +35,19 @@ const typeIcons = {
 
 export function MyContentList() {
   const { user } = useAuth();
+  const { t } = useTranslation();
   const [content, setContent] = useState<Content[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [editingContent, setEditingContent] = useState<Content | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
+
+  const statusConfig = {
+    pending: { icon: Clock, color: 'bg-yellow-500/10 text-yellow-600 border-yellow-500/20', label: t('moderation.pending') },
+    approved: { icon: CheckCircle, color: 'bg-green-500/10 text-green-600 border-green-500/20', label: t('dashboard.approvedContent') },
+    rejected: { icon: XCircle, color: 'bg-red-500/10 text-red-600 border-red-500/20', label: t('dashboard.rejectedContent') },
+  };
 
   useEffect(() => {
     if (user) {
@@ -66,7 +68,7 @@ export function MyContentList() {
       setContent(data || []);
     } catch (error: any) {
       console.error('Error fetching content:', error);
-      toast.error('Failed to load your content');
+      toast.error(t('dashboard.myContent.loadFailed'));
     } finally {
       setIsLoading(false);
     }
@@ -81,12 +83,12 @@ export function MyContentList() {
         .eq('id', id);
 
       if (error) throw error;
-      
+
       setContent(content.filter(c => c.id !== id));
-      toast.success('Content deleted successfully');
+      toast.success(t('dashboard.myContent.deleteSuccess'));
     } catch (error: any) {
       console.error('Error deleting content:', error);
-      toast.error('Failed to delete content');
+      toast.error(t('dashboard.myContent.deleteFailed'));
     } finally {
       setDeletingId(null);
     }
@@ -104,8 +106,8 @@ export function MyContentList() {
     rejected: content.filter(c => c.status === 'rejected').length,
   };
 
-  const filteredContent = statusFilter === 'all' 
-    ? content 
+  const filteredContent = statusFilter === 'all'
+    ? content
     : content.filter(c => c.status === statusFilter);
 
   if (isLoading) {
@@ -126,21 +128,21 @@ export function MyContentList() {
         <CardHeader>
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
-              <CardTitle>My Uploads</CardTitle>
+              <CardTitle>{t('dashboard.myContent.title')}</CardTitle>
               <CardDescription>
-                Track and manage your submitted content
+                {t('dashboard.myContent.description')}
               </CardDescription>
             </div>
             <div className="flex items-center gap-2">
               <Select value={statusFilter} onValueChange={setStatusFilter}>
                 <SelectTrigger className="w-[140px]">
-                  <SelectValue placeholder="Filter" />
+                  <SelectValue placeholder={t('dashboard.myContent.filterPlaceholder')} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Status</SelectItem>
-                  <SelectItem value="pending">Pending</SelectItem>
-                  <SelectItem value="approved">Approved</SelectItem>
-                  <SelectItem value="rejected">Rejected</SelectItem>
+                  <SelectItem value="all">{t('dashboard.myContent.allStatus')}</SelectItem>
+                  <SelectItem value="pending">{t('moderation.pending')}</SelectItem>
+                  <SelectItem value="approved">{t('dashboard.approvedContent')}</SelectItem>
+                  <SelectItem value="rejected">{t('dashboard.rejectedContent')}</SelectItem>
                 </SelectContent>
               </Select>
               <Button variant="outline" size="icon" onClick={fetchContent}>
@@ -152,9 +154,9 @@ export function MyContentList() {
         <CardContent>
           {filteredContent.length === 0 ? (
             <p className="text-center text-muted-foreground py-8">
-              {statusFilter === 'all' 
-                ? "You haven't uploaded any content yet."
-                : `No ${statusFilter} content found.`}
+              {statusFilter === 'all'
+                ? t('dashboard.myContent.empty')
+                : t('dashboard.myContent.emptyFilter', { status: t(`dashboard.${statusFilter}Content`).toLowerCase() })}
             </p>
           ) : (
             <div className="space-y-4">
@@ -181,19 +183,19 @@ export function MyContentList() {
                           {status.label}
                         </Badge>
                         <Badge variant="outline" className="capitalize">
-                          {item.type}
+                          {t(`nav.${item.type}`)}
                         </Badge>
                       </div>
                       {item.author && (
-                        <p className="text-sm text-muted-foreground">by {item.author}</p>
+                        <p className="text-sm text-muted-foreground">{t('dashboard.myContent.byAuthor', { author: item.author })}</p>
                       )}
                       {item.status === 'rejected' && item.admin_notes && (
                         <p className="text-sm text-red-600 mt-2 p-2 bg-red-500/10 rounded">
-                          Admin feedback: {item.admin_notes}
+                          {t('dashboard.myContent.adminFeedback')} {item.admin_notes}
                         </p>
                       )}
                       <p className="text-xs text-muted-foreground mt-2">
-                        Submitted on {new Date(item.created_at).toLocaleDateString()}
+                        {t('dashboard.myContent.submittedOn', { date: new Date(item.created_at).toLocaleDateString() })}
                       </p>
                     </div>
                     <div className="flex items-center gap-1">

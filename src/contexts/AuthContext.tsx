@@ -56,12 +56,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     );
 
     // THEN check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
 
       if (session?.user) {
-        fetchUserRole(session.user.id);
+        await fetchUserRole(session.user.id);
       }
       setLoading(false);
     });
@@ -82,6 +82,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         },
       },
     });
+
+    if (!error && data.user) {
+      // Safety net: manually create profile if trigger fails
+      await supabase.from('profiles').insert({
+        user_id: data.user.id,
+        full_name: fullName
+      }).select().single();
+    }
 
     return { session: data.session, error: error as Error | null };
   };
