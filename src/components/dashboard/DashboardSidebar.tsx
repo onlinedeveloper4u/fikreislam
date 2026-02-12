@@ -98,7 +98,7 @@ export function DashboardSidebar({ activeTab, onTabChange }: DashboardSidebarPro
         <div className="flex items-center gap-2 group-data-[collapsible=icon]:justify-center px-2 py-2">
           <div className="flex items-center gap-2 group-data-[collapsible=icon]:hidden">
             <Link to="/dashboard" className="flex items-center gap-2">
-              <img src={logo} alt="Fikr-e-Islam" className="w-8 h-8 object-contain shrink-0" />
+              <img src={logo} alt="Fikr-e-Islam" className="w-12 h-12 object-contain shrink-0" />
               <div className="flex flex-col">
                 <span className="font-display text-sm font-semibold text-sidebar-foreground">
                   {t('nav.dashboard')}

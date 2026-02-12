@@ -1,4 +1,9 @@
 {
+    "metadata": {
+        "title": "Fikr-e-Islam | Authentic Islamic Knowledge",
+        "description": "A dedicated platform for authentic Islamic knowledge, connecting Muslims with trusted scholars and resources.",
+        "keywords": "Islam, Quran, Hadith, Sunnah, Islamic Books, Lectures, Videos, Q&A"
+    },
     "nav": {
         "books": "Books",
         "audio": "Audio",

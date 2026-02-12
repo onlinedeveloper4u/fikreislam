@@ -53,8 +53,8 @@ const Navbar = () => {
       <nav className="container mx-auto px-4 h-16 flex items-center justify-between">
         {/* Logo */}
         <Link to="/" className="flex items-center gap-2">
-          <img src={logo} alt={t("common.brand")} className="w-10 h-10 object-contain" />
-          <span className="font-display text-xl font-semibold text-foreground">
+          <img src={logo} alt={t("common.brand")} className="w-16 h-16 object-contain" />
+          <span className="font-display text-2xl font-bold text-foreground">
             {t("common.brand")}
           </span>
         </Link>

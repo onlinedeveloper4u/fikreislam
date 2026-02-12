@@ -32,8 +32,8 @@ import ProtectedRoute from "@/components/auth/ProtectedRoute";
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
-      <LanguageProvider>
-        <AuthProvider>
+      <AuthProvider>
+        <LanguageProvider>
           <Toaster />
           <Sonner />
           <BrowserRouter>
@@ -79,10 +79,10 @@ const App = () => (
               </Routes>
             </Suspense>
           </BrowserRouter>
-        </AuthProvider>
-      </LanguageProvider>
+        </LanguageProvider>
+      </AuthProvider>
     </TooltipProvider>
-  </QueryClientProvider>
+  </QueryClientProvider >
 );
 
 export default App;

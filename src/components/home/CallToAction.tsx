@@ -78,9 +78,9 @@ const CallToAction = () => {
 
           {/* Stats Section */}
           <div className="mt-20 text-center">
-            <div className="inline-flex items-center gap-3 mb-8">
-              <img src={logo} alt={t("common.brand")} className="w-10 h-10" />
-              <span className="font-display text-xl font-semibold text-foreground">{t("common.brand")}</span>
+            <div className="inline-flex items-center gap-4 mb-8">
+              <img src={logo} alt={t("common.brand")} className="w-20 h-20" />
+              <span className="font-display text-3xl font-bold text-foreground">{t("common.brand")}</span>
             </div>
             <p className="text-muted-foreground max-w-xl mx-auto mb-10">
               {t("home.cta.joinThousands")}
