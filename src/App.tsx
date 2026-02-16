@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { LanguageProvider } from "@/contexts/LanguageContext";
+import { UploadProvider } from "@/contexts/UploadContext";
 import { Suspense, lazy } from "react";
 import LoadingSpinner from "@/components/ui/LoadingSpinner";
 
@@ -34,55 +35,58 @@ const App = () => (
     <TooltipProvider>
       <AuthProvider>
         <LanguageProvider>
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
-            <Suspense fallback={<LoadingSpinner fullScreen size="lg" />}>
-              <Routes>
-                <Route path="/" element={<Index />} />
-                <Route path="/books" element={<Books />} />
-                <Route path="/audio" element={<Audio />} />
-                <Route path="/video" element={<VideoPage />} />
-                <Route path="/qa" element={<QA />} />
-                <Route path="/login" element={<Login />} />
-                <Route path="/register" element={<Register />} />
-                <Route path="/forgot-password" element={<ForgotPassword />} />
-                <Route path="/reset-password" element={<ResetPassword />} />
-                <Route
-                  path="/settings"
-                  element={
-                    <ProtectedRoute>
-                      <Settings />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/dashboard"
-                  element={
-                    <ProtectedRoute>
-                      <Dashboard />
-                    </ProtectedRoute>
-                  }
-                />
-                {/* Redirect old redundant paths */}
-                <Route path="/contributor" element={<Navigate to="/dashboard" replace />} />
-                <Route path="/admin" element={<Navigate to="/dashboard" replace />} />
-                <Route
-                  path="/library"
-                  element={
-                    <ProtectedRoute>
-                      <Library />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route path="*" element={<NotFound />} />
-              </Routes>
-            </Suspense>
-          </BrowserRouter>
+          <UploadProvider>
+            <Toaster />
+            <Sonner />
+            <BrowserRouter>
+              <Suspense fallback={<LoadingSpinner fullScreen size="lg" />}>
+                <Routes>
+                  <Route path="/" element={<Index />} />
+                  <Route path="/books" element={<Books />} />
+                  <Route path="/audio" element={<Audio />} />
+                  <Route path="/video" element={<VideoPage />} />
+                  <Route path="/qa" element={<QA />} />
+                  <Route path="/login" element={<Login />} />
+                  <Route path="/register" element={<Register />} />
+                  <Route path="/forgot-password" element={<ForgotPassword />} />
+                  <Route path="/reset-password" element={<ResetPassword />} />
+                  <Route
+                    path="/settings"
+                    element={
+                      <ProtectedRoute>
+                        <Settings />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/dashboard"
+                    element={
+                      <ProtectedRoute>
+                        <Dashboard />
+                      </ProtectedRoute>
+                    }
+                  />
+                  {/* Redirect old redundant paths */}
+                  <Route path="/contributor" element={<Navigate to="/dashboard" replace />} />
+                  <Route path="/admin" element={<Navigate to="/dashboard" replace />} />
+                  <Route
+                    path="/library"
+                    element={
+                      <ProtectedRoute>
+                        <Library />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route path="*" element={<Navigate to="/404" replace />} />
+                  <Route path="/404" element={<NotFound />} />
+                </Routes>
+              </Suspense>
+            </BrowserRouter>
+          </UploadProvider>
         </LanguageProvider>
       </AuthProvider>
     </TooltipProvider>
-  </QueryClientProvider >
+  </QueryClientProvider>
 );
 
 export default App;

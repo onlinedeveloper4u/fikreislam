@@ -53,6 +53,7 @@ export function DashboardSidebar({ activeTab, onTabChange }: DashboardSidebarPro
   const contributorItems = [
     { id: 'stats', title: t('dashboard.stats'), icon: BarChart3 },
     { id: 'upload', title: t('dashboard.upload.title'), icon: Upload },
+    { id: 'uploads', title: t('dashboard.uploads.title', { defaultValue: 'Upload Status' }), icon: Clock },
     { id: 'my-content', title: t('dashboard.myContent.title'), icon: FolderOpen },
   ];
 

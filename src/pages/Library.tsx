@@ -5,6 +5,7 @@ import { useFavorites } from '@/hooks/useFavorites';
 import { usePlaylists, Playlist } from '@/hooks/usePlaylists';
 import { supabase } from '@/integrations/supabase/client';
 import Layout from '@/components/layout/Layout';
+import { MediaPlayer } from '@/components/content/MediaPlayer';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -56,6 +57,8 @@ export default function Library() {
   const [loadingContent, setLoadingContent] = useState(false);
   const [newPlaylistName, setNewPlaylistName] = useState('');
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [playerOpen, setPlayerOpen] = useState(false);
+  const [selectedItem, setSelectedItem] = useState<Content | null>(null);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -136,9 +139,8 @@ export default function Library() {
   };
 
   const handleAction = (item: Content) => {
-    if (item.file_url) {
-      window.open(item.file_url, '_blank');
-    }
+    setSelectedItem(item);
+    setPlayerOpen(true);
   };
 
   if (authLoading || favLoading) {
@@ -306,8 +308,8 @@ export default function Library() {
                         <div
                           key={playlist.id}
                           className={`flex items-center justify-between p-3 rounded-lg cursor-pointer transition-colors ${selectedPlaylist?.id === playlist.id
-                              ? 'bg-primary/10 border border-primary/20'
-                              : 'hover:bg-muted/50'
+                            ? 'bg-primary/10 border border-primary/20'
+                            : 'hover:bg-muted/50'
                             }`}
                           onClick={() => handlePlaylistSelect(playlist)}
                         >
@@ -381,6 +383,16 @@ export default function Library() {
           </TabsContent>
         </Tabs>
       </div>
+
+      {selectedItem && (
+        <MediaPlayer
+          isOpen={playerOpen}
+          onClose={() => setPlayerOpen(false)}
+          title={selectedItem.title}
+          url={selectedItem.file_url}
+          type={selectedItem.type}
+        />
+      )}
     </Layout>
   );
 }

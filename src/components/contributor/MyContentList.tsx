@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
+import { deleteFromGoogleDrive } from '@/lib/storage';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -24,6 +25,7 @@ interface Content {
   tags: string[] | null;
   status: ContentStatus;
   admin_notes: string | null;
+  file_url: string | null;
   created_at: string;
 }
 
@@ -60,8 +62,8 @@ export function MyContentList() {
     try {
       const { data, error } = await supabase
         .from('content')
-        .select('*')
-        .eq('contributor_id', user?.id)
+        .select('id, type, title, description, author, language, tags, status, admin_notes, file_url, created_at')
+        .eq('contributor_id', user.id)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -77,6 +79,11 @@ export function MyContentList() {
   const handleDelete = async (id: string) => {
     setDeletingId(id);
     try {
+      const item = content.find(c => c.id === id);
+      if (item?.file_url?.startsWith('google-drive://')) {
+        await deleteFromGoogleDrive(item.file_url);
+      }
+
       const { error } = await supabase
         .from('content')
         .delete()

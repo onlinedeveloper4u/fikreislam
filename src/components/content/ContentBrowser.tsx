@@ -10,6 +10,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { AddToPlaylistDialog } from './AddToPlaylistDialog';
+import { MediaPlayer } from './MediaPlayer';
 import { useTranslation } from 'react-i18next';
 import {
   Search, Download, Play, FileText, Music, Video,
@@ -56,6 +57,8 @@ export function ContentBrowser({ contentType, title, description }: ContentBrows
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
   const [playlistDialogOpen, setPlaylistDialogOpen] = useState(false);
   const [selectedContentId, setSelectedContentId] = useState<string | null>(null);
+  const [playerOpen, setPlayerOpen] = useState(false);
+  const [selectedItem, setSelectedItem] = useState<ContentWithSignedUrls | null>(null);
 
   const typeConfig: Record<ContentType, { icon: React.ElementType; actionLabel: string; actionIcon: React.ElementType }> = {
     book: { icon: FileText, actionLabel: t('content.browser.download'), actionIcon: Download },
@@ -126,15 +129,13 @@ export function ContentBrowser({ contentType, title, description }: ContentBrows
   }, [content, searchQuery, selectedLanguage, selectedTag]);
 
   const handleAction = (item: ContentWithSignedUrls) => {
-    const fileUrl = item.signed_file_url || item.file_url;
-    if (fileUrl) {
-      if (item.type === 'book') {
-        trackDownload(item.id);
-      } else {
-        trackPlay(item.id);
-      }
-      window.open(fileUrl, '_blank');
+    if (item.type === 'book') {
+      trackDownload(item.id);
+    } else {
+      trackPlay(item.id);
     }
+    setSelectedItem(item);
+    setPlayerOpen(true);
   };
 
   const handleAddToPlaylist = (contentId: string) => {
@@ -358,6 +359,16 @@ export function ContentBrowser({ contentType, title, description }: ContentBrows
           contentId={selectedContentId}
           open={playlistDialogOpen}
           onOpenChange={setPlaylistDialogOpen}
+        />
+      )}
+
+      {selectedItem && (
+        <MediaPlayer
+          isOpen={playerOpen}
+          onClose={() => setPlayerOpen(false)}
+          title={selectedItem.title}
+          url={selectedItem.signed_file_url || selectedItem.file_url}
+          type={selectedItem.type}
         />
       )}
     </div>

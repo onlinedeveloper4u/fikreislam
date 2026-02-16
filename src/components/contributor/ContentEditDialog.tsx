@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { renameInGoogleDrive } from '@/lib/storage';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -29,6 +30,7 @@ interface ContentItem {
   language: string | null;
   tags: string[] | null;
   status: ContentStatus;
+  file_url: string | null;
 }
 
 interface ContentEditDialogProps {
@@ -115,6 +117,11 @@ export function ContentEditDialog({ content, open, onOpenChange, onSuccess }: Co
         .eq('id', content.id);
 
       if (error) throw error;
+
+      // Rename in Google Drive if title changed and it's a Drive file
+      if (content.title !== validatedData.title && content.file_url?.startsWith('google-drive://')) {
+        await renameInGoogleDrive(content.file_url, validatedData.title);
+      }
 
       const message = content.status === 'rejected'
         ? t('dashboard.myContent.edit.resubmitSuccess')

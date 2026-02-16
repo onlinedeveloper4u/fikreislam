@@ -11,6 +11,7 @@ import { AllContentList } from '@/components/admin/AllContentList';
 import { UserManagement } from '@/components/admin/UserManagement';
 import { AdminAnalytics } from '@/components/admin/AdminAnalytics';
 import { PendingAnswersList } from '@/components/admin/PendingAnswersList';
+import { UploadTracker } from '@/components/dashboard/UploadTracker';
 
 export default function Dashboard() {
     const { user, role, loading } = useAuth();
@@ -22,6 +23,7 @@ export default function Dashboard() {
     const tabTitles: Record<string, string> = useMemo(() => ({
         'stats': t('dashboard.stats'),
         'upload': t('dashboard.upload'),
+        'uploads': t('dashboard.uploads.title', { defaultValue: 'Upload Status' }),
         'my-content': t('dashboard.myContent'),
         'analytics': t('dashboard.analytics'),
         'pending': t('dashboard.pending'),
@@ -83,6 +85,8 @@ export default function Dashboard() {
                         <ContentUploadForm />
                     </div>
                 );
+            case 'uploads':
+                return <UploadTracker />;
             case 'my-content':
                 return <MyContentList />;
             case 'analytics':

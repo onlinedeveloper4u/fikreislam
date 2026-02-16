@@ -215,7 +215,15 @@
         "noActivity": "No activity data yet",
         "viewsCount": "{{count}} views",
         "unableLoadAnalytics": "Unable to load analytics",
-        "published": "Published"
+        "published": "Published",
+        "uploads": {
+            "title": "Upload Status",
+            "desc": "Monitor the status of your background uploads",
+            "empty": "No active or recent uploads",
+            "clear": "Clear Finished"
+        },
+        "saving": "Saving",
+        "uploading": "Uploading"
     },
     "moderation": {
         "approve": "Approve",

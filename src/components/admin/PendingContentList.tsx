@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { getSignedUrl } from '@/lib/storage';
+import { getSignedUrl, deleteFromGoogleDrive } from '@/lib/storage';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -138,6 +138,11 @@ export function PendingContentList() {
         .eq('id', selectedContent.id);
 
       if (error) throw error;
+
+      // If it's a Google Drive file, trash it
+      if (selectedContent.file_url?.startsWith('google-drive://')) {
+        await deleteFromGoogleDrive(selectedContent.file_url);
+      }
 
       toast.success(t('moderation.rejectedSuccess', { title: selectedContent.title }));
       setContent(prev => prev.filter(c => c.id !== selectedContent.id));

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { getSignedUrl } from '@/lib/storage';
+import { getSignedUrl, deleteFromGoogleDrive } from '@/lib/storage';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -108,6 +108,15 @@ export function AllContentList() {
       setContent(prev => prev.map(c =>
         c.id === id ? { ...c, status: newStatus } : c
       ));
+
+      // If rejected, trash from Google Drive if applicable
+      if (newStatus === 'rejected') {
+        const item = content.find(c => c.id === id);
+        if (item?.file_url?.startsWith('google-drive://')) {
+          await deleteFromGoogleDrive(item.file_url);
+        }
+      }
+
       toast.success(t('moderation.statusUpdated'));
     } catch (error: any) {
       console.error('Error updating status:', error);
@@ -120,6 +129,11 @@ export function AllContentList() {
   const handleDelete = async (id: string) => {
     setActionLoading(id);
     try {
+      const item = content.find(c => c.id === id);
+      if (item?.file_url?.startsWith('google-drive://')) {
+        await deleteFromGoogleDrive(item.file_url);
+      }
+
       const { error } = await supabase
         .from('content')
         .delete()

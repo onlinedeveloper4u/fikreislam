@@ -11,6 +11,9 @@ import { toast } from 'sonner';
 import { Upload, FileText, Music, Video, Loader2 } from 'lucide-react';
 import { z } from 'zod';
 import { useTranslation } from 'react-i18next';
+import { Switch } from '@/components/ui/switch';
+import { useUpload } from '@/contexts/UploadContextTypes';
+import { useNavigate } from 'react-router-dom';
 
 type ContentType = 'book' | 'audio' | 'video';
 
@@ -39,6 +42,8 @@ function getAcceptedFileTypesStatic(type: ContentType): string {
 
 export function ContentUploadForm() {
   const { user, role } = useAuth();
+  const { uploadContent } = useUpload();
+  const navigate = useNavigate();
   const { t } = useTranslation();
   const isAdmin = role === 'admin';
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -50,6 +55,7 @@ export function ContentUploadForm() {
   const [tags, setTags] = useState('');
   const [file, setFile] = useState<File | null>(null);
   const [coverImage, setCoverImage] = useState<File | null>(null);
+  const [useGoogleDrive, setUseGoogleDrive] = useState(true);
 
   // Validation schema for content upload
   const contentSchema = useMemo(() => z.object({
@@ -184,59 +190,19 @@ export function ContentUploadForm() {
     setIsSubmitting(true);
 
     try {
-      // Upload main file with sanitized path
-      const fileExt = file.name.split('.').pop()?.toLowerCase().replace(/[^a-z0-9]/g, '') || 'bin';
-      const filePath = `${user.id}/${contentType}/${Date.now()}.${fileExt}`;
+      // Create a plain object for the hook to consume (FormData might be tricky with serialization if needed, but here we just pass fields)
+      const uploadData = {
+        ...validatedData,
+        useGoogleDrive,
+        tags: tags, // Passing raw tags string to let the context handle parsing
+      };
 
-      const { error: uploadError } = await supabase.storage
-        .from('content-files')
-        .upload(filePath, file);
+      // Trigger background upload
+      uploadContent(uploadData, file, coverImage);
 
-      if (uploadError) throw uploadError;
+      toast.info(t('dashboard.upload.started', { defaultValue: 'Upload started in background' }));
 
-      // Store just the file path, not the full URL
-      const fileUrlPath = filePath;
-
-      // Upload cover image if provided
-      let coverImagePath = null;
-      if (coverImage) {
-        const coverExt = coverImage.name.split('.').pop()?.toLowerCase().replace(/[^a-z0-9]/g, '') || 'jpg';
-        const coverPath = `${user.id}/covers/${Date.now()}.${coverExt}`;
-
-        const { error: coverError } = await supabase.storage
-          .from('content-files')
-          .upload(coverPath, coverImage);
-
-        if (coverError) throw coverError;
-
-        // Store just the path, not the full URL
-        coverImagePath = coverPath;
-      }
-
-      // Insert content record with validated data
-      const { error: insertError } = await supabase
-        .from('content')
-        .insert({
-          contributor_id: user.id,
-          type: validatedData.contentType,
-          title: validatedData.title,
-          description: validatedData.description || null,
-          author: validatedData.author || null,
-          language: validatedData.language,
-          tags: validatedData.tags,
-          file_url: fileUrlPath,
-          cover_image_url: coverImagePath,
-          status: isAdmin ? 'approved' : 'pending',
-          published_at: isAdmin ? new Date().toISOString() : null,
-        });
-
-      if (insertError) throw insertError;
-
-      toast.success(isAdmin
-        ? t('dashboard.upload.successAdmin')
-        : t('dashboard.upload.successContributor'));
-
-      // Reset form
+      // Reset form immediately
       setTitle('');
       setDescription('');
       setAuthor('');
@@ -245,8 +211,11 @@ export function ContentUploadForm() {
       setFile(null);
       setCoverImage(null);
 
+      // Optionally redirect to library or stay on dashboard
+      // navigate('/library');
+
     } catch (error: any) {
-      console.error('Upload error:', error);
+      console.error('Enqueue error:', error);
       toast.error(error.message || t('common.error'));
     } finally {
       setIsSubmitting(false);
@@ -268,6 +237,23 @@ export function ContentUploadForm() {
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Storage Provider Toggle */}
+          <div className="flex items-center justify-between space-x-2 border p-3 rounded-lg bg-muted/30">
+            <div className="flex flex-col gap-1">
+              <Label htmlFor="google-drive-mode" className="font-semibold cursor-pointer">
+                {t('dashboard.upload.useGoogleDrive', { defaultValue: 'Upload to Google Drive' })}
+              </Label>
+              <p className="text-xs text-muted-foreground">
+                {t('dashboard.upload.googleDriveHint', { defaultValue: 'Files will be stored in Google Drive instead of Supabase' })}
+              </p>
+            </div>
+            <Switch
+              id="google-drive-mode"
+              checked={useGoogleDrive}
+              onCheckedChange={setUseGoogleDrive}
+            />
+          </div>
+
           {/* Content Type Selection */}
           <div className="space-y-2">
             <Label>{t('dashboard.upload.typeLabel')}</Label>
