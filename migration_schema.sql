@@ -622,57 +622,9 @@ USING (
     -- Or the user owns this file (contributors can access their own uploads)
     OR (storage.foldername(name))[1] = auth.uid()::text
   )
-);-- Create a public view for approved content that excludes sensitive fields
--- This provides an additional layer of security for public content access
-
-CREATE OR REPLACE VIEW public.content_public AS
-SELECT 
-  id, 
-  type, 
-  title, 
-  description, 
-  author, 
-  language, 
-  tags,
-  file_url, 
-  cover_image_url, 
-  status, 
-  published_at, 
-  created_at
-FROM public.content
-WHERE status = 'approved';
-
--- Grant access to the view
-GRANT SELECT ON public.content_public TO anon, authenticated;
-
--- Add a comment explaining the view's purpose
-COMMENT ON VIEW public.content_public IS 'Public view of approved content excluding sensitive fields like contributor_id and admin_notes';-- Fix the SECURITY DEFINER view issue by recreating as SECURITY INVOKER
-DROP VIEW IF EXISTS public.content_public;
-
-CREATE VIEW public.content_public
-WITH (security_invoker = true)
-AS
-SELECT 
-  id, 
-  type, 
-  title, 
-  description, 
-  author, 
-  language, 
-  tags,
-  file_url, 
-  cover_image_url, 
-  status, 
-  published_at, 
-  created_at
-FROM public.content
-WHERE status = 'approved';
-
--- Grant access to the view
-GRANT SELECT ON public.content_public TO anon, authenticated;
-
--- Add a comment explaining the view's purpose
-COMMENT ON VIEW public.content_public IS 'Public view of approved content excluding sensitive fields like contributor_id and admin_notes. Uses security_invoker=true to respect RLS policies.';-- Simplify storage RLS policy to rely on signed URLs for public access
+);-- content_public view was removed - the application now queries
+-- the content table directly with status='approved' filter
+DROP VIEW IF EXISTS public.content_public;-- Simplify storage RLS policy to rely on signed URLs for public access
 -- The signed URL mechanism in src/lib/storage.ts provides the actual security boundary
 
 -- Drop the unreliable LIKE-based policy

@@ -78,8 +78,9 @@ export default function Library() {
     setLoadingContent(true);
     try {
       const { data, error } = await supabase
-        .from('content_public')
+        .from('content')
         .select('id, title, description, author, type, language, file_url, cover_image_url')
+        .eq('status', 'approved')
         .in('id', Array.from(favorites));
 
       if (error) throw error;
@@ -104,8 +105,9 @@ export default function Library() {
 
       if (items && items.length > 0) {
         const { data, error } = await supabase
-          .from('content_public')
+          .from('content')
           .select('id, title, description, author, type, language, file_url, cover_image_url')
+          .eq('status', 'approved')
           .in('id', items.map(i => i.content_id));
 
         if (error) throw error;

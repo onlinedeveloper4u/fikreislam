@@ -77,8 +77,9 @@ export function ContentBrowser({ contentType, title, description }: ContentBrows
     setLoading(true);
     try {
       const { data, error } = await supabase
-        .from('content_public')
+        .from('content')
         .select('id, title, description, author, type, language, tags, file_url, cover_image_url, published_at')
+        .eq('status', 'approved')
         .eq('type', contentType)
         .order('published_at', { ascending: false });
 

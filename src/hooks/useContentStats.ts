@@ -15,17 +15,17 @@ export function useContentStats() {
       // Fetch counts for each content type
       const [booksResult, audioResult, videoResult, contributorsResult] = await Promise.all([
         supabase
-          .from("content_public")
+          .from("content")
           .select("id", { count: "exact", head: true })
           .eq("type", "book")
           .eq("status", "approved"),
         supabase
-          .from("content_public")
+          .from("content")
           .select("id", { count: "exact", head: true })
           .eq("type", "audio")
           .eq("status", "approved"),
         supabase
-          .from("content_public")
+          .from("content")
           .select("id", { count: "exact", head: true })
           .eq("type", "video")
           .eq("status", "approved"),
