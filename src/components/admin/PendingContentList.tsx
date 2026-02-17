@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { getSignedUrl, deleteFromGoogleDrive } from '@/lib/storage';
+import { getSignedUrl, deleteFromGoogleDrive, resolveExternalUrl } from '@/lib/storage';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -256,7 +256,7 @@ export function PendingContentList() {
                   </span>
                   {(item.signed_file_url || item.file_url) && (
                     <a
-                      href={item.signed_file_url || item.file_url || ''}
+                      href={resolveExternalUrl(item.signed_file_url || item.file_url)}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="flex items-center gap-1 text-primary hover:underline"
@@ -303,7 +303,7 @@ export function PendingContentList() {
             </CardContent>
           </Card>
         ))}
-      </div>
+      </div >
 
       <Dialog open={rejectDialogOpen} onOpenChange={setRejectDialogOpen}>
         <DialogContent>

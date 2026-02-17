@@ -11,6 +11,7 @@ export async function getSignedUrl(
   expiresIn: number = 3600
 ): Promise<string | null> {
   if (!path) return null;
+  if (path.includes('google-drive://')) return null;
 
   // Extract the path from a full public URL if necessary
   const bucketPath = extractPathFromUrl(path);
@@ -134,4 +135,21 @@ export async function renameInGoogleDrive(fileUrl: string | null, newName: strin
     console.error('Error renaming in Google Drive:', error);
     return false;
   }
+}
+
+/**
+ * Resolves an internal URL (like google-drive://) to an external accessible URL.
+ * If the URL is already http/https, returns as is.
+ */
+export function resolveExternalUrl(url: string | null): string {
+  if (!url) return '';
+
+  if (url.includes('google-drive://')) {
+    const parts = url.split('google-drive://');
+    let fileId = parts[1];
+    if (fileId.includes('?')) fileId = fileId.split('?')[0];
+    return `https://drive.google.com/file/d/${fileId}/view`;
+  }
+
+  return url;
 }

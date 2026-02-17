@@ -23,23 +23,41 @@ interface MediaPlayerProps {
 const resolveMediaUrl = (url: string | null) => {
     if (!url) return '';
 
-    // Handle Google Drive links
+    // Handle internal google-drive:// scheme (even if wrapped in a signed URL)
+    if (url.includes('google-drive://')) {
+        // Extract the part after google-drive://
+        const parts = url.split('google-drive://');
+        // valid ID is usually before any query params or end of string
+        let fileId = parts[1];
+        if (fileId.includes('?')) {
+            fileId = fileId.split('?')[0];
+        }
+        // If it was path based (e.g. /google-drive://...), clean it
+        fileId = fileId.replace(/['"]/g, '').trim();
+
+        return `https://drive.google.com/file/d/${fileId}/preview`;
+    }
+
+    // Handle standard Google Drive links
     if (url.includes('drive.google.com')) {
-        const idMatch = url.match(/\/file\/d\/(.+?)\//) || url.match(/id=(.+?)(&|$)/);
-        if (idMatch) {
-            // Direct stream link for Google Drive
-            return `https://drive.google.com/uc?id=${idMatch[1]}&export=download`;
+        const idMatch = url.match(/\/file\/d\/(.+?)\/|\/file\/d\/(.+?)$/) || url.match(/id=(.+?)(&|$)/);
+        const id = idMatch ? (idMatch[1] || idMatch[2]) : null;
+        if (id) {
+            return `https://drive.google.com/file/d/${id}/preview`;
         }
     }
 
-    // Handle our internal google-drive:// placeholder
-    if (url.startsWith('google-drive://')) {
-        // This is a placeholder without ID, we can't play it directly
-        // but we can search for it or ask user for ID.
-        // For now, return empty or a helpful message
-        return '';
-    }
+    return url;
+};
 
+const resolveExternalUrl = (url: string | null) => {
+    if (!url) return '';
+    if (url.includes('google-drive://')) {
+        const parts = url.split('google-drive://');
+        let fileId = parts[1];
+        if (fileId.includes('?')) fileId = fileId.split('?')[0];
+        return `https://drive.google.com/file/d/${fileId}/view`;
+    }
     return url;
 };
 
@@ -54,7 +72,7 @@ export function MediaPlayer({ isOpen, onClose, title, url, type }: MediaPlayerPr
                     <div className="flex items-center gap-2">
                         {url && (
                             <Button variant="ghost" size="icon" asChild>
-                                <a href={url} target="_blank" rel="noopener noreferrer">
+                                <a href={resolveExternalUrl(url)} target="_blank" rel="noopener noreferrer">
                                     <ExternalLink className="h-4 w-4" />
                                 </a>
                             </Button>
@@ -73,12 +91,19 @@ export function MediaPlayer({ isOpen, onClose, title, url, type }: MediaPlayerPr
                             </p>
                             {url && (
                                 <Button variant="outline" asChild>
-                                    <a href={url} target="_blank" rel="noopener noreferrer">
+                                    <a href={resolveExternalUrl(url)} target="_blank" rel="noopener noreferrer">
                                         Open in New Tab
                                     </a>
                                 </Button>
                             )}
                         </div>
+                    ) : (url?.includes('google-drive://') || url?.includes('drive.google.com')) ? (
+                        <iframe
+                            src={resolvedUrl}
+                            className="w-full h-full border-none"
+                            title={title}
+                            allow="autoplay"
+                        />
                     ) : type === 'book' ? (
                         <iframe
                             src={resolvedUrl}

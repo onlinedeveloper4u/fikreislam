@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { getSignedUrl, deleteFromGoogleDrive } from '@/lib/storage';
+import { getSignedUrl, deleteFromGoogleDrive, resolveExternalUrl } from '@/lib/storage';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -239,7 +239,7 @@ export function AllContentList() {
 
                   {(item.signed_file_url || item.file_url) && (
                     <Button variant="ghost" size="icon" asChild title={t('moderation.viewFile')}>
-                      <a href={item.signed_file_url || item.file_url || ''} target="_blank" rel="noopener noreferrer">
+                      <a href={resolveExternalUrl(item.signed_file_url || item.file_url)} target="_blank" rel="noopener noreferrer">
                         <ExternalLink className="h-4 w-4" />
                       </a>
                     </Button>
