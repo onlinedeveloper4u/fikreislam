@@ -302,7 +302,10 @@ export function AllContentList() {
                   <div className="min-w-0">
                     <p className="font-medium text-foreground truncate">{item.title}</p>
                     <p className="text-xs text-muted-foreground">
-                      {item.author || t('common.noAuthor')} • {t(`common.languages.${item.language?.toLowerCase().trim() || 'en'}`)}
+                      {item.type === 'audio'
+                        ? (item.speaker || t('dashboard.taxonomyManagement.types.speaker', { defaultValue: 'Speaker' }))
+                        : (item.author || t('common.noAuthor'))}
+                      • {t(`common.languages.${item.language?.toLowerCase().trim() || 'en'}`, { defaultValue: item.language })}
                     </p>
                   </div>
                 </div>

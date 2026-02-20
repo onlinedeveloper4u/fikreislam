@@ -14,9 +14,11 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { toast } from 'sonner';
-import { Loader2, Save } from 'lucide-react';
 import { z } from 'zod';
+import { X, Upload, FileText, Headphones, Loader2, Save } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { useUpload } from '@/contexts/UploadContextTypes';
+import { TaxonomyCombobox } from './TaxonomyCombobox';
 
 type ContentType = 'book' | 'audio' | 'video';
 type ContentStatus = 'pending' | 'approved' | 'rejected';
@@ -31,6 +33,7 @@ interface ContentItem {
   tags: string[] | null;
   status: ContentStatus;
   file_url: string | null;
+  cover_image_url: string | null;
   duration: string | null;
   venue: string | null;
   speaker: string | null;
@@ -49,23 +52,57 @@ interface ContentEditDialogProps {
   onSuccess: () => void;
 }
 
-const LANGUAGES = ['English', 'Arabic', 'Urdu', 'Turkish', 'Malay', 'Indonesian', 'French', 'Spanish'];
-
 export function ContentEditDialog({ content, open, onOpenChange, onSuccess }: ContentEditDialogProps) {
   const { t } = useTranslation();
+  const { editContent } = useUpload();
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [author, setAuthor] = useState('');
-  const [language, setLanguage] = useState('English');
+  const [language, setLanguage] = useState('اردو');
   const [tags, setTags] = useState('');
 
   // Audio expanded metadata
-  const [duration, setDuration] = useState('');
-  const [venue, setVenue] = useState('');
+  const [durHours, setDurHours] = useState('');
+  const [durMinutes, setDurMinutes] = useState('');
+  const [durSeconds, setDurSeconds] = useState('');
+
+  const [venueManual, setVenueManual] = useState(false);
+  const [venueText, setVenueText] = useState('');
+  const [venueDistrict, setVenueDistrict] = useState('');
+  const [venueTehsil, setVenueTehsil] = useState('');
+  const [venueCity, setVenueCity] = useState('');
+  const [venueArea, setVenueArea] = useState('');
+
   const [speaker, setSpeaker] = useState('');
   const [audioType, setAudioType] = useState('');
   const [categories, setCategories] = useState('');
+
+  // Taxonomy State
+  const [taxonomies, setTaxonomies] = useState<{
+    speaker: string[];
+    language: string[];
+    audio_type: string[];
+    category: string[];
+  }>({ speaker: [], language: [], audio_type: [], category: [] });
+
+  useMemo(() => {
+    supabase.from('taxonomies').select('*').then(({ data }) => {
+      if (data) {
+        setTaxonomies({
+          speaker: data.filter(t => t.type === 'speaker').map(t => t.name),
+          language: data.filter(t => t.type === 'language').map(t => t.name),
+          audio_type: data.filter(t => t.type === 'audio_type').map(t => t.name),
+          category: data.filter(t => t.type === 'category').map(t => t.name),
+        });
+      }
+    });
+  }, []);
+
+  // File replacement state
+  const [newFile, setNewFile] = useState<File | null>(null);
+  const [newCoverImage, setNewCoverImage] = useState<File | null>(null);
 
   // Date parts
   const [gDay, setGDay] = useState('');
@@ -140,12 +177,41 @@ export function ContentEditDialog({ content, open, onOpenChange, onSuccess }: Co
       setTitle(content.title);
       setDescription(content.description || '');
       setAuthor(content.author || '');
-      setLanguage(content.language || 'English');
+      setLanguage(content.language || 'اردو');
       setTags(content.tags?.join(', ') || '');
 
       // Audio metadata
-      setDuration(content.duration || '');
-      setVenue(content.venue || '');
+      if (content.duration) {
+        const parts = content.duration.split(':').map(Number);
+        setDurHours(parts[0]?.toString() || '');
+        setDurMinutes(parts[1]?.toString() || '');
+        setDurSeconds(parts[2]?.toString() || '');
+      } else {
+        setDurHours(''); setDurMinutes(''); setDurSeconds('');
+      }
+
+      if (content.venue) {
+        const parts = content.venue.split(',').map(p => p.trim());
+        if (parts.length > 0 && ['ضلع', 'تحصیل', 'شہر', 'علاقہ'].some(kw => content.venue!.includes(kw)) === false) {
+          if (parts.length >= 4) {
+            setVenueDistrict(parts[0]);
+            setVenueTehsil(parts[1]);
+            setVenueCity(parts[2]);
+            setVenueArea(parts[3] || '');
+            setVenueManual(false);
+          } else {
+            setVenueText(content.venue);
+            setVenueManual(true);
+          }
+        } else {
+          setVenueText(content.venue);
+          setVenueManual(true);
+        }
+      } else {
+        setVenueText('');
+        setVenueManual(false);
+      }
+
       setSpeaker(content.speaker || '');
       setAudioType(content.audio_type || '');
       setCategories(content.categories?.join(', ') || '');
@@ -183,25 +249,54 @@ export function ContentEditDialog({ content, open, onOpenChange, onSuccess }: Co
     }
 
     const validatedData = validationResult.data;
+
+    // Validate Audio specific fields
+    if (content.type === 'audio') {
+      const hasDuration = [durHours, durMinutes, durSeconds].some(p => p !== '' && p !== '0' && p !== '00');
+      if (!hasDuration) {
+        toast.error(t('dashboard.upload.validation.durationRequired', { defaultValue: 'Duration is required' }));
+        return;
+      }
+      if (!speaker) {
+        toast.error(t('dashboard.upload.validation.speakerRequired', { defaultValue: 'Speaker is required' }));
+        return;
+      }
+      if (!audioType) {
+        toast.error(t('dashboard.upload.validation.audioTypeRequired', { defaultValue: 'Audio Type is required' }));
+        return;
+      }
+    }
+
     setIsSubmitting(true);
 
     try {
-      // If content was rejected, resubmit as pending
       const newStatus = content.status === 'rejected' ? 'pending' : content.status;
 
-      const { error } = await supabase
-        .from('content')
-        .update({
-          title: validatedData.title,
-          description: validatedData.description || null,
-          author: validatedData.author || null,
-          language: validatedData.language,
-          tags: validatedData.tags,
-          status: newStatus,
-          admin_notes: newStatus === 'pending' ? null : undefined,
-          // Audio specialized metadata
-          duration: duration || null,
-          venue: venue || null,
+      const updatePayload: any = {
+        title: validatedData.title,
+        description: validatedData.description || null,
+        author: validatedData.author || null,
+        language: validatedData.language,
+        tags: validatedData.tags,
+        status: newStatus,
+        admin_notes: newStatus === 'pending' ? null : undefined,
+        cover_image_url: content.cover_image_url || null,
+      };
+
+      if (content.type === 'audio') {
+        const formattedDuration = [
+          durHours.padStart(2, '0') || '00',
+          durMinutes.padStart(2, '0') || '00',
+          durSeconds.padStart(2, '0') || '00'
+        ].join(':');
+
+        const formattedVenue = venueManual
+          ? venueText || null
+          : [venueDistrict, venueTehsil, venueCity, venueArea].filter(Boolean).join(', ') || null;
+
+        Object.assign(updatePayload, {
+          duration: formattedDuration,
+          venue: formattedVenue,
           speaker: speaker || null,
           audio_type: audioType || null,
           categories: categories ? categories.split(',').map(c => c.trim()).filter(Boolean) : [],
@@ -209,26 +304,25 @@ export function ContentEditDialog({ content, open, onOpenChange, onSuccess }: Co
           hijri_date_day: hDay ? parseInt(hDay) : null,
           hijri_date_month: hMonth || null,
           hijri_date_year: hYear ? parseInt(hYear) : null,
-        })
-        .eq('id', content.id);
-
-      if (error) throw error;
-
-      // Rename in Google Drive if title changed and it's a Drive file (Existing scenario)
-      if (content.title !== validatedData.title && content.file_url?.startsWith('google-drive://')) {
-        await renameInGoogleDrive(content.file_url, validatedData.title);
+        });
       }
 
-      const message = content.status === 'rejected'
-        ? t('dashboard.myContent.edit.resubmitSuccess')
-        : t('dashboard.myContent.edit.updateSuccess');
+      await editContent(
+        content.id,
+        content.status,
+        updatePayload,
+        newFile,
+        newCoverImage,
+        content.title,
+        content.file_url,
+        content.type
+      );
 
-      toast.success(message);
       onSuccess();
       onOpenChange(false);
-    } catch (error: any) {
-      console.error('Update error:', error);
-      toast.error(error.message || t('dashboard.myContent.edit.loadFailed'));
+    } catch (e: any) {
+      console.error('Update error:', e);
+      toast.error(e.message || t('dashboard.myContent.edit.loadFailed'));
     } finally {
       setIsSubmitting(false);
     }
@@ -247,7 +341,7 @@ export function ContentEditDialog({ content, open, onOpenChange, onSuccess }: Co
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="edit-title">{t('dashboard.upload.titleLabel')}</Label>
+            <Label htmlFor="edit-title">{t('dashboard.upload.titleLabel')} <span className="text-red-500">*</span> <span className="text-xs text-muted-foreground">{t('dashboard.upload.titleHint')}</span></Label>
             <Input
               id="edit-title"
               value={title}
@@ -257,71 +351,137 @@ export function ContentEditDialog({ content, open, onOpenChange, onSuccess }: Co
             />
           </div>
 
+          {content?.type !== 'audio' && (
+            <div className="space-y-2">
+              <Label htmlFor="edit-author">{t('dashboard.upload.authorLabel')} <span className="text-xs text-muted-foreground">{t('dashboard.upload.titleHint')}</span></Label>
+              <Input
+                id="edit-author"
+                value={author}
+                onChange={(e) => setAuthor(e.target.value)}
+                maxLength={200}
+              />
+            </div>
+          )}
+
+          {content?.type !== 'audio' && (
+            <div className="space-y-2">
+              <Label htmlFor="edit-description">{t('dashboard.upload.descLabel')} <span className="text-xs text-muted-foreground">{t('dashboard.upload.descHint')}</span></Label>
+              <Textarea
+                id="edit-description"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                rows={3}
+                maxLength={2000}
+              />
+            </div>
+          )}
+
           <div className="space-y-2">
-            <Label htmlFor="edit-author">{t('dashboard.upload.authorLabel')}</Label>
-            <Input
-              id="edit-author"
-              value={author}
-              onChange={(e) => setAuthor(e.target.value)}
-              maxLength={200}
+            <Label htmlFor="edit-language">{t('dashboard.upload.langLabel')} <span className="text-red-500">*</span></Label>
+            <TaxonomyCombobox
+              options={taxonomies.language}
+              value={language}
+              onChange={setLanguage}
+              placeholder={t('dashboard.upload.langPlaceholder')}
             />
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="edit-description">{t('dashboard.upload.descLabel')}</Label>
-            <Textarea
-              id="edit-description"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              rows={3}
-              maxLength={2000}
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label>{t('dashboard.upload.langLabel')}</Label>
-            <Select value={language} onValueChange={setLanguage}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {LANGUAGES.map((lang) => (
-                  <SelectItem key={lang} value={lang}>{lang}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="edit-tags">{t('dashboard.upload.tagsLabel')}</Label>
-            <Input
-              id="edit-tags"
-              value={tags}
-              onChange={(e) => setTags(e.target.value)}
-              placeholder={t('dashboard.upload.tagsPlaceholder')}
-            />
-          </div>
+          {content?.type !== 'audio' && (
+            <div className="space-y-2">
+              <Label htmlFor="edit-tags">{t('dashboard.upload.tagsLabel')} <span className="text-xs text-muted-foreground">{t('dashboard.upload.tagsHint')}</span></Label>
+              <Input
+                id="edit-tags"
+                value={tags}
+                onChange={(e) => setTags(e.target.value)}
+                placeholder={t('dashboard.upload.tagsPlaceholder')}
+              />
+            </div>
+          )}
 
           {content?.type === 'audio' && (
-            <div className="space-y-4 pt-4 border-t">
-              <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-6 pt-4 border-t">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
-                  <Label htmlFor="edit-duration">{t('dashboard.upload.durationLabel')}</Label>
-                  <Input
-                    id="edit-duration"
-                    value={duration}
-                    onChange={(e) => setDuration(e.target.value)}
-                    placeholder={t('dashboard.upload.durationPlaceholder')}
-                  />
+                  <Label>{t('dashboard.upload.durationLabel')} <span className="text-red-500">*</span></Label>
+                  <div className="flex gap-2" dir="ltr">
+                    <Input
+                      type="number"
+                      min="0"
+                      max="99"
+                      value={durHours}
+                      onChange={(e) => setDurHours(e.target.value)}
+                      placeholder="HH"
+                      className="text-center"
+                    />
+                    <span className="flex items-center">:</span>
+                    <Input
+                      type="number"
+                      min="0"
+                      max="59"
+                      value={durMinutes}
+                      onChange={(e) => setDurMinutes(e.target.value)}
+                      placeholder="MM"
+                      className="text-center"
+                    />
+                    <span className="flex items-center">:</span>
+                    <Input
+                      type="number"
+                      min="0"
+                      max="59"
+                      value={durSeconds}
+                      onChange={(e) => setDurSeconds(e.target.value)}
+                      placeholder="SS"
+                      className="text-center"
+                    />
+                  </div>
                 </div>
+
                 <div className="space-y-2">
-                  <Label htmlFor="edit-venue">{t('dashboard.upload.venueLabel')}</Label>
-                  <Input
-                    id="edit-venue"
-                    value={venue}
-                    onChange={(e) => setVenue(e.target.value)}
-                    placeholder={t('dashboard.upload.venuePlaceholder')}
-                  />
+                  <div className="flex items-center justify-between">
+                    <Label>{t('dashboard.upload.venueLabel')}</Label>
+                    <div className="flex items-center space-x-2 space-x-reverse">
+                      <input
+                        type="checkbox"
+                        id="edit-venue-manual"
+                        checked={venueManual}
+                        onChange={(e) => setVenueManual(e.target.checked)}
+                        className="rounded border-gray-300 text-primary focus:ring-primary h-4 w-4"
+                      />
+                      <label htmlFor="edit-venue-manual" className="text-sm font-medium leading-none cursor-pointer">
+                        {t('dashboard.upload.venueManualLabel', { defaultValue: 'اکٹھا ٹائپ کریں' })}
+                      </label>
+                    </div>
+                  </div>
+                  {venueManual ? (
+                    <Input
+                      value={venueText}
+                      onChange={(e) => setVenueText(e.target.value)}
+                      placeholder={t('dashboard.upload.venuePlaceholder')}
+                    />
+                  ) : (
+                    <div className="grid grid-cols-2 gap-2">
+                      <Input
+                        value={venueDistrict}
+                        onChange={(e) => setVenueDistrict(e.target.value)}
+                        placeholder={t('dashboard.upload.venueDistrict', { defaultValue: 'ضلع' })}
+                      />
+                      <Input
+                        value={venueTehsil}
+                        onChange={(e) => setVenueTehsil(e.target.value)}
+                        placeholder={t('dashboard.upload.venueTehsil', { defaultValue: 'تحصیل' })}
+                      />
+                      <Input
+                        value={venueCity}
+                        onChange={(e) => setVenueCity(e.target.value)}
+                        placeholder={t('dashboard.upload.venueCity', { defaultValue: 'شہر / گاؤں' })}
+                      />
+                      <Input
+                        value={venueArea}
+                        onChange={(e) => setVenueArea(e.target.value)}
+                        placeholder={t('dashboard.upload.venueArea', { defaultValue: 'علاقہ / مسجد' })}
+                      />
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -345,41 +505,117 @@ export function ContentEditDialog({ content, open, onOpenChange, onSuccess }: Co
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="edit-speaker">{t('dashboard.upload.speakerLabel')} <span className="text-red-500">*</span></Label>
-                  <Input
-                    id="edit-speaker"
+                  <TaxonomyCombobox
+                    options={taxonomies.speaker}
                     value={speaker}
-                    onChange={(e) => setSpeaker(e.target.value)}
+                    onChange={setSpeaker}
                     placeholder={t('dashboard.upload.speakerPlaceholder')}
-                    required
                   />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="edit-audioType">{t('dashboard.upload.audioTypeLabel')} <span className="text-red-500">*</span></Label>
-                  <Input
-                    id="edit-audioType"
+                  <TaxonomyCombobox
+                    options={taxonomies.audio_type}
                     value={audioType}
-                    onChange={(e) => setAudioType(e.target.value)}
+                    onChange={setAudioType}
                     placeholder={t('dashboard.upload.audioTypePlaceholder')}
-                    required
                   />
                 </div>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="edit-categories">{t('dashboard.upload.categoriesLabel')} <span className="text-red-500">*</span></Label>
-                <Input
-                  id="edit-categories"
+                <Label htmlFor="edit-categories">{t('dashboard.upload.categoriesLabel')}</Label>
+                <TaxonomyCombobox
+                  options={taxonomies.category}
                   value={categories}
-                  onChange={(e) => setCategories(e.target.value)}
+                  onChange={setCategories}
                   placeholder={t('dashboard.upload.categoriesPlaceholder')}
-                  required
                 />
               </div>
             </div>
           )}
+
+          <div className="space-y-4 pt-4 border-t">
+            <div className="space-y-2">
+              <Label htmlFor="edit-file-upload">{t('dashboard.upload.fileLabel')} <span className="text-red-500">*</span> <span className="text-xs text-muted-foreground">{t('dashboard.upload.fileHint')}</span></Label>
+              <div className="border-2 border-dashed border-border rounded-lg p-6 text-center hover:border-primary/50 transition-colors">
+                <input
+                  id="edit-file-upload"
+                  type="file"
+                  onChange={(e) => {
+                    if (e.target.files && e.target.files[0]) {
+                      setNewFile(e.target.files[0]);
+                    }
+                  }}
+                  className="hidden"
+                  accept="audio/*,video/*,application/pdf"
+                />
+                <label htmlFor="edit-file-upload" className="cursor-pointer">
+                  <div className="flex flex-col items-center gap-2">
+                    {content?.type === 'audio' ? <Headphones className="h-6 w-6 text-primary" /> : <FileText className="h-6 w-6 text-primary" />}
+                    <span className="text-sm text-muted-foreground max-w-full truncate px-4" dir="ltr">
+                      {newFile ? newFile.name : (content?.file_url ? content.file_url.split('/').pop()?.split('?')[0] : t('dashboard.upload.filePlaceholder'))}
+                    </span>
+                    <span className="text-xs text-muted-foreground">
+                      {content?.type === 'audio' ? '.mp3, .wav' : '.pdf, .mp4'}
+                    </span>
+                  </div>
+                </label>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="edit-cover-upload">{t('dashboard.upload.coverLabel')} <span className="text-xs text-muted-foreground">{t('dashboard.upload.coverHint')}</span></Label>
+              <div className="border-2 border-dashed border-border rounded-lg p-6 text-center hover:border-primary/50 transition-colors">
+                <input
+                  id="edit-cover-upload"
+                  type="file"
+                  onChange={(e) => {
+                    if (e.target.files && e.target.files[0]) {
+                      setNewCoverImage(e.target.files[0]);
+                    }
+                  }}
+                  className="hidden"
+                  accept="image/*"
+                />
+                <label htmlFor="edit-cover-upload" className="cursor-pointer">
+                  <div className="flex flex-col items-center gap-2">
+                    {(newCoverImage || content?.cover_image_url) ? (
+                      <div className="w-24 h-24 rounded overflow-hidden bg-muted mb-2 shadow-sm border">
+                        {newCoverImage ? (
+                          <img src={URL.createObjectURL(newCoverImage)} alt="New cover preview" className="w-full h-full object-cover" />
+                        ) : (
+                          <img
+                            src={`${content?.cover_image_url}`}
+                            alt="Current cover"
+                            className="w-full h-full object-cover"
+                            onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                          />
+                        )}
+                      </div>
+                    ) : (
+                      <div className="w-24 h-24 rounded bg-muted/50 mb-2 border flex items-center justify-center">
+                        <Upload className="h-6 w-6 text-muted-foreground" />
+                      </div>
+                    )}
+                    <div className="flex flex-col items-center">
+                      <span className="text-sm text-muted-foreground max-w-full truncate px-4" dir="ltr">
+                        {newCoverImage ? newCoverImage.name : t('dashboard.upload.coverPlaceholder')}
+                      </span>
+                      {newCoverImage ? (
+                        <span className="text-xs text-green-600 mt-1">نئی تصویر منتخب ہو گئی</span>
+                      ) : (content?.cover_image_url ? (
+                        <span className="text-xs text-muted-foreground mt-1">موجودہ تصویر بدلنے کے لیے کلک کریں</span>
+                      ) : null)}
+                    </div>
+                  </div>
+                </label>
+              </div>
+            </div>
+          </div>
 
           <div className="flex gap-2 pt-4">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)} className="flex-1">

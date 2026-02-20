@@ -32,7 +32,6 @@ import {
   Home,
   LogOut,
   Shield,
-  Languages,
   Tags,
 } from 'lucide-react';
 
@@ -43,7 +42,7 @@ interface DashboardSidebarProps {
 
 export function DashboardSidebar({ activeTab, onTabChange }: DashboardSidebarProps) {
   const { role, signOut } = useAuth();
-  const { language, toggleLanguage, dir } = useLanguage();
+  const { dir } = useLanguage();
   const { t } = useTranslation();
   const location = useLocation();
   const navigate = useNavigate();
@@ -58,7 +57,7 @@ export function DashboardSidebar({ activeTab, onTabChange }: DashboardSidebarPro
 
 
   const contentItems = [
-    { id: 'all-content', title: t('dashboard.allContent'), icon: FileText },
+    { id: 'content', title: t('dashboard.allContent'), icon: FileText },
     { id: 'uploads', title: t('dashboard.uploads.title', { defaultValue: 'Upload Status' }), icon: Clock },
   ];
 
@@ -98,11 +97,13 @@ export function DashboardSidebar({ activeTab, onTabChange }: DashboardSidebarPro
                 <SidebarMenuItem key={item.id}>
                   <SidebarMenuButton
                     isActive={activeTab === item.id}
-                    onClick={() => onTabChange(item.id)}
+                    asChild
                     tooltip={item.title}
                   >
-                    <item.icon className="h-4 w-4" />
-                    <span>{item.title}</span>
+                    <Link to={`/admin/${item.id}`}>
+                      <item.icon className="h-4 w-4" />
+                      <span>{item.title}</span>
+                    </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
@@ -125,11 +126,13 @@ export function DashboardSidebar({ activeTab, onTabChange }: DashboardSidebarPro
                 <SidebarMenuItem key={item.id}>
                   <SidebarMenuButton
                     isActive={activeTab === item.id}
-                    onClick={() => onTabChange(item.id)}
+                    asChild
                     tooltip={item.title}
                   >
-                    <item.icon className="h-4 w-4" />
-                    <span>{item.title}</span>
+                    <Link to={`/admin/${item.id}`}>
+                      <item.icon className="h-4 w-4" />
+                      <span>{item.title}</span>
+                    </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
@@ -140,12 +143,7 @@ export function DashboardSidebar({ activeTab, onTabChange }: DashboardSidebarPro
 
       <SidebarFooter className="border-t border-sidebar-border">
         <SidebarMenu>
-          <SidebarMenuItem>
-            <SidebarMenuButton onClick={toggleLanguage} tooltip={t('sidebar.toggleSidebar')}>
-              <Languages className="h-4 w-4" />
-              <span>{language === 'en' ? t("common.languages.ur") : t("common.languages.en")}</span>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
+
           <SidebarMenuItem>
             <SidebarMenuButton asChild tooltip={t('common.backToHome')}>
               <Link to="/">

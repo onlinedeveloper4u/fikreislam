@@ -21,31 +21,29 @@ const ResetPassword = () => {
   const { t } = useTranslation();
 
   useEffect(() => {
-    // Check if we have a valid session from the reset link
     const checkSession = async () => {
-      // Small delay to allow Supabase client to process the URL fragment/tokens
       await new Promise(resolve => setTimeout(resolve, 500));
 
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
         toast({
-          title: "Invalid or expired link",
-          description: "Please request a new password reset link.",
+          title: t("resetPassword.invalidLink"),
+          description: t("resetPassword.invalidLinkDesc"),
           variant: "destructive",
         });
         navigate("/forgot-password");
       }
     };
     checkSession();
-  }, [navigate, toast]);
+  }, [navigate, toast, t]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!password || !confirmPassword) {
       toast({
-        title: "Missing fields",
-        description: "Please fill in all fields",
+        title: t("resetPassword.missingFields"),
+        description: t("resetPassword.missingFieldsDesc"),
         variant: "destructive",
       });
       return;
@@ -53,8 +51,8 @@ const ResetPassword = () => {
 
     if (password !== confirmPassword) {
       toast({
-        title: "Passwords don't match",
-        description: "Please make sure both passwords are the same",
+        title: t("resetPassword.passwordsDontMatch"),
+        description: t("resetPassword.passwordsDontMatchDesc"),
         variant: "destructive",
       });
       return;
@@ -62,8 +60,8 @@ const ResetPassword = () => {
 
     if (password.length < 6) {
       toast({
-        title: "Password too short",
-        description: "Password must be at least 6 characters",
+        title: t("resetPassword.passwordTooShort"),
+        description: t("resetPassword.passwordTooShortDesc"),
         variant: "destructive",
       });
       return;
@@ -75,7 +73,7 @@ const ResetPassword = () => {
 
     if (error) {
       toast({
-        title: "Error",
+        title: t("resetPassword.error"),
         description: error.message,
         variant: "destructive",
       });
@@ -86,7 +84,6 @@ const ResetPassword = () => {
     setIsSuccess(true);
     setIsLoading(false);
 
-    // Redirect after 3 seconds
     setTimeout(() => {
       navigate("/");
     }, 3000);
@@ -125,7 +122,7 @@ const ResetPassword = () => {
               >
                 <img
                   src={logo}
-                  alt="Fikr-e-Islam"
+                  alt={t("common.brand")}
                   className="w-32 h-32 md:w-40 md:h-40 object-contain mx-auto drop-shadow-2xl opacity-90"
                 />
               </motion.div>
@@ -135,7 +132,7 @@ const ResetPassword = () => {
                 transition={{ delay: 0.3 }}
                 className="font-display text-4xl font-bold text-foreground mb-4 tracking-tight"
               >
-                {isSuccess ? "Password Updated" : "Set New Password"}
+                {isSuccess ? t("resetPassword.passwordUpdated") : t("resetPassword.setNewPassword")}
               </motion.h1>
               <motion.p
                 initial={{ opacity: 0, y: 10 }}
@@ -144,8 +141,8 @@ const ResetPassword = () => {
                 className="text-muted-foreground text-lg opacity-80"
               >
                 {isSuccess
-                  ? "Your password has been successfully updated"
-                  : "Enter your new password below"
+                  ? t("resetPassword.passwordUpdatedDesc")
+                  : t("resetPassword.enterNewPassword")
                 }
               </motion.p>
             </div>
@@ -167,13 +164,13 @@ const ResetPassword = () => {
                     <CheckCircle className="w-12 h-12 text-green-500" />
                   </motion.div>
                   <p className="text-lg text-muted-foreground px-4 leading-relaxed">
-                    Redirecting you to the homepage in a few seconds...
+                    {t("resetPassword.redirecting")}
                   </p>
                   <Button
                     onClick={() => navigate("/")}
                     className="w-full h-14 rounded-2xl gradient-primary border-none shadow-xl shadow-primary/20 text-lg font-bold"
                   >
-                    Go to Homepage Now
+                    {t("resetPassword.goToHomepage")}
                   </Button>
                 </motion.div>
               ) : (
@@ -187,7 +184,7 @@ const ResetPassword = () => {
                 >
                   <div className="space-y-6">
                     <div className="space-y-3">
-                      <Label htmlFor="password" title={t("auth.password")} className="text-xs font-bold uppercase tracking-[0.2em] opacity-60 ml-1">New Password</Label>
+                      <Label htmlFor="password" className="text-xs font-bold uppercase tracking-[0.2em] opacity-60 ml-1">{t("resetPassword.newPassword")}</Label>
                       <div className="relative group">
                         <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground group-focus-within:text-primary transition-colors" />
                         <Input
@@ -203,7 +200,7 @@ const ResetPassword = () => {
                     </div>
 
                     <div className="space-y-3">
-                      <Label htmlFor="confirmPassword" title={t("auth.confirmPassword")} className="text-xs font-bold uppercase tracking-[0.2em] opacity-60 ml-1">Confirm New Password</Label>
+                      <Label htmlFor="confirmPassword" className="text-xs font-bold uppercase tracking-[0.2em] opacity-60 ml-1">{t("resetPassword.confirmNewPassword")}</Label>
                       <div className="relative group">
                         <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground group-focus-within:text-primary transition-colors" />
                         <Input
@@ -227,12 +224,12 @@ const ResetPassword = () => {
                     {isLoading ? (
                       <div className="flex items-center gap-3">
                         <Loader2 className="h-6 w-6 animate-spin" />
-                        <span>Updating...</span>
+                        <span>{t("resetPassword.updating")}</span>
                       </div>
                     ) : (
                       <div className="flex items-center justify-center gap-3">
-                        <span>Update Password</span>
-                        <ArrowRight className="h-6 w-6 group-hover:translate-x-1 transition-transform" />
+                        <span>{t("resetPassword.updatePassword")}</span>
+                        <ArrowRight className="h-6 w-6 group-hover:translate-x-1 transition-transform rotate-180" />
                       </div>
                     )}
                   </Button>

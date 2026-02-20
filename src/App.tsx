@@ -26,6 +26,14 @@ const Dashboard = lazy(() => import("./pages/Dashboard"));
 const Library = lazy(() => import("./pages/Library"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
+// Admin components (lazy loaded for the nested routes)
+const AllContentList = lazy(() => import("@/components/admin/AllContentList").then(m => ({ default: m.AllContentList })));
+const UserManagement = lazy(() => import("@/components/admin/UserManagement").then(m => ({ default: m.UserManagement })));
+const AdminAnalytics = lazy(() => import("@/components/admin/AdminAnalytics").then(m => ({ default: m.AdminAnalytics })));
+const TaxonomyManagement = lazy(() => import("@/components/admin/TaxonomyManagement").then(m => ({ default: m.TaxonomyManagement })));
+const UploadTracker = lazy(() => import("@/components/dashboard/UploadTracker").then(m => ({ default: m.UploadTracker })));
+
+
 const queryClient = new QueryClient();
 
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
@@ -59,16 +67,25 @@ const App = () => (
                     }
                   />
                   <Route
-                    path="/dashboard"
+                    path="/admin"
                     element={
                       <ProtectedRoute>
                         <Dashboard />
                       </ProtectedRoute>
                     }
-                  />
+                  >
+                    <Route index element={<Navigate to="analytics" replace />} />
+                    <Route path="analytics" element={<AdminAnalytics />} />
+                    <Route path="content" element={<AllContentList />} />
+                    <Route path="users" element={<UserManagement />} />
+                    <Route path="taxonomies" element={<TaxonomyManagement />} />
+                    <Route path="uploads" element={<UploadTracker />} />
+                  </Route>
+
                   {/* Redirect old redundant paths */}
-                  <Route path="/contributor" element={<Navigate to="/dashboard" replace />} />
-                  <Route path="/admin" element={<Navigate to="/dashboard" replace />} />
+                  <Route path="/dashboard" element={<Navigate to="/admin" replace />} />
+                  <Route path="/contributor" element={<Navigate to="/admin" replace />} />
+
                   <Route
                     path="/library"
                     element={

@@ -14,7 +14,7 @@ import {
 interface DashboardLayoutProps {
   children: ReactNode;
   activeTab: string;
-  onTabChange: (tab: string) => void;
+  onTabChange?: (tab: string) => void;
   pageTitle: string;
   isDashboard?: boolean;
 }

@@ -5,10 +5,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/contexts/AuthContext";
-import { useLanguage } from "@/contexts/LanguageContext";
 import { useTranslation } from "react-i18next";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Languages, ArrowRight, Mail, Lock } from "lucide-react";
+import { Loader2, ArrowRight, Mail, Lock } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import logo from "@/assets/logo.png";
 
@@ -17,7 +16,6 @@ const Login = () => {
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const { signIn } = useAuth();
-  const { language, toggleLanguage } = useLanguage();
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -90,23 +88,7 @@ const Login = () => {
           />
         </div>
 
-        <div className="absolute top-8 right-8 z-50">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ type: "spring", stiffness: 200 }}
-          >
-            <Button
-              variant="ghost"
-              size="lg"
-              onClick={toggleLanguage}
-              className="glass border border-white/20 text-foreground hover:bg-white/10 rounded-2xl h-12 px-6 shadow-xl backdrop-blur-xl transition-all"
-            >
-              <Languages className="w-5 h-5 mr-3 text-primary" />
-              <span className="font-bold">{language === 'en' ? 'اردو' : 'English'}</span>
-            </Button>
-          </motion.div>
-        </div>
+
 
         <motion.div
           initial={{ opacity: 0, y: 30 }}

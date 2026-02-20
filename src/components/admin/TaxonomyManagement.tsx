@@ -4,11 +4,10 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
-import { Loader2, Plus, Trash2 } from 'lucide-react';
+import { Loader2, Plus, Trash2, Pencil, Check, X } from 'lucide-react';
 
 export type TaxonomyType = 'speaker' | 'language' | 'audio_type' | 'category';
 
@@ -24,8 +23,11 @@ export function TaxonomyManagement() {
     const [loading, setLoading] = useState(true);
     const [actionLoading, setActionLoading] = useState<string | null>(null);
 
-    const [newType, setNewType] = useState<TaxonomyType>('speaker');
     const [newName, setNewName] = useState('');
+
+    // Edit state
+    const [editingId, setEditingId] = useState<string | null>(null);
+    const [editName, setEditName] = useState('');
 
     // Default active tab
     const [activeTab, setActiveTab] = useState<TaxonomyType>('speaker');
@@ -61,11 +63,11 @@ export function TaxonomyManagement() {
         try {
             const { error } = await supabase
                 .from('taxonomies')
-                .insert({ type: activeTab, name: newName.trim() }); // Use activeTab instead of newType
+                .insert({ type: activeTab, name: newName.trim() });
 
             if (error) {
-                if (error.code === '23505') { // Unique constraint violation
-                    throw new Error(t('common.error')); // Need better specific string if wanted
+                if (error.code === '23505') {
+                    throw new Error(t('dashboard.taxonomyManagement.duplicateError', { defaultValue: 'یہ نام پہلے سے موجود ہے' }));
                 }
                 throw error;
             }
@@ -81,8 +83,50 @@ export function TaxonomyManagement() {
         }
     };
 
+    const handleEdit = async (id: string) => {
+        if (!editName.trim()) return;
+
+        setActionLoading(id);
+        try {
+            const { error } = await supabase
+                .from('taxonomies')
+                .update({ name: editName.trim() })
+                .eq('id', id);
+
+            if (error) {
+                if (error.code === '23505') {
+                    throw new Error(t('dashboard.taxonomyManagement.duplicateError', { defaultValue: 'یہ نام پہلے سے موجود ہے' }));
+                }
+                throw error;
+            }
+
+            toast.success(t('common.success'));
+            setEditingId(null);
+            setEditName('');
+            // Update locally
+            setTaxonomies(prev => prev.map(item =>
+                item.id === id ? { ...item, name: editName.trim() } : item
+            ));
+        } catch (error: any) {
+            console.error('Edit error:', error);
+            toast.error(error.message || t('common.error'));
+        } finally {
+            setActionLoading(null);
+        }
+    };
+
+    const startEditing = (item: Taxonomy) => {
+        setEditingId(item.id);
+        setEditName(item.name);
+    };
+
+    const cancelEditing = () => {
+        setEditingId(null);
+        setEditName('');
+    };
+
     const handleDelete = async (id: string, name: string) => {
-        if (!window.confirm(`Are you sure you want to delete "${name}"?`)) return;
+        if (!window.confirm(t('dashboard.taxonomyManagement.confirmDelete', { name }))) return;
 
         setActionLoading(id);
         try {
@@ -110,10 +154,10 @@ export function TaxonomyManagement() {
     }, {} as Record<TaxonomyType, Taxonomy[]>);
 
     const typeLabels: Record<TaxonomyType, string> = {
-        speaker: 'Speaker',
-        language: 'Language',
-        audio_type: 'Audio Type',
-        category: 'Category',
+        speaker: t('dashboard.taxonomyManagement.types.speaker'),
+        language: t('dashboard.taxonomyManagement.types.language'),
+        audio_type: t('dashboard.taxonomyManagement.types.audio_type'),
+        category: t('dashboard.taxonomyManagement.types.category'),
     };
 
     if (loading) {
@@ -132,7 +176,7 @@ export function TaxonomyManagement() {
                     <CardDescription>{t('dashboard.taxonomyManagement.desc')}</CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <Tabs value={activeTab} onValueChange={(val) => { setActiveTab(val as TaxonomyType); setNewName(''); }} className="w-full">
+                    <Tabs value={activeTab} onValueChange={(val) => { setActiveTab(val as TaxonomyType); setNewName(''); cancelEditing(); }} className="w-full">
                         <TabsList className="grid w-full grid-cols-4 md:grid-cols-4 overflow-x-auto h-auto min-h-[40px] p-1">
                             {(Object.keys(typeLabels) as TaxonomyType[]).map((type) => (
                                 <TabsTrigger key={type} value={type} className="flex-1 whitespace-nowrap px-3 py-1.5 text-sm">
@@ -162,17 +206,63 @@ export function TaxonomyManagement() {
                                     <h3 className="font-semibold text-lg mb-4">{t(`dashboard.taxonomyManagement.types.${type}`)}</h3>
                                     <div className="space-y-2 max-h-[400px] overflow-y-auto pr-2">
                                         {groupedTaxonomies[type]?.map((item: Taxonomy) => (
-                                            <div key={item.id} className="flex items-center justify-between p-3 bg-background border rounded-md shadow-sm">
-                                                <span className="text-sm font-medium">{item.name}</span>
-                                                <Button
-                                                    variant="ghost"
-                                                    size="icon"
-                                                    className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10 shrink-0"
-                                                    onClick={() => handleDelete(item.id, item.name)}
-                                                    disabled={actionLoading === item.id}
-                                                >
-                                                    {actionLoading === item.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
-                                                </Button>
+                                            <div key={item.id} className="flex items-center justify-between p-3 bg-background border rounded-md shadow-sm gap-3">
+                                                {editingId === item.id ? (
+                                                    <>
+                                                        <Input
+                                                            value={editName}
+                                                            onChange={(e) => setEditName(e.target.value)}
+                                                            className="flex-1 h-8"
+                                                            autoFocus
+                                                            onKeyDown={(e) => {
+                                                                if (e.key === 'Enter') { e.preventDefault(); handleEdit(item.id); }
+                                                                if (e.key === 'Escape') cancelEditing();
+                                                            }}
+                                                        />
+                                                        <div className="flex gap-1 shrink-0">
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="icon"
+                                                                className="h-8 w-8 text-green-600 hover:text-green-700 hover:bg-green-100"
+                                                                onClick={() => handleEdit(item.id)}
+                                                                disabled={actionLoading === item.id}
+                                                            >
+                                                                {actionLoading === item.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
+                                                            </Button>
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="icon"
+                                                                className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                                                                onClick={cancelEditing}
+                                                            >
+                                                                <X className="h-4 w-4" />
+                                                            </Button>
+                                                        </div>
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <span className="text-sm font-medium flex-1">{item.name}</span>
+                                                        <div className="flex gap-1 shrink-0">
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="icon"
+                                                                className="h-8 w-8 text-muted-foreground hover:text-primary hover:bg-primary/10"
+                                                                onClick={() => startEditing(item)}
+                                                            >
+                                                                <Pencil className="h-4 w-4" />
+                                                            </Button>
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="icon"
+                                                                className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                                                                onClick={() => handleDelete(item.id, item.name)}
+                                                                disabled={actionLoading === item.id}
+                                                            >
+                                                                {actionLoading === item.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                                                            </Button>
+                                                        </div>
+                                                    </>
+                                                )}
                                             </div>
                                         ))}
                                         {(!groupedTaxonomies[type] || groupedTaxonomies[type].length === 0) && (

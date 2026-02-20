@@ -11,11 +11,10 @@ import { toast } from 'sonner';
 import { Upload, FileText, Music, Video, Loader2 } from 'lucide-react';
 import { z } from 'zod';
 import { useTranslation } from 'react-i18next';
-
+import { Switch } from '@/components/ui/switch';
 import { useUpload } from '@/contexts/UploadContextTypes';
 import { useNavigate } from 'react-router-dom';
 import { Checkbox } from '@/components/ui/checkbox';
-import { TaxonomyCombobox } from './TaxonomyCombobox';
 
 type ContentType = 'book' | 'audio' | 'video';
 
@@ -55,11 +54,11 @@ export function ContentUploadForm({ onSuccess }: ContentUploadFormProps) {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [author, setAuthor] = useState('');
-  const [language, setLanguage] = useState('اردو');
+  const [language, setLanguage] = useState('English');
   const [tags, setTags] = useState('');
   const [file, setFile] = useState<File | null>(null);
   const [coverImage, setCoverImage] = useState<File | null>(null);
-
+  const [useGoogleDrive, setUseGoogleDrive] = useState(true);
 
   // Taxonomy State
   const [taxonomies, setTaxonomies] = useState<{
@@ -171,7 +170,7 @@ export function ContentUploadForm({ onSuccess }: ContentUploadFormProps) {
       .max(200, t('dashboard.upload.validation.authorTooLong'))
       .optional()
       .transform(val => val || ''),
-    language: z.enum(['انگریزی', 'عربی', 'اردو', 'ترکی', 'ملائی', 'انڈونیشیائی', 'فرانسیسی', 'ہسپانوی']),
+    language: z.enum(['English', 'Arabic', 'Urdu', 'Turkish', 'Malay', 'Indonesian', 'French', 'Spanish']),
     tags: z.string()
       .transform(val =>
         val.split(',')
@@ -288,34 +287,19 @@ export function ContentUploadForm({ onSuccess }: ContentUploadFormProps) {
     setIsSubmitting(true);
 
     try {
-      // Audio specific validation for mandatory fields
-      if (contentType === 'audio') {
-        const hasDuration = [durHours, durMinutes, durSeconds].some(p => p !== '' && p !== '0' && p !== '00');
-        if (!hasDuration) {
-          toast.error(t('dashboard.upload.validation.durationRequired', { defaultValue: 'Duration is required' }));
-          return;
-        }
-        if (!speaker) {
-          toast.error(t('dashboard.upload.validation.speakerRequired', { defaultValue: 'Speaker is required' }));
-          return;
-        }
-        if (!audioType) {
-          toast.error(t('dashboard.upload.validation.audioTypeRequired', { defaultValue: 'Audio Type is required' }));
-          return;
-        }
-      }
-
-      // Create a plain object for the hook to consume
+      // Create a plain object for the hook to consume (FormData might be tricky with serialization if needed, but here we just pass fields)
       const uploadData = {
         ...validatedData,
-        useGoogleDrive: true,
+        useGoogleDrive,
         tags: tags,
         // Audio specific metadata
         duration: [
-          durHours.padStart(2, '0') || '00',
-          durMinutes.padStart(2, '0') || '00',
-          durSeconds.padStart(2, '0') || '00'
-        ].join(':'),
+          durHours.padStart(2, '0'),
+          durMinutes.padStart(2, '0'),
+          durSeconds.padStart(2, '0')
+        ].some(p => p !== '00')
+          ? `${durHours.padStart(2, '0') || '00'}:${durMinutes.padStart(2, '0') || '00'}:${durSeconds.padStart(2, '0') || '00'}`
+          : null,
         venue: venueManual ? venueText || null : [venueDistrict, venueTehsil, venueCity, venueArea].filter(Boolean).join(', ') || null,
         speaker,
         audioType,
@@ -335,7 +319,7 @@ export function ContentUploadForm({ onSuccess }: ContentUploadFormProps) {
       setTitle('');
       setDescription('');
       setAuthor('');
-      setLanguage('اردو');
+      setLanguage('English');
       setTags('');
       setFile(null);
       setCoverImage(null);
@@ -379,7 +363,22 @@ export function ContentUploadForm({ onSuccess }: ContentUploadFormProps) {
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-6">
-
+          {/* Storage Provider Toggle */}
+          <div className="flex items-center justify-between space-x-2 border p-3 rounded-lg bg-muted/30">
+            <div className="flex flex-col gap-1">
+              <Label htmlFor="google-drive-mode" className="font-semibold cursor-pointer">
+                {t('dashboard.upload.useGoogleDrive', { defaultValue: 'Upload to Google Drive' })}
+              </Label>
+              <p className="text-xs text-muted-foreground">
+                {t('dashboard.upload.googleDriveHint', { defaultValue: 'Files will be stored in Google Drive instead of Supabase' })}
+              </p>
+            </div>
+            <Switch
+              id="google-drive-mode"
+              checked={useGoogleDrive}
+              onCheckedChange={setUseGoogleDrive}
+            />
+          </div>
 
           {/* Content Type Selection */}
           <div className="space-y-2">
@@ -404,7 +403,7 @@ export function ContentUploadForm({ onSuccess }: ContentUploadFormProps) {
 
           {/* Title */}
           <div className="space-y-2">
-            <Label htmlFor="title">{t('dashboard.upload.titleLabel')} <span className="text-red-500">*</span> <span className="text-xs text-muted-foreground">{t('dashboard.upload.titleHint')}</span></Label>
+            <Label htmlFor="title">{t('dashboard.upload.titleLabel')} <span className="text-xs text-muted-foreground">{t('dashboard.upload.titleHint')}</span></Label>
             <Input
               id="title"
               value={title}
@@ -446,27 +445,32 @@ export function ContentUploadForm({ onSuccess }: ContentUploadFormProps) {
 
           {/* Language */}
           <div className="space-y-2">
-            <Label>{t('dashboard.upload.langLabel')} <span className="text-red-500">*</span></Label>
-            <TaxonomyCombobox
-              options={taxonomies.language}
-              value={language}
-              onChange={setLanguage}
-              placeholder={t('dashboard.upload.langPlaceholder')}
-            />
+            <Label>{t('dashboard.upload.langLabel')}</Label>
+            <Select value={language} onValueChange={setLanguage}>
+              <SelectTrigger>
+                <SelectValue placeholder={t('dashboard.upload.langPlaceholder')} />
+              </SelectTrigger>
+              <SelectContent>
+                {taxonomies.language.length > 0 ? taxonomies.language.map((lang) => (
+                  <SelectItem key={lang} value={lang}>{lang}</SelectItem>
+                )) : (
+                  <SelectItem value="English">English</SelectItem>
+                )}
+              </SelectContent>
+            </Select>
           </div>
 
           {/* Audio Specific Fields */}
           {contentType === 'audio' && (
             <div className="space-y-6 pt-4 border-t">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Duration */}
                 <div className="space-y-2">
-                  <Label>{t('dashboard.upload.durationLabel')} <span className="text-red-500">*</span></Label>
-                  <div className="flex gap-2" dir="ltr">
-                    <Input type="number" min="0" max="99" placeholder="HH" value={durHours} onChange={(e) => setDurHours(e.target.value)} className="text-center" />
-                    <span className="flex items-center">:</span>
-                    <Input type="number" min="0" max="59" placeholder="MM" value={durMinutes} onChange={(e) => setDurMinutes(e.target.value)} className="text-center" />
-                    <span className="flex items-center">:</span>
-                    <Input type="number" min="0" max="59" placeholder="SS" value={durSeconds} onChange={(e) => setDurSeconds(e.target.value)} className="text-center" />
+                  <Label>{t('dashboard.upload.durationLabel')} (Optional)</Label>
+                  <div className="flex gap-2">
+                    <Input type="number" min="0" placeholder="HH" value={durHours} onChange={(e) => setDurHours(e.target.value)} />
+                    <Input type="number" min="0" max="59" placeholder="MM" value={durMinutes} onChange={(e) => setDurMinutes(e.target.value)} />
+                    <Input type="number" min="0" max="59" placeholder="SS" value={durSeconds} onChange={(e) => setDurSeconds(e.target.value)} />
                   </div>
                 </div>
 
@@ -474,21 +478,19 @@ export function ContentUploadForm({ onSuccess }: ContentUploadFormProps) {
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
                     <Label>{t('dashboard.upload.venueLabel')}</Label>
-                    <div className="flex items-center space-x-2 space-x-reverse">
-                      <Checkbox id="venue-manual" checked={venueManual} onCheckedChange={(v) => setVenueManual(!!v)} className="h-4 w-4" />
-                      <label htmlFor="venue-manual" className="text-sm font-medium leading-none cursor-pointer">
-                        {t('dashboard.upload.venueManualLabel', { defaultValue: 'اکٹھا ٹائپ کریں' })}
-                      </label>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox id="venue-manual" checked={venueManual} onCheckedChange={(v) => setVenueManual(!!v)} />
+                      <label htmlFor="venue-manual" className="text-xs text-muted-foreground cursor-pointer">Manual</label>
                     </div>
                   </div>
                   {venueManual ? (
                     <Input placeholder={t('dashboard.upload.venuePlaceholder')} value={venueText} onChange={(e) => setVenueText(e.target.value)} />
                   ) : (
                     <div className="grid grid-cols-2 gap-2">
-                      <Input placeholder={t('dashboard.upload.venueDistrict', { defaultValue: 'ضلع' })} value={venueDistrict} onChange={(e) => setVenueDistrict(e.target.value)} />
-                      <Input placeholder={t('dashboard.upload.venueTehsil', { defaultValue: 'تحصیل' })} value={venueTehsil} onChange={(e) => setVenueTehsil(e.target.value)} />
-                      <Input placeholder={t('dashboard.upload.venueCity', { defaultValue: 'شہر / گاؤں' })} value={venueCity} onChange={(e) => setVenueCity(e.target.value)} />
-                      <Input placeholder={t('dashboard.upload.venueArea', { defaultValue: 'علاقہ / مسجد' })} value={venueArea} onChange={(e) => setVenueArea(e.target.value)} />
+                      <Input placeholder="District" value={venueDistrict} onChange={(e) => setVenueDistrict(e.target.value)} />
+                      <Input placeholder="Tehsil" value={venueTehsil} onChange={(e) => setVenueTehsil(e.target.value)} />
+                      <Input placeholder="City" value={venueCity} onChange={(e) => setVenueCity(e.target.value)} />
+                      <Input placeholder="Area" value={venueArea} onChange={(e) => setVenueArea(e.target.value)} />
                     </div>
                   )}
                 </div>
@@ -519,32 +521,48 @@ export function ContentUploadForm({ onSuccess }: ContentUploadFormProps) {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="speaker">{t('dashboard.upload.speakerLabel')} <span className="text-red-500">*</span></Label>
-                  <TaxonomyCombobox
-                    options={taxonomies.speaker}
+                  <Input
+                    id="speaker"
+                    list="speakers-list"
                     value={speaker}
-                    onChange={setSpeaker}
-                    placeholder={t('dashboard.upload.speakerPlaceholder')}
+                    onChange={(e) => setSpeaker(e.target.value)}
+                    placeholder="Select or type new..."
+                    required
                   />
+                  <datalist id="speakers-list">
+                    {taxonomies.speaker.map(s => <option key={s} value={s} />)}
+                  </datalist>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="audioType">{t('dashboard.upload.audioTypeLabel')} <span className="text-red-500">*</span></Label>
-                  <TaxonomyCombobox
-                    options={taxonomies.audio_type}
+                  <Input
+                    id="audioType"
+                    list="types-list"
                     value={audioType}
-                    onChange={setAudioType}
-                    placeholder={t('dashboard.upload.audioTypePlaceholder')}
+                    onChange={(e) => setAudioType(e.target.value)}
+                    placeholder="Select or type new..."
+                    required
                   />
+                  <datalist id="types-list">
+                    {taxonomies.audio_type.map(s => <option key={s} value={s} />)}
+                  </datalist>
                 </div>
               </div>
 
+              {/* Categories */}
               <div className="space-y-2">
-                <Label htmlFor="categories">{t('dashboard.upload.categoriesLabel')}</Label>
-                <TaxonomyCombobox
-                  options={taxonomies.category}
+                <Label htmlFor="categories">{t('dashboard.upload.categoriesLabel')} <span className="text-red-500">*</span></Label>
+                <Input
+                  id="categories"
+                  list="categories-list"
                   value={categories}
-                  onChange={setCategories}
-                  placeholder={t('dashboard.upload.categoriesPlaceholder')}
+                  onChange={(e) => setCategories(e.target.value)}
+                  placeholder="Select or type new..."
+                  required
                 />
+                <datalist id="categories-list">
+                  {taxonomies.category.map(s => <option key={s} value={s} />)}
+                </datalist>
               </div>
             </div>
           )}
@@ -564,7 +582,7 @@ export function ContentUploadForm({ onSuccess }: ContentUploadFormProps) {
 
           {/* File Upload */}
           <div className="space-y-2">
-            <Label htmlFor="file">{t('dashboard.upload.fileLabel')} <span className="text-red-500">*</span> <span className="text-xs text-muted-foreground">{t('dashboard.upload.fileHint')}</span></Label>
+            <Label htmlFor="file">{t('dashboard.upload.fileLabel')} <span className="text-xs text-muted-foreground">{t('dashboard.upload.fileHint')}</span></Label>
             <div className="border-2 border-dashed border-border rounded-lg p-6 text-center hover:border-primary/50 transition-colors">
               <input
                 id="file"
@@ -576,7 +594,7 @@ export function ContentUploadForm({ onSuccess }: ContentUploadFormProps) {
               <label htmlFor="file" className="cursor-pointer">
                 <div className="flex flex-col items-center gap-2">
                   {getContentIcon()}
-                  <span className="text-sm text-muted-foreground max-w-full truncate px-4">
+                  <span className="text-sm text-muted-foreground">
                     {file ? file.name : t('dashboard.upload.clickToUpload', { type: t(`nav.${contentType === 'book' ? 'books' : contentType}`).toLowerCase() })}
                   </span>
                   <span className="text-xs text-muted-foreground">
@@ -600,16 +618,8 @@ export function ContentUploadForm({ onSuccess }: ContentUploadFormProps) {
               />
               <label htmlFor="cover" className="cursor-pointer">
                 <div className="flex flex-col items-center gap-2">
-                  {coverImage ? (
-                    <div className="w-24 h-24 rounded overflow-hidden bg-muted mb-2 shadow-sm border">
-                      <img src={URL.createObjectURL(coverImage)} alt="Cover preview" className="w-full h-full object-cover" />
-                    </div>
-                  ) : (
-                    <div className="w-24 h-24 rounded bg-muted/50 mb-2 border flex items-center justify-center">
-                      <Upload className="h-6 w-6 text-muted-foreground" />
-                    </div>
-                  )}
-                  <span className="text-sm text-muted-foreground max-w-full truncate px-4">
+                  <Upload className="h-5 w-5" />
+                  <span className="text-sm text-muted-foreground">
                     {coverImage ? coverImage.name : t('dashboard.upload.coverPlaceholder')}
                   </span>
                 </div>

@@ -44,7 +44,7 @@ interface ContentBrowserProps {
   description: string;
 }
 
-const LANGUAGES = ['All', 'English', 'Arabic', 'Urdu', 'Turkish', 'Malay', 'Indonesian', 'French', 'Spanish'];
+const LANGUAGES = ['تمام', 'انگریزی', 'عربی', 'اردو', 'ترکی', 'ملائی', 'انڈونیشیائی', 'فرانسیسی', 'ہسپانوی'];
 
 const containerVariants: Variants = {
   hidden: { opacity: 0 },
@@ -69,15 +69,15 @@ const itemVariants: Variants = {
 };
 
 const LANGUAGE_MAP: Record<string, string> = {
-  'All': 'all',
-  'English': 'en',
-  'Arabic': 'ar',
-  'Urdu': 'ur',
-  'Turkish': 'tr',
-  'Malay': 'ms',
-  'Indonesian': 'id',
-  'French': 'fr',
-  'Spanish': 'es'
+  'تمام': 'all',
+  'انگریزی': 'en',
+  'عربی': 'ar',
+  'اردو': 'ur',
+  'ترکی': 'tr',
+  'ملائی': 'ms',
+  'انڈونیشیائی': 'id',
+  'فرانسیسی': 'fr',
+  'ہسپانوی': 'es'
 };
 
 export function ContentBrowser({ contentType, title, description }: ContentBrowserProps) {
@@ -88,7 +88,7 @@ export function ContentBrowser({ contentType, title, description }: ContentBrows
   const [content, setContent] = useState<ContentWithSignedUrls[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedLanguage, setSelectedLanguage] = useState('All');
+  const [selectedLanguage, setSelectedLanguage] = useState('تمام');
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
   const [playlistDialogOpen, setPlaylistDialogOpen] = useState(false);
   const [selectedContentId, setSelectedContentId] = useState<string | null>(null);
@@ -157,7 +157,7 @@ export function ContentBrowser({ contentType, title, description }: ContentBrows
         item.author?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         item.description?.toLowerCase().includes(searchQuery.toLowerCase());
 
-      const matchesLanguage = selectedLanguage === 'All' || item.language === selectedLanguage;
+      const matchesLanguage = selectedLanguage === 'تمام' || item.language === selectedLanguage;
       const matchesTag = !selectedTag || item.tags?.includes(selectedTag);
 
       return matchesSearch && matchesLanguage && matchesTag;
@@ -182,11 +182,11 @@ export function ContentBrowser({ contentType, title, description }: ContentBrows
 
   const clearFilters = () => {
     setSearchQuery('');
-    setSelectedLanguage('All');
+    setSelectedLanguage('تمام');
     setSelectedTag(null);
   };
 
-  const hasActiveFilters = searchQuery || selectedLanguage !== 'All' || selectedTag;
+  const hasActiveFilters = searchQuery || selectedLanguage !== 'تمام' || selectedTag;
 
   if (loading) {
     return (

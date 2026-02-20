@@ -1,11 +1,13 @@
 import { useLocation, Link } from "react-router-dom";
 import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Home, ArrowLeft } from "lucide-react";
+import { Home, ArrowRight } from "lucide-react";
 import { motion } from "framer-motion";
+import { useTranslation } from "react-i18next";
 
 const NotFound = () => {
   const location = useLocation();
+  const { t } = useTranslation();
 
   useEffect(() => {
     console.error(
@@ -58,10 +60,10 @@ const NotFound = () => {
           >
             <div className="space-y-4">
               <h2 className="text-4xl md:text-5xl font-display font-bold text-foreground tracking-tight">
-                Page Not Found
+                {t('notFound.title')}
               </h2>
               <p className="text-xl text-muted-foreground max-w-md mx-auto opacity-80 leading-relaxed font-medium">
-                The content you are looking for has either moved or doesn't exist. Let's get you back on track.
+                {t('notFound.desc')}
               </p>
             </div>
           </motion.div>
@@ -75,9 +77,9 @@ const NotFound = () => {
         >
           <Link to="/">
             <Button size="lg" className="h-14 px-8 rounded-2xl text-lg font-bold gradient-primary shadow-xl shadow-primary/20 hover:scale-105 transition-all group">
-              <Home className="mr-3 h-5 w-5" />
-              Return Home
-              <ArrowLeft className="ml-3 h-5 w-5 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all" />
+              <Home className="ml-3 h-5 w-5" />
+              {t('notFound.returnHome')}
+              <ArrowRight className="mr-3 h-5 w-5 opacity-0 translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all rotate-180" />
             </Button>
           </Link>
           <Button
@@ -86,7 +88,7 @@ const NotFound = () => {
             onClick={() => window.history.back()}
             className="h-14 px-8 rounded-2xl text-lg font-bold hover:bg-primary/5 hover:text-primary transition-all"
           >
-            Go Back
+            {t('notFound.goBack')}
           </Button>
         </motion.div>
 
@@ -96,7 +98,7 @@ const NotFound = () => {
           transition={{ delay: 1 }}
           className="mt-20 opacity-30 select-none"
         >
-          <p className="font-display font-black uppercase tracking-[1em] text-sm">Fikr-e-Islam</p>
+          <p className="font-display font-black uppercase tracking-[1em] text-sm">{t('common.brand')}</p>
         </motion.div>
       </div>
     </div>

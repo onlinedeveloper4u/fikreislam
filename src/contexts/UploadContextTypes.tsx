@@ -15,6 +15,7 @@ export interface ActiveUpload {
 export interface UploadContextType {
     activeUploads: ActiveUpload[];
     uploadContent: (formData: any, mainFile: File, coverFile: File | null) => Promise<void>;
+    editContent: (contentId: string, currentStatus: string, updatePayload: any, newMainFile: File | null, newCoverFile: File | null, contentTitle: string, currentFileUrl: string | null, contentType: string) => Promise<void>;
     clearCompleted: () => void;
 }
 

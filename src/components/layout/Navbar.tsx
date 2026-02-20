@@ -3,10 +3,8 @@ import { Button } from "@/components/ui/button";
 import { Book, Headphones, Video, Menu, X, LogOut, User, Heart, LayoutDashboard, HelpCircle, Settings } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { useLanguage } from "@/contexts/LanguageContext";
 import { useTranslation } from "react-i18next";
 import logo from "@/assets/logo.png";
-import { Languages } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   DropdownMenu,
@@ -20,7 +18,6 @@ const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const { user, role, signOut, loading } = useAuth();
-  const { language, toggleLanguage } = useLanguage();
   const { t } = useTranslation();
   const navigate = useNavigate();
 
@@ -96,15 +93,7 @@ const Navbar = () => {
 
         {/* Language & Auth Buttons */}
         <div className="hidden md:flex items-center gap-3">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={toggleLanguage}
-            className="flex items-center gap-2 font-medium"
-          >
-            <Languages className="w-4 h-4" />
-            <span>{language === 'en' ? t("common.languages.ur") : t("common.languages.en")}</span>
-          </Button>
+
 
           {loading ? (
             <div className="w-8 h-8 rounded-full bg-muted animate-pulse" />
@@ -209,14 +198,7 @@ const Navbar = () => {
                     <LogOut className="w-4 h-4 mr-2" />
                     {t("nav.signOut")}
                   </Button>
-                  <Button
-                    variant="ghost"
-                    onClick={toggleLanguage}
-                    className="flex items-center justify-center gap-2 font-medium"
-                  >
-                    <Languages className="w-5 h-5" />
-                    <span>{language === 'en' ? t("common.languages.ur") : t("common.languages.en")}</span>
-                  </Button>
+
                 </>
               ) : (
                 <>
@@ -226,14 +208,7 @@ const Navbar = () => {
                   <Button variant="hero" asChild>
                     <Link to="/register">{t("nav.getStarted")}</Link>
                   </Button>
-                  <Button
-                    variant="ghost"
-                    onClick={toggleLanguage}
-                    className="flex items-center justify-center gap-2 font-medium"
-                  >
-                    <Languages className="w-5 h-5" />
-                    <span>{language === 'en' ? t("common.languages.ur") : t("common.languages.en")}</span>
-                  </Button>
+
                 </>
               )}
             </div>

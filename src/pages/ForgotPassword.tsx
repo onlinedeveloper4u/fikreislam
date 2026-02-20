@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, ArrowLeft, Mail, ShieldQuestion } from "lucide-react";
+import { Loader2, ArrowLeft, Mail, ArrowRight } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import logo from "@/assets/logo.png";
 import { useTranslation } from "react-i18next";
@@ -38,7 +38,7 @@ const ForgotPassword = () => {
 
     if (error) {
       toast({
-        title: "Error",
+        title: t("qa.form.errorTitle"),
         description: error.message,
         variant: "destructive",
       });
@@ -83,7 +83,7 @@ const ForgotPassword = () => {
               >
                 <img
                   src={logo}
-                  alt="Fikr-e-Islam"
+                  alt={t("common.brand")}
                   className="w-32 h-32 md:w-40 md:h-40 object-contain mx-auto drop-shadow-2xl opacity-90"
                 />
               </motion.div>
@@ -103,7 +103,7 @@ const ForgotPassword = () => {
               >
                 {isEmailSent
                   ? t("auth.checkEmail")
-                  : t("auth.signInToContinue") // Generic for now, ideally reset link text
+                  : t("auth.enterEmailForReset")
                 }
               </motion.p>
             </div>
@@ -125,15 +125,14 @@ const ForgotPassword = () => {
                     <Mail className="w-12 h-12 text-primary" />
                   </motion.div>
                   <p className="text-lg text-muted-foreground px-4 leading-relaxed">
-                    We've sent a password reset link to <strong className="text-foreground">{email}</strong>.
-                    Please check your inbox and follow the instructions.
+                    {t("forgotPassword.emailSentMessage", { email })}
                   </p>
                   <Button
                     variant="outline"
                     className="w-full h-14 rounded-2xl border-primary/20 hover:bg-primary/5 hover:text-primary transition-all text-lg font-bold"
                     onClick={() => setIsEmailSent(false)}
                   >
-                    Try a different email
+                    {t("forgotPassword.tryDifferentEmail")}
                   </Button>
                 </motion.div>
               ) : (
@@ -169,12 +168,12 @@ const ForgotPassword = () => {
                     {isLoading ? (
                       <div className="flex items-center gap-3">
                         <Loader2 className="h-6 w-6 animate-spin" />
-                        <span>Sending...</span>
+                        <span>{t("forgotPassword.sending")}</span>
                       </div>
                     ) : (
                       <div className="flex items-center justify-center gap-3">
-                        <span>Send Reset Link</span>
-                        <ArrowRight className="h-6 w-6 group-hover:translate-x-1 transition-transform" />
+                        <span>{t("forgotPassword.sendResetLink")}</span>
+                        <ArrowRight className="h-6 w-6 group-hover:translate-x-1 transition-transform rotate-180" />
                       </div>
                     )}
                   </Button>
@@ -192,8 +191,8 @@ const ForgotPassword = () => {
                 to="/login"
                 className="group flex items-center justify-center gap-3 text-lg text-muted-foreground hover:text-primary transition-all font-bold"
               >
-                <ArrowLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
-                Back to Sign In
+                <ArrowLeft className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                {t("forgotPassword.backToSignIn")}
               </Link>
             </motion.div>
           </div>

@@ -1,13 +1,10 @@
 import { Link } from "react-router-dom";
-import { Book, Headphones, Video, Heart, HelpCircle, Library, Languages } from "lucide-react";
+import { Book, Headphones, Video, Heart, HelpCircle, Library } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { useLanguage } from "@/contexts/LanguageContext";
-import { Button } from "@/components/ui/button";
 import logo from "@/assets/logo.png";
 
 const Footer = () => {
   const { t } = useTranslation();
-  const { language, toggleLanguage } = useLanguage();
 
   return (
     <footer className="bg-card border-t border-border">
@@ -24,17 +21,7 @@ const Footer = () => {
             <p className="text-muted-foreground text-sm leading-relaxed">
               {t("footer.desc")}
             </p>
-            <div className="mt-6">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={toggleLanguage}
-                className="flex items-center gap-2 text-xs"
-              >
-                <Languages className="w-3.5 h-3.5" />
-                <span>{language === 'en' ? t("common.languages.ur") : t("common.languages.en")}</span>
-              </Button>
-            </div>
+
           </div>
 
           {/* Content */}
