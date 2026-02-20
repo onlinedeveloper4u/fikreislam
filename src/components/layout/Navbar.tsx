@@ -61,16 +61,18 @@ const Navbar = () => {
 
         {/* Desktop Navigation */}
         <div className="hidden md:flex items-center gap-8">
-          {navLinks.map((link) => (
-            <Link
-              key={link.name}
-              to={link.href}
-              className="flex items-center gap-2 text-muted-foreground hover:text-primary transition-colors duration-200"
-            >
-              <link.icon className="w-4 h-4" />
-              <span className="font-medium">{link.name}</span>
-            </Link>
-          ))}
+          {navLinks
+            .filter((link) => role === "admin" || link.href === "/audio")
+            .map((link) => (
+              <Link
+                key={link.name}
+                to={link.href}
+                className="flex items-center gap-2 text-muted-foreground hover:text-primary transition-colors duration-200"
+              >
+                <link.icon className="w-4 h-4" />
+                <span className="font-medium">{link.name}</span>
+              </Link>
+            ))}
         </div>
 
         {/* Language & Auth Buttons */}
@@ -156,17 +158,19 @@ const Navbar = () => {
       {isOpen && (
         <div className="md:hidden bg-background border-b border-border animate-fade-in">
           <div className="container mx-auto px-4 py-4 flex flex-col gap-4">
-            {navLinks.map((link) => (
-              <Link
-                key={link.name}
-                to={link.href}
-                className="flex items-center gap-3 text-muted-foreground hover:text-primary transition-colors p-2"
-                onClick={() => setIsOpen(false)}
-              >
-                <link.icon className="w-5 h-5" />
-                <span className="font-medium">{link.name}</span>
-              </Link>
-            ))}
+            {navLinks
+              .filter((link) => role === "admin" || link.href === "/audio")
+              .map((link) => (
+                <Link
+                  key={link.name}
+                  to={link.href}
+                  className="flex items-center gap-3 text-muted-foreground hover:text-primary transition-colors p-2"
+                  onClick={() => setIsOpen(false)}
+                >
+                  <link.icon className="w-5 h-5" />
+                  <span className="font-medium">{link.name}</span>
+                </Link>
+              ))}
             <div className="flex flex-col gap-2 pt-4 border-t border-border">
               {user ? (
                 <>
