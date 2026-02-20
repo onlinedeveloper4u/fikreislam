@@ -20,8 +20,7 @@ export function AnswerForm({ questionId, onAnswerAdded }: AnswerFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const isAdmin = role === 'admin';
-  const isContributor = role === 'contributor';
-  const canAnswer = isAdmin || isContributor;
+  const canAnswer = isAdmin;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -71,7 +70,7 @@ export function AnswerForm({ questionId, onAnswerAdded }: AnswerFormProps) {
       />
       <Button type="submit" size="sm" disabled={isSubmitting || !answer.trim()}>
         <Send className="h-3 w-3 mr-1" />
-        {isSubmitting ? t('qa.form.submitting') : isAdmin ? t('qa.answerForm.postAnswer') : t('qa.answerForm.submitForReview')}
+        {isSubmitting ? t('qa.form.submitting') : t('qa.answerForm.postAnswer')}
       </Button>
     </form>
   );

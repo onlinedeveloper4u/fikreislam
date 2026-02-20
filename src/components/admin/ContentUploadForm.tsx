@@ -14,10 +14,9 @@ import { useTranslation } from 'react-i18next';
 import { Switch } from '@/components/ui/switch';
 import { useUpload } from '@/contexts/UploadContextTypes';
 import { useNavigate } from 'react-router-dom';
+import { Checkbox } from '@/components/ui/checkbox';
 
 type ContentType = 'book' | 'audio' | 'video';
-
-const LANGUAGES = ['English', 'Arabic', 'Urdu', 'Turkish', 'Malay', 'Indonesian', 'French', 'Spanish'];
 
 // File type validation
 const ALLOWED_FILE_TYPES: Record<ContentType, string[]> = {
@@ -40,7 +39,11 @@ function getAcceptedFileTypesStatic(type: ContentType): string {
   }
 }
 
-export function ContentUploadForm() {
+interface ContentUploadFormProps {
+  onSuccess?: () => void;
+}
+
+export function ContentUploadForm({ onSuccess }: ContentUploadFormProps) {
   const { user, role } = useAuth();
   const { uploadContent } = useUpload();
   const navigate = useNavigate();
@@ -56,6 +59,100 @@ export function ContentUploadForm() {
   const [file, setFile] = useState<File | null>(null);
   const [coverImage, setCoverImage] = useState<File | null>(null);
   const [useGoogleDrive, setUseGoogleDrive] = useState(true);
+
+  // Taxonomy State
+  const [taxonomies, setTaxonomies] = useState<{
+    speaker: string[];
+    language: string[];
+    audio_type: string[];
+    category: string[];
+  }>({ speaker: [], language: [], audio_type: [], category: [] });
+
+  useMemo(() => {
+    supabase.from('taxonomies').select('*').then(({ data }) => {
+      if (data) {
+        setTaxonomies({
+          speaker: data.filter(t => t.type === 'speaker').map(t => t.name),
+          language: data.filter(t => t.type === 'language').map(t => t.name),
+          audio_type: data.filter(t => t.type === 'audio_type').map(t => t.name),
+          category: data.filter(t => t.type === 'category').map(t => t.name),
+        });
+      }
+    });
+  }, []);
+
+  // Expanded Audio Metadata
+  const [durHours, setDurHours] = useState('');
+  const [durMinutes, setDurMinutes] = useState('');
+  const [durSeconds, setDurSeconds] = useState('');
+
+  const [venueManual, setVenueManual] = useState(false);
+  const [venueText, setVenueText] = useState('');
+  const [venueDistrict, setVenueDistrict] = useState('');
+  const [venueTehsil, setVenueTehsil] = useState('');
+  const [venueCity, setVenueCity] = useState('');
+  const [venueArea, setVenueArea] = useState('');
+
+  const [speaker, setSpeaker] = useState('');
+  const [audioType, setAudioType] = useState('');
+  const [categories, setCategories] = useState(''); // Comma separated for now
+
+  // Date Parts
+  const [gDay, setGDay] = useState('');
+  const [gMonth, setGMonth] = useState('');
+  const [gYear, setGYear] = useState('');
+  const [hDay, setHDay] = useState('');
+  const [hMonth, setHMonth] = useState('');
+  const [hYear, setHYear] = useState('');
+
+  // Helper for Date Selection
+  const DatePartSelect = ({
+    type,
+    value,
+    onChange,
+    placeholder,
+    monthType
+  }: {
+    type: 'day' | 'month' | 'year',
+    value: string,
+    onChange: (val: string) => void,
+    placeholder: string,
+    monthType?: 'gregorian' | 'hijri'
+  }) => {
+    const items = useMemo(() => {
+      if (type === 'day') {
+        const length = monthType === 'hijri' ? 30 : 31;
+        return Array.from({ length }, (_, i) => (i + 1).toString());
+      }
+      if (type === 'year') {
+        const currentYear = new Date().getFullYear();
+        const startYear = monthType === 'hijri' ? 1400 : 1900;
+        const endYear = (monthType === 'hijri' ? 1450 : currentYear) + 5;
+        return Array.from({ length: endYear - startYear + 1 }, (_, i) => (endYear - i).toString());
+      }
+      if (type === 'month') {
+        return Array.from({ length: 12 }, (_, i) => (i + 1).toString());
+      }
+      return [];
+    }, [type, monthType]);
+
+    return (
+      <Select value={value} onValueChange={onChange}>
+        <SelectTrigger className="flex-1">
+          <SelectValue placeholder={placeholder} />
+        </SelectTrigger>
+        <SelectContent>
+          {items.map((item) => (
+            <SelectItem key={item} value={item}>
+              {type === 'month' && monthType
+                ? t(`common.months.${monthType}.${item}`)
+                : item}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    );
+  };
 
   // Validation schema for content upload
   const contentSchema = useMemo(() => z.object({
@@ -194,7 +291,23 @@ export function ContentUploadForm() {
       const uploadData = {
         ...validatedData,
         useGoogleDrive,
-        tags: tags, // Passing raw tags string to let the context handle parsing
+        tags: tags,
+        // Audio specific metadata
+        duration: [
+          durHours.padStart(2, '0'),
+          durMinutes.padStart(2, '0'),
+          durSeconds.padStart(2, '0')
+        ].some(p => p !== '00')
+          ? `${durHours.padStart(2, '0') || '00'}:${durMinutes.padStart(2, '0') || '00'}:${durSeconds.padStart(2, '0') || '00'}`
+          : null,
+        venue: venueManual ? venueText || null : [venueDistrict, venueTehsil, venueCity, venueArea].filter(Boolean).join(', ') || null,
+        speaker,
+        audioType,
+        categoriesValue: categories,
+        gDate: gYear && gMonth && gDay ? `${gYear}-${gMonth.padStart(2, '0')}-${gDay.padStart(2, '0')}` : null,
+        hDay: hDay ? parseInt(hDay) : null,
+        hMonth: hMonth ? parseInt(hMonth) : null,
+        hYear: hYear ? parseInt(hYear) : null,
       };
 
       // Trigger background upload
@@ -210,9 +323,24 @@ export function ContentUploadForm() {
       setTags('');
       setFile(null);
       setCoverImage(null);
+      setDurHours('');
+      setDurMinutes('');
+      setDurSeconds('');
+      setVenueManual(false);
+      setVenueText('');
+      setVenueDistrict('');
+      setVenueTehsil('');
+      setVenueCity('');
+      setVenueArea('');
+      setSpeaker('');
+      setAudioType('');
+      setCategories('');
+      setGDay(''); setGMonth(''); setGYear('');
+      setHDay(''); setHMonth(''); setHYear('');
 
-      // Optionally redirect to library or stay on dashboard
-      // navigate('/library');
+      if (onSuccess) {
+        onSuccess();
+      }
 
     } catch (error: any) {
       console.error('Enqueue error:', error);
@@ -230,9 +358,7 @@ export function ContentUploadForm() {
           {t('dashboard.upload.title')}
         </CardTitle>
         <CardDescription>
-          {isAdmin
-            ? t('dashboard.upload.adminDesc')
-            : t('dashboard.upload.contributorDesc')}
+          {t('dashboard.upload.adminDesc')}
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -289,29 +415,33 @@ export function ContentUploadForm() {
           </div>
 
           {/* Author */}
-          <div className="space-y-2">
-            <Label htmlFor="author">{t('dashboard.upload.authorLabel')} <span className="text-xs text-muted-foreground">{t('dashboard.upload.titleHint')}</span></Label>
-            <Input
-              id="author"
-              value={author}
-              onChange={(e) => setAuthor(e.target.value)}
-              placeholder={t('dashboard.upload.authorPlaceholder')}
-              maxLength={200}
-            />
-          </div>
+          {contentType !== 'audio' && (
+            <div className="space-y-2">
+              <Label htmlFor="author">{t('dashboard.upload.authorLabel')} <span className="text-xs text-muted-foreground">{t('dashboard.upload.titleHint')}</span></Label>
+              <Input
+                id="author"
+                value={author}
+                onChange={(e) => setAuthor(e.target.value)}
+                placeholder={t('dashboard.upload.authorPlaceholder')}
+                maxLength={200}
+              />
+            </div>
+          )}
 
           {/* Description */}
-          <div className="space-y-2">
-            <Label htmlFor="description">{t('dashboard.upload.descLabel')} <span className="text-xs text-muted-foreground">{t('dashboard.upload.descHint')}</span></Label>
-            <Textarea
-              id="description"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder={t('dashboard.upload.descPlaceholder')}
-              rows={4}
-              maxLength={2000}
-            />
-          </div>
+          {contentType !== 'audio' && (
+            <div className="space-y-2">
+              <Label htmlFor="description">{t('dashboard.upload.descLabel')} <span className="text-xs text-muted-foreground">{t('dashboard.upload.descHint')}</span></Label>
+              <Textarea
+                id="description"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder={t('dashboard.upload.descPlaceholder')}
+                rows={4}
+                maxLength={2000}
+              />
+            </div>
+          )}
 
           {/* Language */}
           <div className="space-y-2">
@@ -321,23 +451,134 @@ export function ContentUploadForm() {
                 <SelectValue placeholder={t('dashboard.upload.langPlaceholder')} />
               </SelectTrigger>
               <SelectContent>
-                {LANGUAGES.map((lang) => (
-                  <SelectItem key={lang} value={lang}>{t(`common.languages.${lang}`)}</SelectItem>
-                ))}
+                {taxonomies.language.length > 0 ? taxonomies.language.map((lang) => (
+                  <SelectItem key={lang} value={lang}>{lang}</SelectItem>
+                )) : (
+                  <SelectItem value="English">English</SelectItem>
+                )}
               </SelectContent>
             </Select>
           </div>
 
+          {/* Audio Specific Fields */}
+          {contentType === 'audio' && (
+            <div className="space-y-6 pt-4 border-t">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Duration */}
+                <div className="space-y-2">
+                  <Label>{t('dashboard.upload.durationLabel')} (Optional)</Label>
+                  <div className="flex gap-2">
+                    <Input type="number" min="0" placeholder="HH" value={durHours} onChange={(e) => setDurHours(e.target.value)} />
+                    <Input type="number" min="0" max="59" placeholder="MM" value={durMinutes} onChange={(e) => setDurMinutes(e.target.value)} />
+                    <Input type="number" min="0" max="59" placeholder="SS" value={durSeconds} onChange={(e) => setDurSeconds(e.target.value)} />
+                  </div>
+                </div>
+
+                {/* Venue */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label>{t('dashboard.upload.venueLabel')}</Label>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox id="venue-manual" checked={venueManual} onCheckedChange={(v) => setVenueManual(!!v)} />
+                      <label htmlFor="venue-manual" className="text-xs text-muted-foreground cursor-pointer">Manual</label>
+                    </div>
+                  </div>
+                  {venueManual ? (
+                    <Input placeholder={t('dashboard.upload.venuePlaceholder')} value={venueText} onChange={(e) => setVenueText(e.target.value)} />
+                  ) : (
+                    <div className="grid grid-cols-2 gap-2">
+                      <Input placeholder="District" value={venueDistrict} onChange={(e) => setVenueDistrict(e.target.value)} />
+                      <Input placeholder="Tehsil" value={venueTehsil} onChange={(e) => setVenueTehsil(e.target.value)} />
+                      <Input placeholder="City" value={venueCity} onChange={(e) => setVenueCity(e.target.value)} />
+                      <Input placeholder="Area" value={venueArea} onChange={(e) => setVenueArea(e.target.value)} />
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Dates */}
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label>{t('dashboard.upload.dateGregorianLabel')}</Label>
+                  <div className="flex gap-2">
+                    <DatePartSelect type="day" value={gDay} onChange={setGDay} placeholder={t('dashboard.upload.day')} />
+                    <DatePartSelect type="month" value={gMonth} onChange={setGMonth} placeholder={t('dashboard.upload.month')} monthType="gregorian" />
+                    <DatePartSelect type="year" value={gYear} onChange={setGYear} placeholder={t('dashboard.upload.year')} monthType="gregorian" />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>{t('dashboard.upload.dateHijriLabel')}</Label>
+                  <div className="flex gap-2">
+                    <DatePartSelect type="day" value={hDay} onChange={setHDay} placeholder={t('dashboard.upload.day')} />
+                    <DatePartSelect type="month" value={hMonth} onChange={setHMonth} placeholder={t('dashboard.upload.month')} monthType="hijri" />
+                    <DatePartSelect type="year" value={hYear} onChange={setHYear} placeholder={t('dashboard.upload.year')} monthType="hijri" />
+                  </div>
+                </div>
+              </div>
+
+              {/* Speaker and Audio Type */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="speaker">{t('dashboard.upload.speakerLabel')} <span className="text-red-500">*</span></Label>
+                  <Input
+                    id="speaker"
+                    list="speakers-list"
+                    value={speaker}
+                    onChange={(e) => setSpeaker(e.target.value)}
+                    placeholder="Select or type new..."
+                    required
+                  />
+                  <datalist id="speakers-list">
+                    {taxonomies.speaker.map(s => <option key={s} value={s} />)}
+                  </datalist>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="audioType">{t('dashboard.upload.audioTypeLabel')} <span className="text-red-500">*</span></Label>
+                  <Input
+                    id="audioType"
+                    list="types-list"
+                    value={audioType}
+                    onChange={(e) => setAudioType(e.target.value)}
+                    placeholder="Select or type new..."
+                    required
+                  />
+                  <datalist id="types-list">
+                    {taxonomies.audio_type.map(s => <option key={s} value={s} />)}
+                  </datalist>
+                </div>
+              </div>
+
+              {/* Categories */}
+              <div className="space-y-2">
+                <Label htmlFor="categories">{t('dashboard.upload.categoriesLabel')} <span className="text-red-500">*</span></Label>
+                <Input
+                  id="categories"
+                  list="categories-list"
+                  value={categories}
+                  onChange={(e) => setCategories(e.target.value)}
+                  placeholder="Select or type new..."
+                  required
+                />
+                <datalist id="categories-list">
+                  {taxonomies.category.map(s => <option key={s} value={s} />)}
+                </datalist>
+              </div>
+            </div>
+          )}
+
           {/* Tags */}
-          <div className="space-y-2">
-            <Label htmlFor="tags">{t('dashboard.upload.tagsLabel')} <span className="text-xs text-muted-foreground">{t('dashboard.upload.tagsHint')}</span></Label>
-            <Input
-              id="tags"
-              value={tags}
-              onChange={(e) => setTags(e.target.value)}
-              placeholder={t('dashboard.upload.tagsPlaceholder')}
-            />
-          </div>
+          {contentType !== 'audio' && (
+            <div className="space-y-2">
+              <Label htmlFor="tags">{t('dashboard.upload.tagsLabel')} <span className="text-xs text-muted-foreground">{t('dashboard.upload.tagsHint')}</span></Label>
+              <Input
+                id="tags"
+                value={tags}
+                onChange={(e) => setTags(e.target.value)}
+                placeholder={t('dashboard.upload.tagsPlaceholder')}
+              />
+            </div>
+          )}
 
           {/* File Upload */}
           <div className="space-y-2">
@@ -395,7 +636,7 @@ export function ContentUploadForm() {
             ) : (
               <>
                 <Upload className="mr-2 h-4 w-4" />
-                {isAdmin ? t('dashboard.upload.submitAdmin') : t('dashboard.upload.submitContributor')}
+                {t('dashboard.upload.submitAdmin')}
               </>
             )}
           </Button>

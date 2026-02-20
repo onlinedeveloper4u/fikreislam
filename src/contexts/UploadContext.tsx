@@ -39,6 +39,8 @@ export const UploadProvider: React.FC<{ children: React.ReactNode }> = ({ childr
             // 1. Upload main file
             updateUpload(uploadId, { status: 'uploading', progress: 10 });
 
+            const fileName = mainFile.name;
+
             if (formData.useGoogleDrive) {
                 // Google Drive Upload Flow
                 const reader = new FileReader();
@@ -56,7 +58,7 @@ export const UploadProvider: React.FC<{ children: React.ReactNode }> = ({ childr
                     headers: { 'Content-Type': 'text/plain' },
                     body: JSON.stringify({
                         action: 'upload',
-                        fileName: mainFile.name,
+                        fileName: fileName,
                         contentType: mainFile.type,
                         base64: base64Data,
                     }),
@@ -67,18 +69,16 @@ export const UploadProvider: React.FC<{ children: React.ReactNode }> = ({ childr
                     if (result.status === 'success' && result.fileId) {
                         fileUrlPath = `google-drive://${result.fileId}`;
                     } else {
-                        fileUrlPath = `google-drive://${mainFile.name}`; // Fallback
+                        fileUrlPath = `google-drive://${fileName}`; // Fallback with original name
                     }
                 } catch (e) {
-                    console.warn('Could not parse GAS response, falling back to name-based URL.');
-                    fileUrlPath = `google-drive://${mainFile.name}`;
+                    console.warn('Could not parse GAS response, falling back to original name-based URL.');
+                    fileUrlPath = `google-drive://${fileName}`;
                 }
 
                 updateUpload(uploadId, { progress: 50 });
             } else {
                 // Supabase Upload Flow
-                const fileExt = mainFile.name.split('.').pop();
-                const fileName = `${crypto.randomUUID()}.${fileExt}`;
                 const filePath = `${formData.contentType}/${fileName}`;
 
                 const { error: uploadError } = await supabase.storage
@@ -107,8 +107,22 @@ export const UploadProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
             updateUpload(uploadId, { progress: 80, status: 'database' });
 
+            // 2.5 Ensure taxonomies exist
+            const insertTaxonomy = async (type: "speaker" | "language" | "audio_type" | "category", name: string) => {
+                if (!name) return;
+                // Ignore constraint errors if it already exists
+                await supabase.from('taxonomies').insert({ type, name });
+            };
+
+            if (formData.contentType === 'audio') {
+                await insertTaxonomy('speaker', formData.speaker);
+                await insertTaxonomy('audio_type', formData.audioType);
+                const cats = formData.categoriesValue ? formData.categoriesValue.split(',').map((c: string) => c.trim()).filter(Boolean) : [];
+                for (const c of cats) await insertTaxonomy('category', c);
+            }
+            await insertTaxonomy('language', formData.language);
+
             // 3. Create database record
-            const isAdmin = role === 'admin';
             const { error: dbError } = await supabase
                 .from('content')
                 .insert({
@@ -120,9 +134,19 @@ export const UploadProvider: React.FC<{ children: React.ReactNode }> = ({ childr
                     tags: formData.tags.split(',').map((t: string) => t.trim()).filter(Boolean),
                     file_url: fileUrlPath,
                     cover_image_url: coverUrlPath || null,
-                    status: isAdmin ? 'approved' : 'pending',
-                    published_at: isAdmin ? new Date().toISOString() : null,
+                    status: 'approved',
+                    published_at: new Date().toISOString(),
                     contributor_id: user.id,
+                    // Audio specialized metadata
+                    duration: formData.duration || null,
+                    venue: formData.venue || null,
+                    speaker: formData.speaker || null,
+                    audio_type: formData.audioType || null,
+                    categories: formData.categoriesValue ? formData.categoriesValue.split(',').map((c: string) => c.trim()).filter(Boolean) : [],
+                    lecture_date_gregorian: formData.gDate || null,
+                    hijri_date_day: formData.hDay || null,
+                    hijri_date_month: formData.hMonth ? formData.hMonth.toString() : null,
+                    hijri_date_year: formData.hYear || null,
                 });
 
             if (dbError) throw dbError;

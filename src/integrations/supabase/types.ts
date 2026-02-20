@@ -287,6 +287,30 @@ export type Database = {
         }
         Relationships: []
       }
+      taxonomies: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          type: Database["public"]["Enums"]["taxonomy_type"]
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          type: Database["public"]["Enums"]["taxonomy_type"]
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          type?: Database["public"]["Enums"]["taxonomy_type"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -326,9 +350,10 @@ export type Database = {
       }
     }
     Enums: {
-      app_role: "admin" | "contributor" | "user"
+      app_role: "admin" | "user"
       content_status: "pending" | "approved" | "rejected"
       content_type: "book" | "audio" | "video"
+      taxonomy_type: "speaker" | "language" | "audio_type" | "category"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -456,7 +481,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "contributor", "user"],
+      app_role: ["admin", "user"],
       content_status: ["pending", "approved", "rejected"],
       content_type: ["book", "audio", "video"],
     },

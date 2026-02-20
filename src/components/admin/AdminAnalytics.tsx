@@ -14,7 +14,6 @@ interface AnalyticsSummary {
   totalDownloads: number;
   totalPlays: number;
   totalContent: number;
-  totalContributors: number;
   bookCount: number;
   audioCount: number;
   videoCount: number;
@@ -75,13 +74,6 @@ export function AdminAnalytics() {
       const audioCount = contentData?.filter(c => c.type === 'audio').length || 0;
       const videoCount = contentData?.filter(c => c.type === 'video').length || 0;
 
-      // Fetch contributor count
-      const { data: rolesData } = await supabase
-        .from('user_roles')
-        .select('user_id')
-        .eq('role', 'contributor');
-
-      const totalContributors = rolesData?.length || 0;
 
       // Fetch top content by views
       let topQuery = supabase
@@ -123,7 +115,6 @@ export function AdminAnalytics() {
         totalDownloads: downloads,
         totalPlays: plays,
         totalContent,
-        totalContributors,
         bookCount,
         audioCount,
         videoCount,
@@ -158,7 +149,6 @@ export function AdminAnalytics() {
     { label: t('dashboard.downloads'), value: analytics.totalDownloads, icon: Download, color: 'text-green-500' },
     { label: t('dashboard.plays'), value: analytics.totalPlays, icon: Play, color: 'text-purple-500' },
     { label: t('dashboard.content'), value: analytics.totalContent, icon: FileText, color: 'text-primary' },
-    { label: t('dashboard.contributors'), value: analytics.totalContributors, icon: Users, color: 'text-orange-500' },
   ];
 
   const typeIcons = {
@@ -190,7 +180,7 @@ export function AdminAnalytics() {
       </div>
 
       {/* Stat Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {statCards.map((stat) => {
           const Icon = stat.icon;
           return (

@@ -5,7 +5,6 @@ interface ContentStats {
   books: number;
   audio: number;
   video: number;
-  contributors: number;
 }
 
 export function useContentStats() {
@@ -13,7 +12,7 @@ export function useContentStats() {
     queryKey: ["content-stats"],
     queryFn: async (): Promise<ContentStats> => {
       // Fetch counts for each content type
-      const [booksResult, audioResult, videoResult, contributorsResult] = await Promise.all([
+      const [booksResult, audioResult, videoResult] = await Promise.all([
         supabase
           .from("content")
           .select("id", { count: "exact", head: true })
@@ -29,17 +28,12 @@ export function useContentStats() {
           .select("id", { count: "exact", head: true })
           .eq("type", "video")
           .eq("status", "approved"),
-        supabase
-          .from("user_roles")
-          .select("id", { count: "exact", head: true })
-          .eq("role", "contributor"),
       ]);
 
       return {
         books: booksResult.count ?? 0,
         audio: audioResult.count ?? 0,
         video: videoResult.count ?? 0,
-        contributors: contributorsResult.count ?? 0,
       };
     },
     staleTime: 1000 * 60 * 5, // Cache for 5 minutes

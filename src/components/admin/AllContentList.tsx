@@ -11,8 +11,17 @@ import { useTranslation } from 'react-i18next';
 import {
   FileText, Music, Video, Check, X, Loader2,
   Clock, CheckCircle, XCircle, Search, ExternalLink,
-  Trash2
+  Trash2, Plus, Globe, Pencil
 } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
+import { ContentUploadForm } from './ContentUploadForm';
+import { ContentEditDialog } from './ContentEditDialog';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -36,8 +45,19 @@ interface Content {
   status: ContentStatus;
   language: string | null;
   file_url: string | null;
+  cover_image_url: string | null;
   created_at: string;
   signed_file_url?: string | null;
+  // Audio specialized metadata
+  duration?: string | null;
+  venue?: string | null;
+  speaker?: string | null;
+  audio_type?: string | null;
+  categories?: string[] | null;
+  lecture_date_gregorian?: string | null;
+  hijri_date_day?: number | null;
+  hijri_date_month?: string | null;
+  hijri_date_year?: number | null;
 }
 
 export function AllContentList() {
@@ -47,12 +67,14 @@ export function AllContentList() {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<ContentStatus | 'all'>('all');
   const [typeFilter, setTypeFilter] = useState<ContentType | 'all'>('all');
+  const [isUploadOpen, setIsUploadOpen] = useState(false);
+  const [editingItem, setEditingItem] = useState<Content | null>(null);
   const { t } = useTranslation();
 
   const statusConfig: Record<ContentStatus, { icon: React.ElementType; color: string; label: string }> = {
-    pending: { icon: Clock, color: 'bg-amber-500/10 text-amber-600', label: t('moderation.pending') },
+    pending: { icon: Clock, color: 'bg-amber-500/10 text-amber-600', label: t('dashboard.unpublishedContent') },
     approved: { icon: CheckCircle, color: 'bg-green-500/10 text-green-600', label: t('dashboard.published') },
-    rejected: { icon: XCircle, color: 'bg-red-500/10 text-red-600', label: t('moderation.reject') },
+    rejected: { icon: XCircle, color: 'bg-red-500/10 text-red-600', label: t('dashboard.unpublishedContent') },
   };
 
   const typeIcons: Record<ContentType, React.ElementType> = {
@@ -69,7 +91,7 @@ export function AllContentList() {
     try {
       const { data, error } = await supabase
         .from('content')
-        .select('id, title, author, type, status, language, file_url, created_at')
+        .select('*')
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -84,7 +106,7 @@ export function AllContentList() {
       setContent(contentWithSignedUrls);
     } catch (error: any) {
       console.error('Error fetching content:', error);
-      toast.error(t('moderation.loadPendingFailed'));
+      toast.error(t('dashboard.myContent.loadFailed'));
     } finally {
       setLoading(false);
     }
@@ -117,7 +139,7 @@ export function AllContentList() {
         }
       }
 
-      toast.success(t('moderation.statusUpdated'));
+      toast.success(t('common.success'));
     } catch (error: any) {
       console.error('Error updating status:', error);
       toast.error(t('dashboard.roleUpdateFailed'));
@@ -128,12 +150,41 @@ export function AllContentList() {
 
   const handleDelete = async (id: string) => {
     setActionLoading(id);
-    try {
-      const item = content.find(c => c.id === id);
-      if (item?.file_url?.startsWith('google-drive://')) {
-        await deleteFromGoogleDrive(item.file_url);
+    const item = content.find(c => c.id === id);
+    if (!item) {
+      setActionLoading(null);
+      return;
+    }
+
+    const deletePromise = async () => {
+      // 1. Delete associated files from storage
+      if (item.file_url) {
+        if (item.file_url.startsWith('google-drive://')) {
+          const success = await deleteFromGoogleDrive(item.file_url);
+          if (!success) console.warn('Google Drive deletion returned failure status');
+        } else {
+          // Supabase Storage
+          await supabase.storage
+            .from('content-files')
+            .remove([item.file_url]);
+        }
       }
 
+      // 2. Delete cover image if it exists
+      if (item.cover_image_url) {
+        await supabase.storage
+          .from('content-files')
+          .remove([item.cover_image_url]);
+      }
+
+      // 3. Delete related records (Analytics, Favorites, etc.)
+      await Promise.all([
+        supabase.from('content_analytics').delete().eq('content_id', id),
+        supabase.from('favorites').delete().eq('content_id', id),
+        supabase.from('playlist_items').delete().eq('content_id', id)
+      ]);
+
+      // 4. Finally delete the content record
       const { error } = await supabase
         .from('content')
         .delete()
@@ -142,13 +193,18 @@ export function AllContentList() {
       if (error) throw error;
 
       setContent(prev => prev.filter(c => c.id !== id));
-      toast.success(t('moderation.contentDeleted'));
-    } catch (error: any) {
-      console.error('Error deleting content:', error);
-      toast.error(t('moderation.deleteFailed'));
-    } finally {
-      setActionLoading(null);
-    }
+      return item.title;
+    };
+
+    toast.promise(deletePromise(), {
+      loading: t('dashboard.myContent.deleting', { title: item.title, defaultValue: `Deleting ${item.title}...` }),
+      success: (title) => t('dashboard.myContent.deleteSuccess', { title }),
+      error: (err) => {
+        console.error('Delete error:', err);
+        return t('dashboard.myContent.deleteFailed');
+      },
+      finally: () => setActionLoading(null),
+    });
   };
 
   const filteredContent = content.filter(item => {
@@ -169,13 +225,34 @@ export function AllContentList() {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <h2 className="text-lg font-semibold">{t('dashboard.allContent')}</h2>
+        <Dialog open={isUploadOpen} onOpenChange={setIsUploadOpen}>
+          <DialogTrigger asChild>
+            <Button className="gradient-primary">
+              <Plus className="mr-2 h-4 w-4" />
+              {t('dashboard.upload.title')}
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>{t('dashboard.upload.title')}</DialogTitle>
+            </DialogHeader>
+            <ContentUploadForm onSuccess={() => {
+              setIsUploadOpen(false);
+              fetchContent();
+            }} />
+          </DialogContent>
+        </Dialog>
+      </div>
+
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-3">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder={t('moderation.searchContent')}
+            placeholder={t('common.search')}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="pl-10"
@@ -183,21 +260,20 @@ export function AllContentList() {
         </div>
         <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as any)}>
           <SelectTrigger className="w-full sm:w-36">
-            <SelectValue placeholder={t('moderation.status')} />
+            <SelectValue placeholder={t('common.filter')} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">{t('moderation.allStatus')}</SelectItem>
-            <SelectItem value="pending">{t('moderation.pending')}</SelectItem>
+            <SelectItem value="all">{t('dashboard.myContent.allStatus')}</SelectItem>
             <SelectItem value="approved">{t('dashboard.published')}</SelectItem>
-            <SelectItem value="rejected">{t('moderation.reject')}</SelectItem>
+            <SelectItem value="rejected">{t('dashboard.unpublishedContent')}</SelectItem>
           </SelectContent>
         </Select>
         <Select value={typeFilter} onValueChange={(v) => setTypeFilter(v as any)}>
           <SelectTrigger className="w-full sm:w-36">
-            <SelectValue placeholder={t('moderation.type')} />
+            <SelectValue placeholder={t('dashboard.type')} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">{t('moderation.allTypes')}</SelectItem>
+            <SelectItem value="all">{t('common.all')}</SelectItem>
             <SelectItem value="book">{t('dashboard.books')}</SelectItem>
             <SelectItem value="audio">{t('dashboard.audio')}</SelectItem>
             <SelectItem value="video">{t('dashboard.video')}</SelectItem>
@@ -206,7 +282,7 @@ export function AllContentList() {
       </div>
 
       <p className="text-sm text-muted-foreground">
-        {t('moderation.itemsCount', { current: filteredContent.length, total: content.length })}
+        {t('dashboard.myContent.itemsCount', { count: filteredContent.length, total: content.length })}
       </p>
 
       {/* Content List */}
@@ -226,7 +302,7 @@ export function AllContentList() {
                   <div className="min-w-0">
                     <p className="font-medium text-foreground truncate">{item.title}</p>
                     <p className="text-xs text-muted-foreground">
-                      {item.author || t('moderation.noAuthor')} • {t(`common.languages.${item.language}`)}
+                      {item.author || t('common.noAuthor')} • {t(`common.languages.${item.language?.toLowerCase().trim() || 'en'}`)}
                     </p>
                   </div>
                 </div>
@@ -238,12 +314,21 @@ export function AllContentList() {
                   </Badge>
 
                   {(item.signed_file_url || item.file_url) && (
-                    <Button variant="ghost" size="icon" asChild title={t('moderation.viewFile')}>
+                    <Button variant="ghost" size="icon" asChild title={t('dashboard.myContent.viewFile')}>
                       <a href={resolveExternalUrl(item.signed_file_url || item.file_url)} target="_blank" rel="noopener noreferrer">
                         <ExternalLink className="h-4 w-4" />
                       </a>
                     </Button>
                   )}
+
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setEditingItem(item)}
+                    title={t('common.edit')}
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </Button>
 
                   <Select
                     value={item.status}
@@ -258,32 +343,31 @@ export function AllContentList() {
                       )}
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="pending">{t('moderation.pending')}</SelectItem>
                       <SelectItem value="approved">{t('dashboard.published')}</SelectItem>
-                      <SelectItem value="rejected">{t('moderation.reject')}</SelectItem>
+                      <SelectItem value="rejected">{t('dashboard.unpublishedContent')}</SelectItem>
                     </SelectContent>
                   </Select>
 
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
-                      <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" title={t('moderation.delete')}>
+                      <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" title={t('common.delete')}>
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     </AlertDialogTrigger>
                     <AlertDialogContent>
                       <AlertDialogHeader>
-                        <AlertDialogTitle>{t('moderation.deleteContent')}</AlertDialogTitle>
+                        <AlertDialogTitle>{t('common.delete')}</AlertDialogTitle>
                         <AlertDialogDescription>
-                          {t('moderation.deleteConfirm', { title: item.title })}
+                          {t('common.confirmDelete', { title: item.title })}
                         </AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>
-                        <AlertDialogCancel>{t('moderation.cancel')}</AlertDialogCancel>
+                        <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
                         <AlertDialogAction
                           onClick={() => handleDelete(item.id)}
                           className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                         >
-                          {t('moderation.delete')}
+                          {t('common.delete')}
                         </AlertDialogAction>
                       </AlertDialogFooter>
                     </AlertDialogContent>
@@ -296,10 +380,20 @@ export function AllContentList() {
 
         {filteredContent.length === 0 && (
           <div className="text-center py-12 text-muted-foreground">
-            <p>{t('moderation.noContentFound')}</p>
+            <p>{t('common.noData')}</p>
           </div>
         )}
       </div>
-    </div >
+
+      <ContentEditDialog
+        content={editingItem as any}
+        open={!!editingItem}
+        onOpenChange={(open) => !open && setEditingItem(null)}
+        onSuccess={() => {
+          fetchContent();
+          setEditingItem(null);
+        }}
+      />
+    </div>
   );
 }

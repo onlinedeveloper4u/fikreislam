@@ -8,7 +8,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useTranslation } from "react-i18next";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Languages, ArrowRight } from "lucide-react";
+import { Loader2, Languages, ArrowRight, User, Mail, Lock } from "lucide-react";
+import { motion } from "framer-motion";
 import logo from "@/assets/logo.png";
 
 const Register = () => {
@@ -18,7 +19,7 @@ const Register = () => {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const { signUp } = useAuth();
-  const { language, toggleLanguage, dir } = useLanguage();
+  const { language, toggleLanguage } = useLanguage();
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -94,104 +95,224 @@ const Register = () => {
 
   return (
     <Layout>
-      <div className="min-h-[80vh] flex items-center justify-center py-12 relative font-urdu-aware">
-        <div className="absolute top-4 right-4 md:top-8 md:right-8">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={toggleLanguage}
-            className="flex items-center gap-2 font-medium"
-          >
-            <Languages className="w-4 h-4" />
-            <span>{language === 'en' ? 'اردو' : 'English'}</span>
-          </Button>
+      <div className="min-h-screen flex items-center justify-center py-20 relative overflow-hidden font-urdu-aware">
+        {/* Animated Background Elements */}
+        <div className="absolute top-0 left-0 w-full h-full -z-10 pointer-events-none">
+          <motion.div
+            animate={{
+              scale: [1, 1.3, 1],
+              opacity: [0.2, 0.4, 0.2],
+              x: [0, -60, 0],
+              y: [0, 40, 0],
+            }}
+            transition={{ duration: 20, repeat: Infinity, ease: "easeInOut" }}
+            className="absolute -top-[15%] -right-[10%] w-[60%] h-[60%] bg-primary/20 blur-[130px] rounded-full"
+          />
+          <motion.div
+            animate={{
+              scale: [1, 1.2, 1],
+              opacity: [0.15, 0.3, 0.15],
+              x: [0, 70, 0],
+              y: [0, -50, 0],
+            }}
+            transition={{ duration: 22, repeat: Infinity, ease: "easeInOut", delay: 1 }}
+            className="absolute -bottom-[15%] -left-[10%] w-[60%] h-[60%] bg-primary/10 blur-[130px] rounded-full"
+          />
         </div>
 
-        <div className="w-full max-w-md mx-4">
-          <div className="bg-card border border-border rounded-2xl p-8 shadow-card">
-            <div className="text-center mb-8">
-              <img src={logo} alt="Fikr-e-Islam" className="w-48 h-48 object-contain mx-auto mb-4" />
-              <h1 className="font-display text-2xl font-bold text-foreground mb-2">
+        <div className="absolute top-8 right-8 z-50">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ type: "spring", stiffness: 200 }}
+          >
+            <Button
+              variant="ghost"
+              size="lg"
+              onClick={toggleLanguage}
+              className="glass border border-white/20 text-foreground hover:bg-white/10 rounded-2xl h-12 px-6 shadow-xl backdrop-blur-xl transition-all"
+            >
+              <Languages className="w-5 h-5 mr-3 text-primary" />
+              <span className="font-bold">{language === 'en' ? 'اردو' : 'English'}</span>
+            </Button>
+          </motion.div>
+        </div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+          className="w-full max-w-xl mx-4"
+        >
+          <div className="bg-card/40 glass-dark border border-border/50 rounded-[3rem] p-10 md:p-14 shadow-2xl relative overflow-hidden">
+            {/* Background Decorative Element */}
+            <div className="absolute top-0 left-0 w-32 h-32 bg-primary/5 rounded-br-full -ml-16 -mt-16 blur-xl" />
+
+            <div className="text-center mb-10 relative">
+              <motion.div
+                initial={{ scale: 0.5, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ type: "spring", stiffness: 100, delay: 0.2 }}
+                className="mb-8"
+              >
+                <img
+                  src={logo}
+                  alt="Fikr-e-Islam"
+                  className="w-32 h-32 md:w-40 md:h-40 object-contain mx-auto drop-shadow-2xl"
+                />
+              </motion.div>
+              <motion.h1
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.4 }}
+                className="font-display text-4xl font-bold text-foreground mb-4 tracking-tight"
+              >
                 {t("auth.createAccount")}
-              </h1>
-              <p className="text-muted-foreground text-sm">
+              </motion.h1>
+              <motion.p
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.5 }}
+                className="text-muted-foreground text-lg opacity-80"
+              >
                 {t("auth.joinCommunity")}
-              </p>
+              </motion.p>
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="name">{t("auth.fullName")}</Label>
-                <Input
-                  id="name"
-                  type="text"
-                  placeholder={t("auth.fullNamePlaceholder")}
-                  className="h-11"
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                  disabled={isLoading}
-                />
+            <form onSubmit={handleSubmit} className="space-y-6 relative">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <motion.div
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.6 }}
+                  className="space-y-3"
+                >
+                  <Label htmlFor="name" className="text-xs font-bold uppercase tracking-[0.2em] opacity-60 ml-1">{t("auth.fullName")}</Label>
+                  <div className="relative group">
+                    <User className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground group-focus-within:text-primary transition-colors" />
+                    <Input
+                      id="name"
+                      type="text"
+                      placeholder={t("auth.fullNamePlaceholder")}
+                      className="h-14 pl-12 bg-background/50 border-border/40 focus:border-primary/50 text-lg rounded-2xl transition-all"
+                      value={fullName}
+                      onChange={(e) => setFullName(e.target.value)}
+                      disabled={isLoading}
+                    />
+                  </div>
+                </motion.div>
+
+                <motion.div
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.6 }}
+                  className="space-y-3"
+                >
+                  <Label htmlFor="email" className="text-xs font-bold uppercase tracking-[0.2em] opacity-60 ml-1">{t("auth.email")}</Label>
+                  <div className="relative group">
+                    <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground group-focus-within:text-primary transition-colors" />
+                    <Input
+                      id="email"
+                      type="email"
+                      placeholder="your@email.com"
+                      className="h-14 pl-12 bg-background/50 border-border/40 focus:border-primary/50 text-lg rounded-2xl transition-all"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      disabled={isLoading}
+                    />
+                  </div>
+                </motion.div>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="email">{t("auth.email")}</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="your@email.com"
-                  className="h-11"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  disabled={isLoading}
-                />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <motion.div
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.7 }}
+                  className="space-y-3"
+                >
+                  <Label htmlFor="password" title={t("auth.password")} className="text-xs font-bold uppercase tracking-[0.2em] opacity-60 ml-1">
+                    {t("auth.password")}
+                  </Label>
+                  <div className="relative group">
+                    <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground group-focus-within:text-primary transition-colors" />
+                    <Input
+                      id="password"
+                      type="password"
+                      placeholder="••••••••"
+                      className="h-14 pl-12 bg-background/50 border-border/40 focus:border-primary/50 text-lg rounded-2xl transition-all"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      disabled={isLoading}
+                    />
+                  </div>
+                </motion.div>
+
+                <motion.div
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.7 }}
+                  className="space-y-3"
+                >
+                  <Label htmlFor="confirmPassword" title={t("auth.confirmPassword")} className="text-xs font-bold uppercase tracking-[0.2em] opacity-60 ml-1">
+                    {t("auth.confirmPassword")}
+                  </Label>
+                  <div className="relative group">
+                    <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground group-focus-within:text-primary transition-colors" />
+                    <Input
+                      id="confirmPassword"
+                      type="password"
+                      placeholder="••••••••"
+                      className="h-14 pl-12 bg-background/50 border-border/40 focus:border-primary/50 text-lg rounded-2xl transition-all"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      disabled={isLoading}
+                    />
+                  </div>
+                </motion.div>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="password">{t("auth.password")}</Label>
-                <Input
-                  id="password"
-                  type="password"
-                  placeholder="••••••••"
-                  className="h-11"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.8 }}
+                className="pt-6"
+              >
+                <Button
+                  className="w-full h-16 text-xl font-bold rounded-2xl shadow-2xl shadow-primary/30 gradient-primary border-none hover:scale-[1.02] active:scale-[0.98] transition-all group"
+                  type="submit"
                   disabled={isLoading}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="confirmPassword">{t("auth.confirmPassword")}</Label>
-                <Input
-                  id="confirmPassword"
-                  type="password"
-                  placeholder="••••••••"
-                  className="h-11"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  disabled={isLoading}
-                />
-              </div>
-
-              <Button variant="hero" className="w-full h-11" type="submit" disabled={isLoading}>
-                {isLoading ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    {t("auth.creatingAccount")}
-                  </>
-                ) : (
-                  t("auth.createAccount")
-                )}
-              </Button>
+                >
+                  {isLoading ? (
+                    <div className="flex items-center gap-3">
+                      <Loader2 className="h-6 w-6 animate-spin" />
+                      <span>{t("auth.creatingAccount")}</span>
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-center gap-3">
+                      <span>{t("auth.createAccount")}</span>
+                      <ArrowRight className="h-6 w-6 group-hover:translate-x-1 transition-transform" />
+                    </div>
+                  )}
+                </Button>
+              </motion.div>
             </form>
 
-            <p className="text-center text-sm text-muted-foreground mt-6">
-              {t("auth.alreadyAccount")}{" "}
-              <Link to="/login" className="text-primary hover:underline font-medium">
-                {t("auth.signIn")}
-              </Link>
-            </p>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 1 }}
+              className="text-center mt-12 pt-8 border-t border-border/20"
+            >
+              <p className="text-muted-foreground text-lg">
+                {t("auth.alreadyAccount")}{" "}
+                <Link to="/login" className="text-primary hover:text-primary/80 font-bold transition-colors">
+                  {t("auth.signIn")}
+                </Link>
+              </p>
+            </motion.div>
           </div>
-        </div>
+        </motion.div>
       </div>
     </Layout>
   );

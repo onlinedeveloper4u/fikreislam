@@ -5,132 +5,131 @@ import logo from "@/assets/logo.png";
 import { useContentStats } from "@/hooks/useContentStats";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useTranslation } from "react-i18next";
+import { motion } from "framer-motion";
 
 const CallToAction = () => {
   const { data: stats, isLoading } = useContentStats();
   const { t } = useTranslation();
 
+  const containerVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      transition: {
+        staggerChildren: 0.1,
+      },
+    },
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: {
+      opacity: 1,
+      y: 0,
+    },
+  };
+
   return (
-    <section className="py-24 bg-background relative overflow-hidden">
+    <motion.section className="py-24 bg-background relative overflow-hidden">
       {/* Background decorations */}
-      <div className="absolute inset-0 islamic-pattern opacity-20" />
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-primary/5 rounded-full blur-3xl" />
+      <div className="absolute inset-0 islamic-pattern opacity-[0.03]" />
+      <motion.div
+        animate={{
+          scale: [1, 1.1, 1],
+          opacity: [0.3, 0.5, 0.3],
+        }}
+        transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }}
+        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-primary/5 rounded-full blur-[120px]"
+      />
 
       <div className="container mx-auto px-4 relative z-10">
-        <div className="max-w-5xl mx-auto">
+        <motion.div
+          variants={containerVariants}
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, margin: "-100px" }}
+          className="max-w-5xl mx-auto"
+        >
           <div className="grid md:grid-cols-2 gap-8">
             {/* For Users */}
-            <div className="relative group">
-              <div className="absolute inset-0 gradient-primary rounded-3xl opacity-90" />
-              <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent rounded-3xl" />
-              <div className="relative p-10 text-primary-foreground">
-                <div className="w-14 h-14 rounded-2xl bg-white/20 flex items-center justify-center mb-6">
-                  <span className="w-7 h-7"><Sparkles /></span>
+            <motion.div variants={itemVariants} className="relative group overflow-hidden rounded-3xl md:col-span-2 max-w-2xl mx-auto w-full">
+              <div className="absolute inset-0 gradient-primary opacity-95 group-hover:scale-105 transition-transform duration-700" />
+              <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent" />
+              <div className="relative p-12 text-primary-foreground text-center">
+                <div className="w-16 h-16 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center mb-8 shadow-lg group-hover:scale-110 transition-transform duration-500 mx-auto">
+                  <Sparkles className="w-8 h-8" />
                 </div>
-                <h3 className="font-display text-2xl md:text-3xl font-bold mb-4">
+                <h3 className="font-display text-3xl md:text-4xl font-bold mb-6">
                   {t("home.cta.userTitle")}
                 </h3>
-                <p className="opacity-90 mb-8 leading-relaxed text-lg">
+                <p className="opacity-90 mb-10 leading-relaxed text-lg lg:text-xl">
                   {t("home.cta.userDesc")}
                 </p>
                 <Button
                   variant="secondary"
                   size="lg"
-                  className="group/btn bg-white text-primary hover:bg-white/90 shadow-lg"
+                  className="group/btn bg-white text-primary hover:bg-white/90 shadow-xl px-12 h-14 text-lg"
                   asChild
                 >
                   <Link to="/register">
                     {t("home.cta.getStarted")}
-                    <ArrowRight className="w-5 h-5 ml-2 group-hover/btn:translate-x-1 transition-transform" />
+                    <ArrowRight className="w-6 h-6 ml-2 group-hover/btn:translate-x-2 transition-transform" />
                   </Link>
                 </Button>
               </div>
-            </div>
-
-            {/* For Contributors */}
-            <div className="relative group">
-              <div className="absolute inset-0 bg-card rounded-3xl border-2 border-border group-hover:border-accent/50 transition-colors duration-300" />
-              <div className="absolute inset-0 bg-gradient-to-br from-accent/5 to-transparent rounded-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-              <div className="relative p-10">
-                <div className="w-14 h-14 rounded-2xl gradient-gold flex items-center justify-center mb-6 shadow-lg">
-                  <Upload className="w-7 h-7 text-accent-foreground" />
-                </div>
-                <h3 className="font-display text-2xl md:text-3xl font-bold text-foreground mb-4">
-                  {t("home.cta.contributorTitle")}
-                </h3>
-                <p className="text-muted-foreground mb-8 leading-relaxed text-lg">
-                  {t("home.cta.contributorDesc")}
-                </p>
-                <Button
-                  variant="outline"
-                  size="lg"
-                  className="border-accent/50 hover:bg-accent/10 hover:border-accent"
-                  asChild
-                >
-                  <Link to="/register">
-                    <Upload className="w-5 h-5 mr-2" />
-                    {t("home.cta.startContributing")}
-                  </Link>
-                </Button>
-              </div>
-            </div>
+            </motion.div>
           </div>
 
           {/* Stats Section */}
-          <div className="mt-20 text-center">
-            <div className="inline-flex items-center gap-4 mb-8">
-              <img src={logo} alt={t("common.brand")} className="w-20 h-20" />
-              <span className="font-display text-3xl font-bold text-foreground">{t("common.brand")}</span>
-            </div>
-            <p className="text-muted-foreground max-w-xl mx-auto mb-10">
+          <motion.div
+            variants={containerVariants}
+            className="mt-24 text-center"
+          >
+            <motion.div variants={itemVariants} className="inline-flex items-center gap-6 mb-10">
+              <motion.img
+                src={logo}
+                alt={t("common.brand")}
+                className="w-24 h-24 drop-shadow-xl"
+                animate={{ rotate: [0, 5, -5, 0] }}
+                transition={{ duration: 6, repeat: Infinity }}
+              />
+              <span className="font-display text-4xl font-bold text-foreground tracking-tight">{t("common.brand")}</span>
+            </motion.div>
+            <motion.p variants={itemVariants} className="text-muted-foreground text-lg max-w-2xl mx-auto mb-12 leading-relaxed">
               {t("home.cta.joinThousands")}
-            </p>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-              <div className="text-center">
-                {isLoading ? (
-                  <Skeleton className="h-12 w-20 mx-auto mb-2" />
-                ) : (
-                  <div className="font-display text-3xl md:text-4xl font-bold text-primary mb-2">
-                    {stats?.books || 0}
+            </motion.p>
+            <motion.div
+              variants={containerVariants}
+              className="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-12"
+            >
+              {[
+                { label: t("home.cta.islamicBooks"), key: "books" },
+                { label: t("home.cta.audioLectures"), key: "audio" },
+                { label: t("home.cta.videoContent"), key: "video" },
+              ].map((stat, idx) => (
+                <motion.div key={idx} variants={itemVariants} className="text-center group">
+                  <div className="bg-card/50 glass border border-border/50 rounded-2xl p-6 transition-transform group-hover:-translate-y-2 duration-300">
+                    {isLoading ? (
+                      <Skeleton className="h-10 w-24 mx-auto mb-3" />
+                    ) : (
+                      <motion.div
+                        initial={{ scale: 0.5, opacity: 0 }}
+                        whileInView={{ scale: 1, opacity: 1 }}
+                        className="font-display text-4xl md:text-5xl font-bold text-primary mb-3"
+                      >
+                        {stats?.[stat.key as keyof typeof stats] || 0}
+                      </motion.div>
+                    )}
+                    <div className="text-muted-foreground text-sm font-medium tracking-wide uppercase">{stat.label}</div>
                   </div>
-                )}
-                <div className="text-muted-foreground text-sm">{t("home.cta.islamicBooks")}</div>
-              </div>
-              <div className="text-center">
-                {isLoading ? (
-                  <Skeleton className="h-12 w-20 mx-auto mb-2" />
-                ) : (
-                  <div className="font-display text-3xl md:text-4xl font-bold text-primary mb-2">
-                    {stats?.audio || 0}
-                  </div>
-                )}
-                <div className="text-muted-foreground text-sm">{t("home.cta.audioLectures")}</div>
-              </div>
-              <div className="text-center">
-                {isLoading ? (
-                  <Skeleton className="h-12 w-20 mx-auto mb-2" />
-                ) : (
-                  <div className="font-display text-3xl md:text-4xl font-bold text-primary mb-2">
-                    {stats?.video || 0}
-                  </div>
-                )}
-                <div className="text-muted-foreground text-sm">{t("home.cta.videoContent")}</div>
-              </div>
-              <div className="text-center">
-                {isLoading ? (
-                  <Skeleton className="h-12 w-20 mx-auto mb-2" />
-                ) : (
-                  <div className="font-display text-3xl md:text-4xl font-bold text-primary mb-2">
-                    {stats?.contributors || 0}
-                  </div>
-                )}
-                <div className="text-muted-foreground text-sm">{t("home.cta.contributors")}</div>
-              </div>
-            </div>
-          </div>
-        </div>
+                </motion.div>
+              ))}
+            </motion.div>
+          </motion.div>
+        </motion.div>
       </div>
-    </section>
+    </motion.section>
   );
 };
 

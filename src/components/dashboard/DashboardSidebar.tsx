@@ -32,8 +32,8 @@ import {
   Home,
   LogOut,
   Shield,
-  PenTool,
   Languages,
+  Tags,
 } from 'lucide-react';
 
 interface DashboardSidebarProps {
@@ -50,44 +50,18 @@ export function DashboardSidebar({ activeTab, onTabChange }: DashboardSidebarPro
 
   const isAdmin = role === 'admin';
 
-  const contributorItems = [
-    { id: 'stats', title: t('dashboard.stats'), icon: BarChart3 },
-    { id: 'upload', title: t('dashboard.upload.title'), icon: Upload },
-    { id: 'uploads', title: t('dashboard.uploads.title', { defaultValue: 'Upload Status' }), icon: Clock },
-    { id: 'my-content', title: t('dashboard.myContent.title'), icon: FolderOpen },
-  ];
-
-  const adminItems = [
+  const systemItems = [
     { id: 'analytics', title: t('dashboard.analytics'), icon: BarChart3 },
-    { id: 'pending', title: t('dashboard.pending'), icon: Clock, badgeKey: 'pendingContent' },
-    { id: 'pending-answers', title: t('dashboard.qaAdmin'), icon: MessageCircle, badgeKey: 'pendingAnswers' },
-    { id: 'all-content', title: t('dashboard.allContent'), icon: FileText },
     { id: 'users', title: t('dashboard.users'), icon: Users },
+    { id: 'taxonomies', title: t('dashboard.taxonomies', { defaultValue: 'Metadata & Categories' }), icon: Tags },
   ];
 
-  // Fetch pending counts for admin badges
-  const { data: pendingCounts } = useQuery({
-    queryKey: ['pending-counts'],
-    queryFn: async () => {
-      const [contentResult, answersResult] = await Promise.all([
-        supabase
-          .from('content')
-          .select('id', { count: 'exact', head: true })
-          .eq('status', 'pending'),
-        supabase
-          .from('answers')
-          .select('id', { count: 'exact', head: true })
-          .eq('status', 'pending'),
-      ]);
 
-      return {
-        pendingContent: contentResult.count || 0,
-        pendingAnswers: answersResult.count || 0,
-      };
-    },
-    enabled: isAdmin,
-    refetchInterval: 30000, // Refresh every 30 seconds
-  });
+  const contentItems = [
+    { id: 'all-content', title: t('dashboard.allContent'), icon: FileText },
+    { id: 'uploads', title: t('dashboard.uploads.title', { defaultValue: 'Upload Status' }), icon: Clock },
+  ];
+
 
   const handleSignOut = async () => {
     await signOut();
@@ -105,15 +79,7 @@ export function DashboardSidebar({ activeTab, onTabChange }: DashboardSidebarPro
                   {t('nav.dashboard')}
                 </span>
                 <span className="text-xs text-sidebar-foreground/70 capitalize flex items-center gap-1">
-                  {isAdmin ? (
-                    <>
-                      <Shield className="h-3 w-3" /> {t('auth.admin')}
-                    </>
-                  ) : (
-                    <>
-                      <PenTool className="h-3 w-3" /> {t('auth.contributor')}
-                    </>
-                  )}
+                  {t('auth.admin')}
                 </span>
               </div>
             </Link>
@@ -123,48 +89,39 @@ export function DashboardSidebar({ activeTab, onTabChange }: DashboardSidebarPro
       </SidebarHeader>
 
       <SidebarContent>
-        {/* Admin Section - Only for admins (shown first for admins) */}
-        {isAdmin && (
-          <SidebarGroup>
-            <SidebarGroupLabel>{t('sidebar.adminArea')}</SidebarGroupLabel>
-            <SidebarGroupContent>
-              <SidebarMenu>
-                {adminItems.map((item) => {
-                  const badgeCount = item.badgeKey && pendingCounts
-                    ? pendingCounts[item.badgeKey as keyof typeof pendingCounts]
-                    : 0;
-
-                  return (
-                    <SidebarMenuItem key={item.id}>
-                      <SidebarMenuButton
-                        isActive={activeTab === item.id}
-                        onClick={() => onTabChange(item.id)}
-                        tooltip={item.title}
-                      >
-                        <item.icon className="h-4 w-4" />
-                        <span>{item.title}</span>
-                      </SidebarMenuButton>
-                      {badgeCount > 0 && (
-                        <SidebarMenuBadge className="bg-destructive text-destructive-foreground">
-                          {badgeCount > 99 ? '99+' : badgeCount}
-                        </SidebarMenuBadge>
-                      )}
-                    </SidebarMenuItem>
-                  );
-                })}
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
-        )}
-
-        {isAdmin && <SidebarSeparator />}
-
-        {/* Content Management Section - Available to both */}
+        {/* System & Analytics */}
         <SidebarGroup>
-          <SidebarGroupLabel>{t('sidebar.main')}</SidebarGroupLabel>
+          <SidebarGroupLabel>{t('sidebar.system') || 'System'}</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {contributorItems.map((item) => (
+              {systemItems.map((item) => (
+                <SidebarMenuItem key={item.id}>
+                  <SidebarMenuButton
+                    isActive={activeTab === item.id}
+                    onClick={() => onTabChange(item.id)}
+                    tooltip={item.title}
+                  >
+                    <item.icon className="h-4 w-4" />
+                    <span>{item.title}</span>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        <SidebarSeparator />
+
+        {/* Moderation Section REMOVED */}
+
+        <SidebarSeparator />
+
+        {/* Content Management Group */}
+        <SidebarGroup>
+          <SidebarGroupLabel>{t('sidebar.contentManagement')}</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {contentItems.map((item) => (
                 <SidebarMenuItem key={item.id}>
                   <SidebarMenuButton
                     isActive={activeTab === item.id}

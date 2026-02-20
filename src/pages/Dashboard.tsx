@@ -3,37 +3,28 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTranslation } from 'react-i18next';
 import { DashboardLayout } from '@/components/dashboard/DashboardLayout';
-import { ContentUploadForm } from '@/components/contributor/ContentUploadForm';
-import { MyContentList } from '@/components/contributor/MyContentList';
-import { ContributorOverview } from '@/components/contributor/ContributorOverview';
-import { PendingContentList } from '@/components/admin/PendingContentList';
 import { AllContentList } from '@/components/admin/AllContentList';
 import { UserManagement } from '@/components/admin/UserManagement';
 import { AdminAnalytics } from '@/components/admin/AdminAnalytics';
-import { PendingAnswersList } from '@/components/admin/PendingAnswersList';
 import { UploadTracker } from '@/components/dashboard/UploadTracker';
+import { TaxonomyManagement } from '@/components/admin/TaxonomyManagement';
 
 export default function Dashboard() {
     const { user, role, loading } = useAuth();
     const { t } = useTranslation();
     const navigate = useNavigate();
     const [searchParams, setSearchParams] = useSearchParams();
-    const isAdmin = role === 'admin';
 
     const tabTitles: Record<string, string> = useMemo(() => ({
-        'stats': t('dashboard.stats'),
-        'upload': t('dashboard.upload'),
-        'uploads': t('dashboard.uploads.title', { defaultValue: 'Upload Status' }),
-        'my-content': t('dashboard.myContent'),
         'analytics': t('dashboard.analytics'),
-        'pending': t('dashboard.pending'),
-        'pending-answers': t('dashboard.qaAdmin'),
         'all-content': t('dashboard.allContent'),
         'users': t('dashboard.users'),
+        'uploads': t('dashboard.uploads.title', { defaultValue: 'Upload Status' }),
+        'taxonomies': t('dashboard.taxonomies', { defaultValue: 'Metadata & Categories' }),
     }), [t]);
 
     const [activeTab, setActiveTab] = useState(() => {
-        return searchParams.get('tab') || (isAdmin ? 'analytics' : 'stats');
+        return searchParams.get('tab') || 'analytics';
     });
 
     // Sync tab with URL
@@ -47,7 +38,7 @@ export default function Dashboard() {
     // Update default tab when role becomes available
     useEffect(() => {
         if (!loading && role && !searchParams.get('tab')) {
-            const defaultTab = role === 'admin' ? 'analytics' : 'stats';
+            const defaultTab = 'analytics';
             setActiveTab(defaultTab);
         }
     }, [role, loading, searchParams]);
@@ -58,7 +49,7 @@ export default function Dashboard() {
     };
 
     useEffect(() => {
-        if (!loading && (!user || (role !== 'contributor' && role !== 'admin'))) {
+        if (!loading && (!user || role !== 'admin')) {
             navigate('/login');
         }
     }, [user, role, loading, navigate]);
@@ -71,36 +62,24 @@ export default function Dashboard() {
         );
     }
 
-    if (!user || (role !== 'contributor' && role !== 'admin')) {
+    if (!user || role !== 'admin') {
         return null;
     }
 
     const renderContent = () => {
         switch (activeTab) {
-            case 'stats':
-                return <ContributorOverview />;
-            case 'upload':
-                return (
-                    <div className="max-w-2xl">
-                        <ContentUploadForm />
-                    </div>
-                );
+            case 'analytics':
+                return <AdminAnalytics />;
+            case 'all-content':
+                return <AllContentList />;
+            case 'users':
+                return <UserManagement />;
             case 'uploads':
                 return <UploadTracker />;
-            case 'my-content':
-                return <MyContentList />;
-            case 'analytics':
-                return isAdmin ? <AdminAnalytics /> : <ContributorOverview />;
-            case 'pending':
-                return isAdmin ? <PendingContentList /> : null;
-            case 'pending-answers':
-                return isAdmin ? <PendingAnswersList /> : null;
-            case 'all-content':
-                return isAdmin ? <AllContentList /> : null;
-            case 'users':
-                return isAdmin ? <UserManagement /> : null;
+            case 'taxonomies':
+                return <TaxonomyManagement />;
             default:
-                return isAdmin ? <AdminAnalytics /> : <ContributorOverview />;
+                return <AdminAnalytics />;
         }
     };
 

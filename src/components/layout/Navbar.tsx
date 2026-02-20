@@ -1,12 +1,13 @@
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Book, Headphones, Video, Menu, X, LogOut, User, Heart, LayoutDashboard, HelpCircle, Settings } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useTranslation } from "react-i18next";
 import logo from "@/assets/logo.png";
 import { Languages } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -17,10 +18,19 @@ import {
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
+  const [isScrolled, setIsScrolled] = useState(false);
   const { user, role, signOut, loading } = useAuth();
   const { language, toggleLanguage } = useLanguage();
   const { t } = useTranslation();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 20);
+    };
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
   const handleSignOut = async () => {
     await signOut();
@@ -38,7 +48,6 @@ const Navbar = () => {
     if (!role) return null;
     const colors = {
       admin: "bg-destructive/10 text-destructive",
-      contributor: "bg-accent/20 text-accent-foreground",
       user: "bg-muted text-muted-foreground",
     };
     return (
@@ -49,8 +58,14 @@ const Navbar = () => {
   };
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-lg border-b border-border">
-      <nav className="container mx-auto px-4 h-16 flex items-center justify-between">
+    <motion.header
+      initial={{ y: -100 }}
+      animate={{ y: 0 }}
+      transition={{ type: "spring", stiffness: 300, damping: 30 }}
+      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${isScrolled ? "glass h-14" : "bg-transparent h-20"
+        }`}
+    >
+      <nav className="container mx-auto px-4 h-full flex items-center justify-between">
         {/* Logo */}
         <Link to="/" className="flex items-center gap-2">
           <img src={logo} alt={t("common.brand")} className="w-16 h-16 object-contain" />
@@ -67,10 +82,14 @@ const Navbar = () => {
               <Link
                 key={link.name}
                 to={link.href}
-                className="flex items-center gap-2 text-muted-foreground hover:text-primary transition-colors duration-200"
+                className="group relative flex items-center gap-2 text-muted-foreground hover:text-primary transition-colors duration-200"
               >
-                <link.icon className="w-4 h-4" />
+                <link.icon className="w-4 h-4 transition-transform group-hover:scale-110" />
                 <span className="font-medium">{link.name}</span>
+                <motion.div
+                  className="absolute -bottom-1 left-0 right-0 h-0.5 bg-primary scale-x-0 group-hover:scale-x-100 transition-transform origin-left"
+                  layoutId="nav-underline"
+                />
               </Link>
             ))}
         </div>
@@ -118,7 +137,7 @@ const Navbar = () => {
                     {t("nav.settings")}
                   </Link>
                 </DropdownMenuItem>
-                {(role === 'contributor' || role === 'admin') && (
+                {role === 'admin' && (
                   <DropdownMenuItem asChild className="cursor-pointer">
                     <Link to="/dashboard">
                       <LayoutDashboard className="w-4 h-4 mr-2" />
@@ -158,19 +177,27 @@ const Navbar = () => {
       {isOpen && (
         <div className="md:hidden bg-background border-b border-border animate-fade-in">
           <div className="container mx-auto px-4 py-4 flex flex-col gap-4">
-            {navLinks
-              .filter((link) => role === "admin" || link.href === "/audio")
-              .map((link) => (
-                <Link
-                  key={link.name}
-                  to={link.href}
-                  className="flex items-center gap-3 text-muted-foreground hover:text-primary transition-colors p-2"
-                  onClick={() => setIsOpen(false)}
-                >
-                  <link.icon className="w-5 h-5" />
-                  <span className="font-medium">{link.name}</span>
-                </Link>
-              ))}
+            <AnimatePresence>
+              {navLinks
+                .filter((link) => role === "admin" || link.href === "/audio")
+                .map((link, index) => (
+                  <motion.div
+                    key={link.name}
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: index * 0.1 }}
+                  >
+                    <Link
+                      to={link.href}
+                      className="flex items-center gap-3 text-muted-foreground hover:text-primary transition-colors p-2 rounded-lg hover:bg-muted"
+                      onClick={() => setIsOpen(false)}
+                    >
+                      <link.icon className="w-5 h-5" />
+                      <span className="font-medium">{link.name}</span>
+                    </Link>
+                  </motion.div>
+                ))}
+            </AnimatePresence>
             <div className="flex flex-col gap-2 pt-4 border-t border-border">
               {user ? (
                 <>
@@ -213,7 +240,7 @@ const Navbar = () => {
           </div>
         </div>
       )}
-    </header>
+    </motion.header>
   );
 };
 

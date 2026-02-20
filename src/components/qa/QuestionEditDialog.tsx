@@ -82,10 +82,10 @@ export function QuestionEditDialog({
               variant="outline"
               onClick={() => onOpenChange(false)}
             >
-              {t('moderation.cancel')}
+              {t('common.cancel')}
             </Button>
             <Button type="submit" disabled={isSubmitting || !question.trim()}>
-              {isSubmitting ? t('settings.profile.saving') : t('moderation.create')}
+              {isSubmitting ? t('settings.profile.saving') : t('common.save')}
             </Button>
           </DialogFooter>
         </form>

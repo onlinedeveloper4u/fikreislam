@@ -52,7 +52,6 @@ export function QuestionList({ refreshTrigger }: QuestionListProps) {
   const [searchQuery, setSearchQuery] = useState('');
 
   const isAdmin = role === 'admin';
-  const isContributor = role === 'contributor';
 
   const fetchData = async () => {
     setLoading(true);
@@ -221,7 +220,7 @@ export function QuestionList({ refreshTrigger }: QuestionListProps) {
                         <div key={answer.id} className="bg-muted/50 rounded-lg p-3">
                           <div className="flex items-center gap-2 mb-1">
                             <Badge variant="secondary" className="text-xs">
-                              {answer.status === 'approved' ? t('moderation.approve') : t('moderation.pending')}
+                              {answer.status === 'approved' ? t('dashboard.approvedContent') : t('dashboard.pendingContent')}
                             </Badge>
                             <span className="text-xs text-muted-foreground">
                               {new Date(answer.created_at).toLocaleDateString()}
@@ -233,8 +232,8 @@ export function QuestionList({ refreshTrigger }: QuestionListProps) {
                     </div>
                   )}
 
-                  {/* Answer form for admin/contributor */}
-                  {(isAdmin || isContributor) && (
+                  {/* Answer form for admin */}
+                  {isAdmin && (
                     <AnswerForm questionId={question.id} onAnswerAdded={fetchData} />
                   )}
                 </div>
@@ -265,9 +264,9 @@ export function QuestionList({ refreshTrigger }: QuestionListProps) {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>{t('moderation.cancel')}</AlertDialogCancel>
+            <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
             <AlertDialogAction onClick={handleDeleteQuestion} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-              {t('moderation.delete')}
+              {t('common.delete')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

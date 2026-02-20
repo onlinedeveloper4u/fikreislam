@@ -27,7 +27,6 @@ export function UserManagement() {
 
   const roleConfig: Record<AppRole, { icon: React.ElementType; color: string; label: string }> = {
     admin: { icon: Shield, color: 'bg-red-500/10 text-red-600', label: t('dashboard.admin') },
-    contributor: { icon: Upload, color: 'bg-blue-500/10 text-blue-600', label: t('dashboard.contributor') },
     user: { icon: User, color: 'bg-gray-500/10 text-gray-600', label: t('dashboard.user') },
   };
 
@@ -149,7 +148,6 @@ export function UserManagement() {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="user">{t('dashboard.user')}</SelectItem>
-                      <SelectItem value="contributor">{t('dashboard.contributor')}</SelectItem>
                       <SelectItem value="admin">{t('dashboard.admin')}</SelectItem>
                     </SelectContent>
                   </Select>
