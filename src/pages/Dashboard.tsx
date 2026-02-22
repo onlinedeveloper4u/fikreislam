@@ -19,7 +19,10 @@ export default function Dashboard() {
         'content': t('dashboard.allContent'),
         'users': t('dashboard.users'),
         'uploads': t('dashboard.uploads.title', { defaultValue: 'Upload Status' }),
-        'taxonomies': t('dashboard.taxonomies', { defaultValue: 'Metadata & Categories' }),
+        'speakers': t('dashboard.taxonomyManagement.types.speaker'),
+        'languages': t('dashboard.taxonomyManagement.types.language'),
+        'audio-types': t('dashboard.taxonomyManagement.types.audio_type'),
+        'categories': t('dashboard.taxonomyManagement.types.category'),
     }), [t]);
 
     if (loading) {

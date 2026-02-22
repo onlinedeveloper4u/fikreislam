@@ -17,7 +17,7 @@ import { z } from 'zod';
 import { Upload, Headphones, Loader2, Save } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useUpload } from '@/contexts/UploadContextTypes';
-import { TaxonomyCombobox } from './TaxonomyCombobox';
+import { MetadataCombobox } from './MetadataCombobox';
 import { formatBytes } from '@/lib/utils';
 import { Checkbox } from '@/components/ui/checkbox';
 
@@ -51,24 +51,30 @@ export function AudioEditDialog({ content, open, onOpenChange, onSuccess }: Audi
     const [audioType, setAudioType] = useState('');
     const [categories, setCategories] = useState('');
 
-    const [taxonomies, setTaxonomies] = useState<{
+    const [metadata, setMetadata] = useState<{
         speaker: string[];
         language: string[];
         audio_type: string[];
         category: string[];
     }>({ speaker: [], language: [], audio_type: [], category: [] });
 
-    useMemo(() => {
-        supabase.from('taxonomies').select('*').then(({ data }) => {
-            if (data) {
-                setTaxonomies({
-                    speaker: data.filter(t => t.type === 'speaker').map(t => t.name),
-                    language: data.filter(t => t.type === 'language').map(t => t.name),
-                    audio_type: data.filter(t => t.type === 'audio_type').map(t => t.name),
-                    category: data.filter(t => t.type === 'category').map(t => t.name),
-                });
-            }
-        });
+    useEffect(() => {
+        const fetchData = async () => {
+            const [speakers, languages, audioTypes, categories] = await Promise.all([
+                supabase.from('speakers').select('name').order('name'),
+                supabase.from('languages').select('name').order('name'),
+                supabase.from('audio_types').select('name').order('name'),
+                supabase.from('categories').select('name').order('name'),
+            ]);
+
+            setMetadata({
+                speaker: speakers.data?.map(s => s.name) || [],
+                language: languages.data?.map(l => l.name) || [],
+                audio_type: audioTypes.data?.map(a => a.name) || [],
+                category: categories.data?.map(c => c.name) || [],
+            });
+        };
+        fetchData();
     }, []);
 
     const [newFile, setNewFile] = useState<File | null>(null);
@@ -273,7 +279,7 @@ export function AudioEditDialog({ content, open, onOpenChange, onSuccess }: Audi
 
                     <div className="space-y-2">
                         <Label>{t('dashboard.upload.langLabel')} <span className="text-destructive">*</span></Label>
-                        <TaxonomyCombobox options={taxonomies.language} value={language} onChange={setLanguage} />
+                        <MetadataCombobox options={metadata.language} value={language} onChange={setLanguage} />
                     </div>
 
                     <div className="space-y-6 pt-4">
@@ -307,16 +313,16 @@ export function AudioEditDialog({ content, open, onOpenChange, onSuccess }: Audi
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div className="space-y-2">
                                 <Label>{t('dashboard.upload.speakerLabel')} <span className="text-destructive">*</span></Label>
-                                <TaxonomyCombobox options={taxonomies.speaker} value={speaker} onChange={setSpeaker} />
+                                <MetadataCombobox options={metadata.speaker} value={speaker} onChange={setSpeaker} />
                             </div>
                             <div className="space-y-2">
                                 <Label>{t('dashboard.upload.audioTypeLabel')} <span className="text-destructive">*</span></Label>
-                                <TaxonomyCombobox options={taxonomies.audio_type} value={audioType} onChange={setAudioType} />
+                                <MetadataCombobox options={metadata.audio_type} value={audioType} onChange={setAudioType} />
                             </div>
                         </div>
                         <div className="space-y-2">
                             <Label>{t('dashboard.upload.categoriesLabel')}</Label>
-                            <TaxonomyCombobox options={taxonomies.category} value={categories} onChange={setCategories} />
+                            <MetadataCombobox options={metadata.category} value={categories} onChange={setCategories} />
                         </div>
                     </div>
 

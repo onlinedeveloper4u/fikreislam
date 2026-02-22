@@ -16,7 +16,7 @@ import { toast } from 'sonner';
 import { FileText, Upload, Loader2, Save } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useUpload } from '@/contexts/UploadContextTypes';
-import { TaxonomyCombobox } from './TaxonomyCombobox';
+import { MetadataCombobox } from './MetadataCombobox';
 import { formatBytes } from '@/lib/utils';
 
 interface BookEditDialogProps {
@@ -37,11 +37,11 @@ export function BookEditDialog({ content, open, onOpenChange, onSuccess }: BookE
     const [language, setLanguage] = useState('اردو');
     const [tags, setTags] = useState('');
 
-    const [taxonomies, setTaxonomies] = useState<{ language: string[]; }>({ language: [] });
+    const [metadata, setMetadata] = useState<{ language: string[]; }>({ language: [] });
 
-    useMemo(() => {
-        supabase.from('taxonomies').select('*').eq('type', 'language').then(({ data }) => {
-            if (data) setTaxonomies({ language: data.map(t => t.name) });
+    useEffect(() => {
+        supabase.from('languages').select('name').order('name').then(({ data }) => {
+            if (data) setMetadata({ language: data.map(l => l.name) });
         });
     }, []);
 
@@ -171,7 +171,7 @@ export function BookEditDialog({ content, open, onOpenChange, onSuccess }: BookE
                     </div>
                     <div className="space-y-2">
                         <Label>{t('dashboard.upload.langLabel')} <span className="text-destructive">*</span></Label>
-                        <TaxonomyCombobox options={taxonomies.language} value={language} onChange={setLanguage} />
+                        <MetadataCombobox options={metadata.language} value={language} onChange={setLanguage} />
                     </div>
                     <div className="space-y-2">
                         <Label>{t('dashboard.upload.tagsLabel')}</Label>

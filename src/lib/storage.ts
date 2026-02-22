@@ -206,6 +206,35 @@ export async function renameFolderInGoogleDrive(oldPath: string, newFolderName: 
 }
 
 /**
+ * Create a folder in Google Drive via the Apps Script bridge
+ */
+export async function createFolderInGoogleDrive(folderPath: string): Promise<{ success: boolean, folderId?: string, message?: string }> {
+  try {
+    const gasUrl = import.meta.env.VITE_GOOGLE_APPS_SCRIPT_URL;
+    if (!gasUrl) return { success: false, message: 'Google Apps Script URL not configured' };
+
+    const response = await fetch(gasUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify({
+        action: 'createFolder',
+        folderPath: folderPath
+      }),
+    });
+
+    const result = await response.json();
+    return {
+      success: result.status === 'success',
+      folderId: result.folderId,
+      message: result.message || result.error
+    };
+  } catch (error: any) {
+    console.error('Error creating folder in Google Drive:', error);
+    return { success: false, message: error.message || 'Network error' };
+  }
+}
+
+/**
  * Resolves an internal URL (like google-drive://) to an external accessible URL.
  * If the URL is already http/https, returns as is.
  */

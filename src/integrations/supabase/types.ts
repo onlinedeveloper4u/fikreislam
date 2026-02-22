@@ -14,6 +14,96 @@ export type Database = {
   }
   public: {
     Tables: {
+      audio_types: {
+        Row: {
+          created_at: string
+          google_folder_id: string | null
+          id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          google_folder_id?: string | null
+          id?: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          google_folder_id?: string | null
+          id?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      categories: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      languages: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      speakers: {
+        Row: {
+          created_at: string
+          google_folder_id: string | null
+          id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          google_folder_id?: string | null
+          id?: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          google_folder_id?: string | null
+          id?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       answers: {
         Row: {
           answer: string
@@ -308,33 +398,6 @@ export type Database = {
           id?: string
           question?: string
           user_id?: string
-        }
-        Relationships: []
-      }
-      taxonomies: {
-        Row: {
-          created_at: string
-          id: string
-          name: string
-          type: Database["public"]["Enums"]["taxonomy_type"]
-          updated_at: string
-          google_folder_id: string | null
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          name: string
-          type: Database["public"]["Enums"]["taxonomy_type"]
-          updated_at?: string
-          google_folder_id?: string | null
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          name?: string
-          type?: Database["public"]["Enums"]["taxonomy_type"]
-          updated_at?: string
-          google_folder_id?: string | null
         }
         Relationships: []
       }

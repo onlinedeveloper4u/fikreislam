@@ -33,6 +33,10 @@ import {
   LogOut,
   Shield,
   Tags,
+  Mic2,
+  Globe,
+  Music,
+  LayoutGrid,
 } from 'lucide-react';
 
 interface DashboardSidebarProps {
@@ -52,7 +56,13 @@ export function DashboardSidebar({ activeTab, onTabChange }: DashboardSidebarPro
   const systemItems = [
     { id: 'analytics', title: t('dashboard.analytics'), icon: BarChart3 },
     { id: 'users', title: t('dashboard.users'), icon: Users },
-    { id: 'taxonomies', title: t('dashboard.taxonomies', { defaultValue: 'Metadata & Categories' }), icon: Tags },
+  ];
+
+  const taxonomyItems = [
+    { id: 'speakers', title: t('dashboard.taxonomyManagement.types.speaker'), icon: Mic2 },
+    { id: 'languages', title: t('dashboard.taxonomyManagement.types.language'), icon: Globe },
+    { id: 'audio-types', title: t('dashboard.taxonomyManagement.types.audio_type'), icon: Music },
+    { id: 'categories', title: t('dashboard.taxonomyManagement.types.category'), icon: LayoutGrid },
   ];
 
 
@@ -113,9 +123,28 @@ export function DashboardSidebar({ activeTab, onTabChange }: DashboardSidebarPro
 
         <SidebarSeparator />
 
-        {/* Moderation Section REMOVED */}
-
-        <SidebarSeparator />
+        {/* Taxonomy Management */}
+        <SidebarGroup>
+          <SidebarGroupLabel>{t('dashboard.metadata') || 'Metadata'}</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {taxonomyItems.map((item) => (
+                <SidebarMenuItem key={item.id}>
+                  <SidebarMenuButton
+                    isActive={activeTab === item.id}
+                    asChild
+                    tooltip={item.title}
+                  >
+                    <Link to={`/admin/${item.id}`}>
+                      <item.icon className="h-4 w-4" />
+                      <span>{item.title}</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
 
         {/* Content Management Group */}
         <SidebarGroup>

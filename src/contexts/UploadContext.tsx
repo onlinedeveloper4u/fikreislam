@@ -103,18 +103,20 @@ export const UploadProvider: React.FC<{ children: React.ReactNode }> = ({ childr
                     const audioType = (formData.audioType || '').trim();
 
                     if (speakerName) {
-                        // Try to get folder ID from taxonomies
-                        const { data: tax } = await supabase
-                            .from('taxonomies')
-                            .select('google_folder_id')
-                            .eq('type', 'speaker')
-                            .eq('name', speakerName)
-                            .maybeSingle();
+                        // Try to get folder ID from speakers and audio_types tables
+                        const [{ data: speaker }, { data: audioTypeData }] = await Promise.all([
+                            supabase.from('speakers').select('google_folder_id').eq('name', speakerName).maybeSingle(),
+                            supabase.from('audio_types').select('google_folder_id').eq('name', audioType).maybeSingle()
+                        ]);
 
-                        if (tax?.google_folder_id) {
-                            googleFolderId = tax.google_folder_id;
+                        if (audioTypeData?.google_folder_id) {
+                            googleFolderId = audioTypeData.google_folder_id;
+                        } else if (speaker?.google_folder_id) {
+                            googleFolderId = speaker.google_folder_id;
+                            // Note: if speaker has ID but audioType doesn't, GAS will still handle subfolder creation if folderPath is provided
+                            folderPath = audioType ? `${audioType}` : '';
                         } else {
-                            // Fallback to path - we'll capture the ID in GAS result
+                            // Fallback to full path
                             folderPath = audioType ? `فکر اسلام/${speakerName}/${audioType}` : `فکر اسلام/${speakerName}`;
                         }
                     }
@@ -178,27 +180,30 @@ export const UploadProvider: React.FC<{ children: React.ReactNode }> = ({ childr
             if (controller.signal.aborted) throw new Error('Aborted');
             updateUpload(uploadId, { progress: 80, status: 'database' });
 
-            // 2.5 Ensure taxonomies exist
-            const insertTaxonomy = async (type: "speaker" | "language" | "audio_type" | "category", name: string) => {
+            // 2.5 Ensure metadata records exist
+            const insertMetadata = async (type: "speaker" | "language" | "audio_type" | "category", name: string) => {
                 if (!name) return;
+                const tableName = type === 'audio_type' ? 'audio_types' : (type === 'speaker' ? 'speakers' : (type === 'language' ? 'languages' : (type === 'category' ? 'categories' : null)));
+                if (!tableName) return;
+
                 try {
                     const { error } = await supabase
-                        .from('taxonomies')
-                        .upsert({ type, name }, { onConflict: 'type,name', ignoreDuplicates: true });
-                    if (error && error.code !== '23505') console.warn('Taxonomy upsert error:', error);
+                        .from(tableName as any)
+                        .upsert({ name }, { onConflict: 'name', ignoreDuplicates: true });
+                    if (error && error.code !== '23505') console.warn(`Metadata (${tableName}) upsert error:`, error);
                 } catch (err) {
-                    console.debug('Taxonomy already exists');
+                    console.debug('Metadata record already exists');
                 }
             };
 
             if (formData.contentType === 'audio') {
-                await insertTaxonomy('speaker', formData.speaker);
-                await insertTaxonomy('audio_type', formData.audioType);
+                await insertMetadata('speaker', formData.speaker);
+                await insertMetadata('audio_type', formData.audioType);
                 const catsRaw = formData.categoriesValue || [];
                 const cats = Array.isArray(catsRaw) ? catsRaw : (typeof catsRaw === 'string' ? catsRaw.split(',').map((c: string) => c.trim()).filter(Boolean) : []);
-                for (const c of cats) await insertTaxonomy('category', c);
+                for (const c of cats) await insertMetadata('category', c);
             }
-            await insertTaxonomy('language', formData.language);
+            await insertMetadata('language', formData.language);
 
             // 3. Create database record
             const contentPayload: any = {
@@ -304,11 +309,26 @@ export const UploadProvider: React.FC<{ children: React.ReactNode }> = ({ childr
                     if (controller.signal.aborted) throw new Error('Aborted');
 
                     let folderPath = contentType;
+                    let googleFolderId = null;
+
                     if (contentType === 'audio') {
                         const speakerName = (updatePayload.speaker || '').trim();
                         const audioTypeName = (updatePayload.audio_type || '').trim();
+
                         if (speakerName) {
-                            folderPath = audioTypeName ? `${speakerName}/${audioTypeName}` : speakerName;
+                            const [{ data: speaker }, { data: audioTypeData }] = await Promise.all([
+                                supabase.from('speakers').select('google_folder_id').eq('name', speakerName).maybeSingle(),
+                                supabase.from('audio_types').select('google_folder_id').eq('name', audioTypeName).maybeSingle()
+                            ]);
+
+                            if (audioTypeData?.google_folder_id) {
+                                googleFolderId = audioTypeData.google_folder_id;
+                            } else if (speaker?.google_folder_id) {
+                                googleFolderId = speaker.google_folder_id;
+                                folderPath = audioTypeName ? `${audioTypeName}` : '';
+                            } else {
+                                folderPath = audioTypeName ? `${speakerName}/${audioTypeName}` : speakerName;
+                            }
                         }
                     }
 
@@ -321,6 +341,7 @@ export const UploadProvider: React.FC<{ children: React.ReactNode }> = ({ childr
                             contentType: newMainFile.type,
                             base64: base64Data,
                             folderPath: folderPath,
+                            folderId: googleFolderId
                         }),
                         signal: controller.signal
                     });
@@ -383,6 +404,7 @@ export const UploadProvider: React.FC<{ children: React.ReactNode }> = ({ childr
             delete abortControllers.current[uploadId];
         }
     }, [user, updateUpload, t]);
+
 
     const deleteContent = useCallback(async (id: string, title: string, fileUrl: string | null, coverImageUrl: string | null) => {
         const uploadId = crypto.randomUUID();

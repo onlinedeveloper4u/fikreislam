@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -12,7 +12,7 @@ import { useTranslation } from 'react-i18next';
 import { formatBytes } from '@/lib/utils';
 import { Upload, Video as VideoIcon, Loader2 } from 'lucide-react';
 import { useUpload } from '@/contexts/UploadContextTypes';
-import { TaxonomyCombobox } from './TaxonomyCombobox';
+import { MetadataCombobox } from './MetadataCombobox';
 
 const ALLOWED_VIDEO_TYPES = ['video/mp4', 'video/webm', 'video/quicktime'];
 const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
@@ -37,11 +37,11 @@ export function VideoUploadForm({ onSuccess }: VideoUploadFormProps) {
     const [file, setFile] = useState<File | null>(null);
     const [coverImage, setCoverImage] = useState<File | null>(null);
 
-    const [taxonomies, setTaxonomies] = useState<{ language: string[]; }>({ language: [] });
+    const [metadata, setMetadata] = useState<{ language: string[]; }>({ language: [] });
 
-    useMemo(() => {
-        supabase.from('taxonomies').select('*').eq('type', 'language').then(({ data }) => {
-            if (data) setTaxonomies({ language: data.map(t => t.name) });
+    useEffect(() => {
+        supabase.from('languages').select('name').order('name').then(({ data }) => {
+            if (data) setMetadata({ language: data.map(l => l.name) });
         });
     }, []);
 
@@ -143,7 +143,7 @@ export function VideoUploadForm({ onSuccess }: VideoUploadFormProps) {
 
             <div className="space-y-2">
                 <Label>{t('dashboard.upload.langLabel')} <span className="text-destructive">*</span></Label>
-                <TaxonomyCombobox options={taxonomies.language} value={language} onChange={setLanguage} />
+                <MetadataCombobox options={metadata.language} value={language} onChange={setLanguage} />
             </div>
 
             <div className="space-y-2">

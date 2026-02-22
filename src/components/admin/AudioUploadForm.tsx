@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -16,7 +16,7 @@ import {
 
 import { useUpload } from '@/contexts/UploadContextTypes';
 import { Checkbox } from '@/components/ui/checkbox';
-import { TaxonomyCombobox } from './TaxonomyCombobox';
+import { MetadataCombobox } from './MetadataCombobox';
 
 const ALLOWED_AUDIO_TYPES = ['audio/mpeg', 'audio/wav', 'audio/ogg', 'audio/mp4', 'audio/x-m4a'];
 const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
@@ -38,25 +38,38 @@ export function AudioUploadForm({ onSuccess }: AudioUploadFormProps) {
     const [file, setFile] = useState<File | null>(null);
     const [coverImage, setCoverImage] = useState<File | null>(null);
 
-    const [taxonomies, setTaxonomies] = useState<{
+    const [metadata, setMetadata] = useState<{
         speaker: string[];
         language: string[];
         audio_type: string[];
         category: string[];
     }>({ speaker: [], language: [], audio_type: [], category: [] });
 
-    useMemo(() => {
-        supabase.from('taxonomies').select('*').then(({ data }) => {
-            if (data) {
-                setTaxonomies({
-                    speaker: data.filter(t => t.type === 'speaker').map(t => t.name),
-                    language: data.filter(t => t.type === 'language').map(t => t.name),
-                    audio_type: data.filter(t => t.type === 'audio_type').map(t => t.name),
-                    category: data.filter(t => t.type === 'category').map(t => t.name),
-                });
-            }
-        });
+    useEffect(() => {
+        const fetchData = async () => {
+            const [speakers, languages, audioTypes, categories] = await Promise.all([
+                supabase.from('speakers').select('name').order('name'),
+                supabase.from('languages').select('name').order('name'),
+                supabase.from('audio_types').select('name').order('name'),
+                supabase.from('categories').select('name').order('name'),
+            ]);
+
+            setMetadata({
+                speaker: speakers.data?.map(s => s.name) || [],
+                language: languages.data?.map(l => l.name) || [],
+                audio_type: audioTypes.data?.map(a => a.name) || [],
+                category: categories.data?.map(c => c.name) || [],
+            });
+        };
+        fetchData();
     }, []);
+
+    // Set a default speaker if list not empty to help user
+    useEffect(() => {
+        if (metadata.speaker.length > 0 && !speaker) {
+            // Option to set default or leave empty
+        }
+    }, [metadata.speaker]);
 
     const [durHours, setDurHours] = useState('');
     const [durMinutes, setDurMinutes] = useState('');
@@ -234,7 +247,7 @@ export function AudioUploadForm({ onSuccess }: AudioUploadFormProps) {
 
             <div className="space-y-2">
                 <Label>{t('dashboard.upload.langLabel')} <span className="text-destructive">*</span></Label>
-                <TaxonomyCombobox options={taxonomies.language} value={language} onChange={setLanguage} />
+                <MetadataCombobox options={metadata.language} value={language} onChange={setLanguage} />
             </div>
 
             <div className="space-y-6 pt-4">
@@ -269,17 +282,17 @@ export function AudioUploadForm({ onSuccess }: AudioUploadFormProps) {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
                         <Label>{t('dashboard.upload.speakerLabel')} <span className="text-destructive">*</span></Label>
-                        <TaxonomyCombobox options={taxonomies.speaker} value={speaker} onChange={setSpeaker} />
+                        <MetadataCombobox options={metadata.speaker} value={speaker} onChange={setSpeaker} />
                     </div>
                     <div className="space-y-2">
                         <Label>{t('dashboard.upload.audioTypeLabel')} <span className="text-destructive">*</span></Label>
-                        <TaxonomyCombobox options={taxonomies.audio_type} value={audioType} onChange={setAudioType} />
+                        <MetadataCombobox options={metadata.audio_type} value={audioType} onChange={setAudioType} />
                     </div>
                 </div>
 
                 <div className="space-y-2">
                     <Label>{t('dashboard.upload.categoriesLabel')}</Label>
-                    <TaxonomyCombobox options={taxonomies.category} value={categories} onChange={setCategories} />
+                    <MetadataCombobox options={metadata.category} value={categories} onChange={setCategories} />
                 </div>
             </div>
 

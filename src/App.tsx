@@ -30,7 +30,10 @@ const NotFound = lazy(() => import("./pages/NotFound"));
 const AllContentList = lazy(() => import("@/components/admin/AllContentList").then(m => ({ default: m.AllContentList })));
 const UserManagement = lazy(() => import("@/components/admin/UserManagement").then(m => ({ default: m.UserManagement })));
 const AdminAnalytics = lazy(() => import("@/components/admin/AdminAnalytics").then(m => ({ default: m.AdminAnalytics })));
-const TaxonomyManagement = lazy(() => import("@/components/admin/TaxonomyManagement").then(m => ({ default: m.TaxonomyManagement })));
+const SpeakerManagement = lazy(() => import("@/components/admin/SpeakerManagement").then(m => ({ default: m.SpeakerManagement })));
+const LanguageManagement = lazy(() => import("@/components/admin/LanguageManagement").then(m => ({ default: m.LanguageManagement })));
+const AudioTypeManagement = lazy(() => import("@/components/admin/AudioTypeManagement").then(m => ({ default: m.AudioTypeManagement })));
+const CategoryManagement = lazy(() => import("@/components/admin/CategoryManagement").then(m => ({ default: m.CategoryManagement })));
 const UploadTracker = lazy(() => import("@/components/dashboard/UploadTracker").then(m => ({ default: m.UploadTracker })));
 
 
@@ -78,7 +81,10 @@ const App = () => (
                     <Route path="analytics" element={<AdminAnalytics />} />
                     <Route path="content" element={<AllContentList />} />
                     <Route path="users" element={<UserManagement />} />
-                    <Route path="taxonomies" element={<TaxonomyManagement />} />
+                    <Route path="speakers" element={<SpeakerManagement />} />
+                    <Route path="languages" element={<LanguageManagement />} />
+                    <Route path="audio-types" element={<AudioTypeManagement />} />
+                    <Route path="categories" element={<CategoryManagement />} />
                     <Route path="uploads" element={<UploadTracker />} />
                   </Route>
 

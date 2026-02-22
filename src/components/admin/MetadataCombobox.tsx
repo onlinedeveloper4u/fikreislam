@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/popover";
 import { useTranslation } from "react-i18next";
 
-interface TaxonomyComboboxProps {
+interface MetadataComboboxProps {
     options: string[];
     value: string;
     onChange: (value: string) => void;
@@ -27,7 +27,7 @@ interface TaxonomyComboboxProps {
     allowCustom?: boolean;
 }
 
-export function TaxonomyCombobox({
+export function MetadataCombobox({
     options,
     value,
     onChange,
@@ -35,7 +35,7 @@ export function TaxonomyCombobox({
     searchPlaceholder,
     emptyMessage,
     allowCustom = true,
-}: TaxonomyComboboxProps) {
+}: MetadataComboboxProps) {
     const [open, setOpen] = React.useState(false);
     const [search, setSearch] = React.useState("");
     const { t } = useTranslation();
