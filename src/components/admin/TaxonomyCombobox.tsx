@@ -53,9 +53,9 @@ export function TaxonomyCombobox({
                     variant="outline"
                     role="combobox"
                     aria-expanded={open}
-                    className="w-full justify-between h-11 bg-background/50 border-border/40 hover:bg-background/80 transition-all font-normal"
+                    className="w-full justify-between h-14 bg-background/50 border-border/40 hover:bg-background/80 transition-all font-normal items-center px-4"
                 >
-                    <span className="truncate">
+                    <span className="overflow-visible whitespace-nowrap pt-1">
                         {value || placeholder || t('common.select')}
                     </span>
                     <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />

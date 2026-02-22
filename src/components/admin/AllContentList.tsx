@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useUpload } from '@/contexts/UploadContextTypes';
 import { supabase } from '@/integrations/supabase/client';
 import { getSignedUrl, deleteFromGoogleDrive, resolveExternalUrl } from '@/lib/storage';
 import { Button } from '@/components/ui/button';
@@ -14,14 +15,24 @@ import {
   Trash2, Plus, Globe, Pencil
 } from 'lucide-react';
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from '@/components/ui/dialog';
-import { ContentUploadForm } from './ContentUploadForm';
-import { ContentEditDialog } from './ContentEditDialog';
+import { AudioUploadForm } from './AudioUploadForm';
+import { BookUploadForm } from './BookUploadForm';
+import { VideoUploadForm } from './VideoUploadForm';
+import { AudioEditDialog } from './AudioEditDialog';
+import { BookEditDialog } from './BookEditDialog';
+import { VideoEditDialog } from './VideoEditDialog';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -68,8 +79,10 @@ export function AllContentList() {
   const [statusFilter, setStatusFilter] = useState<ContentStatus | 'all'>('all');
   const [typeFilter, setTypeFilter] = useState<ContentType | 'all'>('all');
   const [isUploadOpen, setIsUploadOpen] = useState(false);
+  const [uploadType, setUploadType] = useState<ContentType>('audio');
   const [editingItem, setEditingItem] = useState<Content | null>(null);
   const { t } = useTranslation();
+  const { activeUploads, uploadContent, editContent, deleteContent, cancelUpload } = useUpload();
 
   const statusConfig: Record<ContentStatus, { icon: React.ElementType; color: string; label: string }> = {
     pending: { icon: Clock, color: 'bg-amber-500/10 text-amber-600', label: t('dashboard.unpublishedContent') },
@@ -149,66 +162,11 @@ export function AllContentList() {
   };
 
   const handleDelete = async (id: string) => {
-    setActionLoading(id);
     const item = content.find(c => c.id === id);
-    if (!item) {
-      setActionLoading(null);
-      return;
-    }
+    if (!item) return;
 
-    const deletePromise = async () => {
-      // 1. Delete associated files from storage
-      if (item.file_url) {
-        if (item.file_url.startsWith('google-drive://')) {
-          const success = await deleteFromGoogleDrive(item.file_url);
-          if (!success) {
-            // Include title in error message for better feedback
-            throw new Error(t('dashboard.myContent.deleteFailed', { title: item.title, defaultValue: `Failed to delete: ${item.title}` }));
-          }
-        } else {
-          // Supabase Storage
-          await supabase.storage
-            .from('content-files')
-            .remove([item.file_url]);
-        }
-      }
-
-      // 2. Delete cover image if it exists
-      if (item.cover_image_url) {
-        await supabase.storage
-          .from('content-files')
-          .remove([item.cover_image_url]);
-      }
-
-      // 3. Delete related records (Analytics, Favorites, etc.)
-      await Promise.all([
-        supabase.from('content_analytics').delete().eq('content_id', id),
-        supabase.from('favorites').delete().eq('content_id', id),
-        supabase.from('playlist_items').delete().eq('content_id', id)
-      ]);
-
-      // 4. Finally delete the content record
-      const { error } = await supabase
-        .from('content')
-        .delete()
-        .eq('id', id);
-
-      if (error) throw error;
-
-      setContent(prev => prev.filter(c => c.id !== id));
-      return item.title;
-    };
-
-    toast.promise(deletePromise(), {
-      loading: t('dashboard.myContent.deleting', { title: item.title, defaultValue: `Deleting ${item.title}...` }),
-      success: (title) => t('dashboard.myContent.deleteSuccess', { title }),
-      error: (err) => {
-        console.error('Delete error:', err);
-        // Ensure title is passed even if the error message doesn't contain it
-        return err.message.includes(':') ? err.message : t('dashboard.myContent.deleteFailed', { title: item.title });
-      },
-      finally: () => setActionLoading(null),
-    });
+    await deleteContent(item.id, item.title, item.file_url, item.cover_image_url);
+    setContent(prev => prev.filter(c => c.id !== id));
   };
 
   const filteredContent = content.filter(item => {
@@ -232,23 +190,56 @@ export function AllContentList() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <h2 className="text-lg font-semibold">{t('dashboard.allContent')}</h2>
-        <Dialog open={isUploadOpen} onOpenChange={setIsUploadOpen}>
-          <DialogTrigger asChild>
-            <Button className="gradient-primary">
-              <Plus className="mr-2 h-4 w-4" />
-              {t('dashboard.upload.title')}
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>{t('dashboard.upload.title')}</DialogTitle>
-            </DialogHeader>
-            <ContentUploadForm onSuccess={() => {
-              setIsUploadOpen(false);
-              fetchContent();
-            }} />
-          </DialogContent>
-        </Dialog>
+        <div className="flex gap-2">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button className="gradient-primary">
+                <Plus className="mr-2 h-4 w-4" />
+                {t('dashboard.upload.title')}
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => { setUploadType('audio'); setIsUploadOpen(true); }}>
+                {t('nav.audio')}
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => { setUploadType('book'); setIsUploadOpen(true); }}>
+                {t('nav.books')}
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => { setUploadType('video'); setIsUploadOpen(true); }}>
+                {t('nav.video')}
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          <Dialog open={isUploadOpen} onOpenChange={setIsUploadOpen}>
+            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>
+                  {t('dashboard.upload.title')} - {t(`nav.${uploadType === 'book' ? 'books' : uploadType}`)}
+                </DialogTitle>
+              </DialogHeader>
+
+              {uploadType === 'audio' && (
+                <AudioUploadForm onSuccess={() => {
+                  setIsUploadOpen(false);
+                  fetchContent();
+                }} />
+              )}
+              {uploadType === 'book' && (
+                <BookUploadForm onSuccess={() => {
+                  setIsUploadOpen(false);
+                  fetchContent();
+                }} />
+              )}
+              {uploadType === 'video' && (
+                <VideoUploadForm onSuccess={() => {
+                  setIsUploadOpen(false);
+                  fetchContent();
+                }} />
+              )}
+            </DialogContent>
+          </Dialog>
+        </div>
       </div>
 
       {/* Filters */}
@@ -392,15 +383,31 @@ export function AllContentList() {
         )}
       </div>
 
-      <ContentEditDialog
-        content={editingItem as any}
-        open={!!editingItem}
-        onOpenChange={(open) => !open && setEditingItem(null)}
-        onSuccess={() => {
-          fetchContent();
-          setEditingItem(null);
-        }}
-      />
+      {/* Specialized Edit Dialogs */}
+      {editingItem?.type === 'audio' && (
+        <AudioEditDialog
+          content={editingItem}
+          open={!!editingItem}
+          onOpenChange={(open) => !open && setEditingItem(null)}
+          onSuccess={fetchContent}
+        />
+      )}
+      {editingItem?.type === 'book' && (
+        <BookEditDialog
+          content={editingItem}
+          open={!!editingItem}
+          onOpenChange={(open) => !open && setEditingItem(null)}
+          onSuccess={fetchContent}
+        />
+      )}
+      {editingItem?.type === 'video' && (
+        <VideoEditDialog
+          content={editingItem}
+          open={!!editingItem}
+          onOpenChange={(open) => !open && setEditingItem(null)}
+          onSuccess={fetchContent}
+        />
+      )}
     </div>
   );
 }
