@@ -61,9 +61,15 @@ export function TaxonomyManagement() {
 
         setActionLoading('add');
         try {
+            // Check for existence first to avoid 409 console error
+            const exists = taxonomies.some(t => t.type === activeTab && t.name.toLowerCase() === newName.trim().toLowerCase());
+            if (exists) {
+                throw new Error(t('dashboard.taxonomyManagement.duplicateError', { defaultValue: 'یہ نام پہلے سے موجود ہے' }));
+            }
+
             const { error } = await supabase
                 .from('taxonomies')
-                .insert({ type: activeTab, name: newName.trim() });
+                .upsert({ type: activeTab, name: newName.trim() }, { onConflict: 'type,name' });
 
             if (error) {
                 if (error.code === '23505') {
@@ -88,6 +94,13 @@ export function TaxonomyManagement() {
 
         setActionLoading(id);
         try {
+            // Check for existence first to avoid 409 console error
+            const itemToEdit = taxonomies.find(t => t.id === id);
+            const exists = taxonomies.some(t => t.id !== id && t.type === itemToEdit?.type && t.name.toLowerCase() === editName.trim().toLowerCase());
+            if (exists) {
+                throw new Error(t('dashboard.taxonomyManagement.duplicateError', { defaultValue: 'یہ نام پہلے سے موجود ہے' }));
+            }
+
             const { error } = await supabase
                 .from('taxonomies')
                 .update({ name: editName.trim() })
@@ -103,7 +116,7 @@ export function TaxonomyManagement() {
             toast.success(t('common.success'));
             setEditingId(null);
             setEditName('');
-            // Update locally
+            // Update locally (we already have the type from taxonomies)
             setTaxonomies(prev => prev.map(item =>
                 item.id === id ? { ...item, name: editName.trim() } : item
             ));

@@ -19,6 +19,7 @@ import { X, Upload, FileText, Headphones, Loader2, Save } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useUpload } from '@/contexts/UploadContextTypes';
 import { TaxonomyCombobox } from './TaxonomyCombobox';
+import { formatBytes } from '@/lib/utils';
 
 type ContentType = 'book' | 'audio' | 'video';
 type ContentStatus = 'pending' | 'approved' | 'rejected';
@@ -229,6 +230,34 @@ export function ContentEditDialog({ content, open, onOpenChange, onSuccess }: Co
     }
   }, [content, t]);
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFile = e.target.files?.[0] || null;
+    setNewFile(selectedFile);
+
+    if (selectedFile && content?.type === 'audio') {
+      // Auto-fill Title from Filename if title is empty or if it was the same as previous file name hint
+      const fileName = selectedFile.name.split('.').slice(0, -1).join('.');
+      setTitle(fileName);
+
+      // Extract Duration
+      const audio = new Audio();
+      const objectUrl = URL.createObjectURL(selectedFile);
+      audio.src = objectUrl;
+      audio.onloadedmetadata = () => {
+        const duration = Math.floor(audio.duration);
+        const hours = Math.floor(duration / 3600);
+        const minutes = Math.floor((duration % 3600) / 60);
+        const seconds = duration % 60;
+
+        setDurHours(hours > 0 ? hours.toString() : '');
+        setDurMinutes(minutes.toString());
+        setDurSeconds(seconds.toString());
+
+        URL.revokeObjectURL(objectUrl);
+      };
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -340,6 +369,82 @@ export function ContentEditDialog({ content, open, onOpenChange, onSuccess }: Co
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
+          {/* File and Cover Image Row */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+            <div className="space-y-2 md:col-span-3">
+              <Label htmlFor="edit-file-upload">{t('dashboard.upload.fileLabel')} <span className="text-red-500">*</span> <span className="text-xs text-muted-foreground">{t('dashboard.upload.fileHint')}</span></Label>
+              <div className="border-2 border-dashed border-border rounded-lg px-4 text-center hover:border-primary/50 transition-colors h-[110px] flex items-center justify-center">
+                <input
+                  id="edit-file-upload"
+                  type="file"
+                  onChange={handleFileChange}
+                  className="hidden"
+                  accept="audio/*,video/*,application/pdf"
+                />
+                <label htmlFor="edit-file-upload" className="cursor-pointer w-full">
+                  <div className="flex flex-col items-center gap-1">
+                    {content?.type === 'audio' ? <Headphones className="h-6 w-6 text-primary" /> : <FileText className="h-6 w-6 text-primary" />}
+                    {(newFile || content?.file_url) && (
+                      <div className="flex flex-col items-center">
+                        <span className="text-sm text-muted-foreground max-w-full truncate px-4" dir="ltr">
+                          {newFile ? newFile.name : (content?.file_url ? content.file_url.split('/').pop()?.split('?')[0] : '')}
+                        </span>
+                        {newFile && (
+                          <span className="text-[10px] text-muted-foreground mt-0.5">
+                            {formatBytes(newFile.size)}
+                          </span>
+                        )}
+                        <span className="text-xs text-muted-foreground">
+                          {content?.type === 'audio' ? '.mp3, .wav' : '.pdf, .mp4'}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </label>
+              </div>
+            </div>
+
+            <div className="space-y-2 md:col-span-1 flex flex-col items-center">
+              <Label htmlFor="edit-cover-upload" className="w-full text-center">
+                {t('dashboard.upload.coverLabel')}
+                <span className="text-xs text-muted-foreground block text-[10px] mt-0.5 leading-tight">{t('dashboard.upload.coverHint')}</span>
+              </Label>
+              <div className="border-2 border-dashed border-border rounded-full hover:border-primary/50 transition-colors h-[110px] w-[110px] flex items-center justify-center overflow-hidden p-0 relative">
+                <input
+                  id="edit-cover-upload"
+                  type="file"
+                  onChange={(e) => {
+                    if (e.target.files && e.target.files[0]) {
+                      setNewCoverImage(e.target.files[0]);
+                    }
+                  }}
+                  className="hidden"
+                  accept="image/*"
+                />
+                <label htmlFor="edit-cover-upload" className="cursor-pointer w-full h-full flex items-center justify-center">
+                  <div className="flex flex-col items-center justify-center w-full h-full">
+                    {(newCoverImage || content?.cover_image_url) ? (
+                      <div className="w-full h-full">
+                        {newCoverImage ? (
+                          <img src={URL.createObjectURL(newCoverImage)} alt="New cover preview" className="w-full h-full object-cover" />
+                        ) : (
+                          <img
+                            src={`${content?.cover_image_url}`}
+                            alt="Current cover"
+                            className="w-full h-full object-cover"
+                            onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                          />
+                        )}
+                      </div>
+                    ) : (
+                      <Upload className="h-5 w-5 text-muted-foreground" />
+                    )}
+                  </div>
+                </label>
+              </div>
+            </div>
+          </div>
+
           <div className="space-y-2">
             <Label htmlFor="edit-title">{t('dashboard.upload.titleLabel')} <span className="text-red-500">*</span> <span className="text-xs text-muted-foreground">{t('dashboard.upload.titleHint')}</span></Label>
             <Input
@@ -485,25 +590,7 @@ export function ContentEditDialog({ content, open, onOpenChange, onSuccess }: Co
                 </div>
               </div>
 
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label>{t('dashboard.upload.dateGregorianLabel')}</Label>
-                  <div className="flex gap-2">
-                    <DatePartSelect type="day" value={gDay} onChange={setGDay} placeholder={t('dashboard.upload.day')} />
-                    <DatePartSelect type="month" value={gMonth} onChange={setGMonth} placeholder={t('dashboard.upload.month')} monthType="gregorian" />
-                    <DatePartSelect type="year" value={gYear} onChange={setGYear} placeholder={t('dashboard.upload.year')} monthType="gregorian" />
-                  </div>
-                </div>
 
-                <div className="space-y-2">
-                  <Label>{t('dashboard.upload.dateHijriLabel')}</Label>
-                  <div className="flex gap-2">
-                    <DatePartSelect type="day" value={hDay} onChange={setHDay} placeholder={t('dashboard.upload.day')} />
-                    <DatePartSelect type="month" value={hMonth} onChange={setHMonth} placeholder={t('dashboard.upload.month')} monthType="hijri" />
-                    <DatePartSelect type="year" value={hYear} onChange={setHYear} placeholder={t('dashboard.upload.year')} monthType="hijri" />
-                  </div>
-                </div>
-              </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
@@ -538,81 +625,26 @@ export function ContentEditDialog({ content, open, onOpenChange, onSuccess }: Co
             </div>
           )}
 
+
+
+
+          {/* Dates */}
           <div className="space-y-4 pt-4 border-t">
             <div className="space-y-2">
-              <Label htmlFor="edit-file-upload">{t('dashboard.upload.fileLabel')} <span className="text-red-500">*</span> <span className="text-xs text-muted-foreground">{t('dashboard.upload.fileHint')}</span></Label>
-              <div className="border-2 border-dashed border-border rounded-lg p-6 text-center hover:border-primary/50 transition-colors">
-                <input
-                  id="edit-file-upload"
-                  type="file"
-                  onChange={(e) => {
-                    if (e.target.files && e.target.files[0]) {
-                      setNewFile(e.target.files[0]);
-                    }
-                  }}
-                  className="hidden"
-                  accept="audio/*,video/*,application/pdf"
-                />
-                <label htmlFor="edit-file-upload" className="cursor-pointer">
-                  <div className="flex flex-col items-center gap-2">
-                    {content?.type === 'audio' ? <Headphones className="h-6 w-6 text-primary" /> : <FileText className="h-6 w-6 text-primary" />}
-                    <span className="text-sm text-muted-foreground max-w-full truncate px-4" dir="ltr">
-                      {newFile ? newFile.name : (content?.file_url ? content.file_url.split('/').pop()?.split('?')[0] : t('dashboard.upload.filePlaceholder'))}
-                    </span>
-                    <span className="text-xs text-muted-foreground">
-                      {content?.type === 'audio' ? '.mp3, .wav' : '.pdf, .mp4'}
-                    </span>
-                  </div>
-                </label>
+              <Label>{t('dashboard.upload.dateGregorianLabel')}</Label>
+              <div className="flex gap-2">
+                <DatePartSelect type="day" value={gDay} onChange={setGDay} placeholder={t('dashboard.upload.day')} />
+                <DatePartSelect type="month" value={gMonth} onChange={setGMonth} placeholder={t('dashboard.upload.month')} monthType="gregorian" />
+                <DatePartSelect type="year" value={gYear} onChange={setGYear} placeholder={t('dashboard.upload.year')} monthType="gregorian" />
               </div>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="edit-cover-upload">{t('dashboard.upload.coverLabel')} <span className="text-xs text-muted-foreground">{t('dashboard.upload.coverHint')}</span></Label>
-              <div className="border-2 border-dashed border-border rounded-lg p-6 text-center hover:border-primary/50 transition-colors">
-                <input
-                  id="edit-cover-upload"
-                  type="file"
-                  onChange={(e) => {
-                    if (e.target.files && e.target.files[0]) {
-                      setNewCoverImage(e.target.files[0]);
-                    }
-                  }}
-                  className="hidden"
-                  accept="image/*"
-                />
-                <label htmlFor="edit-cover-upload" className="cursor-pointer">
-                  <div className="flex flex-col items-center gap-2">
-                    {(newCoverImage || content?.cover_image_url) ? (
-                      <div className="w-24 h-24 rounded overflow-hidden bg-muted mb-2 shadow-sm border">
-                        {newCoverImage ? (
-                          <img src={URL.createObjectURL(newCoverImage)} alt="New cover preview" className="w-full h-full object-cover" />
-                        ) : (
-                          <img
-                            src={`${content?.cover_image_url}`}
-                            alt="Current cover"
-                            className="w-full h-full object-cover"
-                            onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
-                          />
-                        )}
-                      </div>
-                    ) : (
-                      <div className="w-24 h-24 rounded bg-muted/50 mb-2 border flex items-center justify-center">
-                        <Upload className="h-6 w-6 text-muted-foreground" />
-                      </div>
-                    )}
-                    <div className="flex flex-col items-center">
-                      <span className="text-sm text-muted-foreground max-w-full truncate px-4" dir="ltr">
-                        {newCoverImage ? newCoverImage.name : t('dashboard.upload.coverPlaceholder')}
-                      </span>
-                      {newCoverImage ? (
-                        <span className="text-xs text-green-600 mt-1">نئی تصویر منتخب ہو گئی</span>
-                      ) : (content?.cover_image_url ? (
-                        <span className="text-xs text-muted-foreground mt-1">موجودہ تصویر بدلنے کے لیے کلک کریں</span>
-                      ) : null)}
-                    </div>
-                  </div>
-                </label>
+              <Label>{t('dashboard.upload.dateHijriLabel')}</Label>
+              <div className="flex gap-2">
+                <DatePartSelect type="day" value={hDay} onChange={setHDay} placeholder={t('dashboard.upload.day')} />
+                <DatePartSelect type="month" value={hMonth} onChange={setHMonth} placeholder={t('dashboard.upload.month')} monthType="hijri" />
+                <DatePartSelect type="year" value={hYear} onChange={setHYear} placeholder={t('dashboard.upload.year')} monthType="hijri" />
               </div>
             </div>
           </div>

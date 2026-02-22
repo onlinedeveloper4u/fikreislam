@@ -8,9 +8,13 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
-import { Upload, FileText, Music, Video, Loader2 } from 'lucide-react';
 import { z } from 'zod';
 import { useTranslation } from 'react-i18next';
+import { cn, formatBytes } from '@/lib/utils';
+import {
+  Upload, FileText, Music, Video, Loader2,
+  Check, X, Save, Headphones
+} from 'lucide-react';
 
 import { useUpload } from '@/contexts/UploadContextTypes';
 import { useNavigate } from 'react-router-dom';
@@ -171,7 +175,7 @@ export function ContentUploadForm({ onSuccess }: ContentUploadFormProps) {
       .max(200, t('dashboard.upload.validation.authorTooLong'))
       .optional()
       .transform(val => val || ''),
-    language: z.enum(['انگریزی', 'عربی', 'اردو', 'ترکی', 'ملائی', 'انڈونیشیائی', 'فرانسیسی', 'ہسپانوی']),
+    language: z.string().min(1, t('dashboard.upload.validation.langRequired', { defaultValue: 'Language is required' })),
     tags: z.string()
       .transform(val =>
         val.split(',')
@@ -236,6 +240,36 @@ export function ContentUploadForm({ onSuccess }: ContentUploadFormProps) {
       case 'book': return <FileText className="h-5 w-5" />;
       case 'audio': return <Music className="h-5 w-5" />;
       case 'video': return <Video className="h-5 w-5" />;
+    }
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFile = e.target.files?.[0] || null;
+    setFile(selectedFile);
+
+    if (selectedFile) {
+      // Auto-fill Title from Filename
+      const fileName = selectedFile.name.split('.').slice(0, -1).join('.');
+      setTitle(fileName);
+
+      if (contentType === 'audio') {
+        // Extract Duration
+        const audio = new Audio();
+        const objectUrl = URL.createObjectURL(selectedFile);
+        audio.src = objectUrl;
+        audio.onloadedmetadata = () => {
+          const duration = Math.floor(audio.duration);
+          const hours = Math.floor(duration / 3600);
+          const minutes = Math.floor((duration % 3600) / 60);
+          const seconds = duration % 60;
+
+          setDurHours(hours > 0 ? hours.toString() : '');
+          setDurMinutes(minutes.toString());
+          setDurSeconds(seconds.toString());
+
+          URL.revokeObjectURL(objectUrl);
+        };
+      }
     }
   };
 
@@ -402,6 +436,67 @@ export function ContentUploadForm({ onSuccess }: ContentUploadFormProps) {
             </div>
           </div>
 
+          {/* File and Cover Image Row */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+            {/* File Upload */}
+            <div className="space-y-2 md:col-span-3">
+              <Label htmlFor="file">{t('dashboard.upload.fileLabel')} <span className="text-red-500">*</span> <span className="text-xs text-muted-foreground">{t('dashboard.upload.fileHint')}</span></Label>
+              <div className="border-2 border-dashed border-border rounded-lg px-4 text-center hover:border-primary/50 transition-colors h-[110px] flex items-center justify-center">
+                <input
+                  id="file"
+                  type="file"
+                  accept={getAcceptedFileTypes()}
+                  onChange={handleFileChange}
+                  className="hidden"
+                />
+                <label htmlFor="file" className="cursor-pointer w-full">
+                  <div className="flex flex-col items-center gap-1">
+                    {getContentIcon()}
+                    <span className="text-sm text-muted-foreground max-w-full truncate px-4">
+                      {file ? file.name : t('dashboard.upload.clickToUpload', { type: t(`nav.${contentType === 'book' ? 'books' : contentType}`).toLowerCase() })}
+                    </span>
+                    {file && (
+                      <span className="text-[10px] text-muted-foreground">
+                        {formatBytes(file.size)}
+                      </span>
+                    )}
+                    <span className="text-xs text-muted-foreground">
+                      {t('dashboard.upload.accepted', { types: getAcceptedFileTypes() })}
+                    </span>
+                  </div>
+                </label>
+              </div>
+            </div>
+
+            {/* Cover Image */}
+            <div className="space-y-2 md:col-span-1 flex flex-col items-center">
+              <Label htmlFor="cover" className="w-full text-center">
+                {t('dashboard.upload.coverLabel')}
+                <span className="text-xs text-muted-foreground block text-[10px] mt-0.5 leading-tight">{t('dashboard.upload.coverHint')}</span>
+              </Label>
+              <div className="border-2 border-dashed border-border rounded-full hover:border-primary/50 transition-colors h-[110px] w-[110px] flex items-center justify-center overflow-hidden p-0 relative">
+                <input
+                  id="cover"
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => setCoverImage(e.target.files?.[0] || null)}
+                  className="hidden"
+                />
+                <label htmlFor="cover" className="cursor-pointer w-full h-full flex items-center justify-center">
+                  <div className="flex flex-col items-center justify-center w-full h-full">
+                    {coverImage ? (
+                      <div className="w-full h-full">
+                        <img src={URL.createObjectURL(coverImage)} alt="Cover preview" className="w-full h-full object-cover" />
+                      </div>
+                    ) : (
+                      <Upload className="h-5 w-5 text-muted-foreground" />
+                    )}
+                  </div>
+                </label>
+              </div>
+            </div>
+          </div>
+
           {/* Title */}
           <div className="space-y-2">
             <Label htmlFor="title">{t('dashboard.upload.titleLabel')} <span className="text-red-500">*</span> <span className="text-xs text-muted-foreground">{t('dashboard.upload.titleHint')}</span></Label>
@@ -494,26 +589,7 @@ export function ContentUploadForm({ onSuccess }: ContentUploadFormProps) {
                 </div>
               </div>
 
-              {/* Dates */}
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label>{t('dashboard.upload.dateGregorianLabel')}</Label>
-                  <div className="flex gap-2">
-                    <DatePartSelect type="day" value={gDay} onChange={setGDay} placeholder={t('dashboard.upload.day')} />
-                    <DatePartSelect type="month" value={gMonth} onChange={setGMonth} placeholder={t('dashboard.upload.month')} monthType="gregorian" />
-                    <DatePartSelect type="year" value={gYear} onChange={setGYear} placeholder={t('dashboard.upload.year')} monthType="gregorian" />
-                  </div>
-                </div>
 
-                <div className="space-y-2">
-                  <Label>{t('dashboard.upload.dateHijriLabel')}</Label>
-                  <div className="flex gap-2">
-                    <DatePartSelect type="day" value={hDay} onChange={setHDay} placeholder={t('dashboard.upload.day')} />
-                    <DatePartSelect type="month" value={hMonth} onChange={setHMonth} placeholder={t('dashboard.upload.month')} monthType="hijri" />
-                    <DatePartSelect type="year" value={hYear} onChange={setHYear} placeholder={t('dashboard.upload.year')} monthType="hijri" />
-                  </div>
-                </div>
-              </div>
 
               {/* Speaker and Audio Type */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -562,58 +638,27 @@ export function ContentUploadForm({ onSuccess }: ContentUploadFormProps) {
             </div>
           )}
 
-          {/* File Upload */}
-          <div className="space-y-2">
-            <Label htmlFor="file">{t('dashboard.upload.fileLabel')} <span className="text-red-500">*</span> <span className="text-xs text-muted-foreground">{t('dashboard.upload.fileHint')}</span></Label>
-            <div className="border-2 border-dashed border-border rounded-lg p-6 text-center hover:border-primary/50 transition-colors">
-              <input
-                id="file"
-                type="file"
-                accept={getAcceptedFileTypes()}
-                onChange={(e) => setFile(e.target.files?.[0] || null)}
-                className="hidden"
-              />
-              <label htmlFor="file" className="cursor-pointer">
-                <div className="flex flex-col items-center gap-2">
-                  {getContentIcon()}
-                  <span className="text-sm text-muted-foreground max-w-full truncate px-4">
-                    {file ? file.name : t('dashboard.upload.clickToUpload', { type: t(`nav.${contentType === 'book' ? 'books' : contentType}`).toLowerCase() })}
-                  </span>
-                  <span className="text-xs text-muted-foreground">
-                    {t('dashboard.upload.accepted', { types: getAcceptedFileTypes() })}
-                  </span>
-                </div>
-              </label>
-            </div>
-          </div>
 
-          {/* Cover Image */}
-          <div className="space-y-2">
-            <Label htmlFor="cover">{t('dashboard.upload.coverLabel')} <span className="text-xs text-muted-foreground">{t('dashboard.upload.coverHint')}</span></Label>
-            <div className="border-2 border-dashed border-border rounded-lg p-6 text-center hover:border-primary/50 transition-colors">
-              <input
-                id="cover"
-                type="file"
-                accept="image/*"
-                onChange={(e) => setCoverImage(e.target.files?.[0] || null)}
-                className="hidden"
-              />
-              <label htmlFor="cover" className="cursor-pointer">
-                <div className="flex flex-col items-center gap-2">
-                  {coverImage ? (
-                    <div className="w-24 h-24 rounded overflow-hidden bg-muted mb-2 shadow-sm border">
-                      <img src={URL.createObjectURL(coverImage)} alt="Cover preview" className="w-full h-full object-cover" />
-                    </div>
-                  ) : (
-                    <div className="w-24 h-24 rounded bg-muted/50 mb-2 border flex items-center justify-center">
-                      <Upload className="h-6 w-6 text-muted-foreground" />
-                    </div>
-                  )}
-                  <span className="text-sm text-muted-foreground max-w-full truncate px-4">
-                    {coverImage ? coverImage.name : t('dashboard.upload.coverPlaceholder')}
-                  </span>
-                </div>
-              </label>
+
+
+          {/* Dates */}
+          <div className="space-y-4 pt-4 border-t">
+            <div className="space-y-2">
+              <Label>{t('dashboard.upload.dateGregorianLabel')}</Label>
+              <div className="flex gap-2">
+                <DatePartSelect type="day" value={gDay} onChange={setGDay} placeholder={t('dashboard.upload.day')} />
+                <DatePartSelect type="month" value={gMonth} onChange={setGMonth} placeholder={t('dashboard.upload.month')} monthType="gregorian" />
+                <DatePartSelect type="year" value={gYear} onChange={setGYear} placeholder={t('dashboard.upload.year')} monthType="gregorian" />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label>{t('dashboard.upload.dateHijriLabel')}</Label>
+              <div className="flex gap-2">
+                <DatePartSelect type="day" value={hDay} onChange={setHDay} placeholder={t('dashboard.upload.day')} />
+                <DatePartSelect type="month" value={hMonth} onChange={setHMonth} placeholder={t('dashboard.upload.month')} monthType="hijri" />
+                <DatePartSelect type="year" value={hYear} onChange={setHYear} placeholder={t('dashboard.upload.year')} monthType="hijri" />
+              </div>
             </div>
           </div>
 

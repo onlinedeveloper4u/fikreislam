@@ -161,7 +161,10 @@ export function AllContentList() {
       if (item.file_url) {
         if (item.file_url.startsWith('google-drive://')) {
           const success = await deleteFromGoogleDrive(item.file_url);
-          if (!success) console.warn('Google Drive deletion returned failure status');
+          if (!success) {
+            // Include title in error message for better feedback
+            throw new Error(t('dashboard.myContent.deleteFailed', { title: item.title, defaultValue: `Failed to delete: ${item.title}` }));
+          }
         } else {
           // Supabase Storage
           await supabase.storage
@@ -201,7 +204,8 @@ export function AllContentList() {
       success: (title) => t('dashboard.myContent.deleteSuccess', { title }),
       error: (err) => {
         console.error('Delete error:', err);
-        return t('dashboard.myContent.deleteFailed');
+        // Ensure title is passed even if the error message doesn't contain it
+        return err.message.includes(':') ? err.message : t('dashboard.myContent.deleteFailed', { title: item.title });
       },
       finally: () => setActionLoading(null),
     });

@@ -100,9 +100,16 @@ export async function deleteFromGoogleDrive(fileUrl: string | null): Promise<boo
     });
 
     const result = await response.json();
+    if (result.status !== 'success') {
+      console.error('Google Drive deletion failure details:', {
+        fileId,
+        error: result.error || result.message || 'Unknown GAS error',
+        fullResponse: result
+      });
+    }
     return result.status === 'success';
   } catch (error) {
-    console.error('Error deleting from Google Drive:', error);
+    console.error('Network or Parse error deleting from Google Drive:', error);
     return false;
   }
 }

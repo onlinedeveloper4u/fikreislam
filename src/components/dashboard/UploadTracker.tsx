@@ -41,9 +41,9 @@ export function UploadTracker() {
             case 'error':
                 return <Badge className="bg-red-500/10 text-red-600 border-red-500/20"><AlertCircle className="h-3 w-3 mr-1" /> {t('common.failed', { defaultValue: 'Failed' })}</Badge>;
             case 'uploading':
-                return <Badge className="bg-blue-500/10 text-blue-600 border-blue-500/20"><Loader2 className="h-3 w-3 mr-1 animate-spin" /> {t('dashboard.uploading', { defaultValue: 'Uploading' })}</Badge>;
+                return <Badge className="bg-blue-500/10 text-blue-600 border-blue-500/20"><Loader2 className="h-3 w-3 mr-1 animate-spin" /> {t('dashboard.uploads.uploading', { defaultValue: 'Uploading' })}</Badge>;
             case 'database':
-                return <Badge className="bg-purple-500/10 text-purple-600 border-purple-500/20"><Clock className="h-3 w-3 mr-1" /> {t('dashboard.saving', { defaultValue: 'Saving' })}</Badge>;
+                return <Badge className="bg-purple-500/10 text-purple-600 border-purple-500/20"><Clock className="h-3 w-3 mr-1" /> {t('dashboard.uploads.saving', { defaultValue: 'Saving' })}</Badge>;
             default:
                 return <Badge variant="outline">{status}</Badge>;
         }
@@ -84,7 +84,7 @@ export function UploadTracker() {
                                         {getStatusBadge(upload.status)}
                                     </div>
                                     <p className="text-xs text-muted-foreground truncate mb-4">
-                                        {upload.fileName} • {new Date(upload.startTime).toLocaleTimeString()}
+                                        {upload.fileName} • {new Date(upload.startTime).toLocaleTimeString('ur-PK', { hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: true })}
                                     </p>
 
                                     {upload.status !== 'completed' && upload.status !== 'error' && (
