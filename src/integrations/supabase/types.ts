@@ -69,6 +69,14 @@ export type Database = {
           title: string
           type: Database["public"]["Enums"]["content_type"]
           updated_at: string
+          duration: string | null
+          venue: string | null
+          hijri_date: string | null
+          lecture_date: string | null
+          speaker: string | null
+          audio_type: string | null
+          categories: string[] | null
+          file_size: number | null
         }
         Insert: {
           admin_notes?: string | null
@@ -86,6 +94,14 @@ export type Database = {
           title: string
           type: Database["public"]["Enums"]["content_type"]
           updated_at?: string
+          duration?: string | null
+          venue?: string | null
+          hijri_date?: string | null
+          lecture_date?: string | null
+          speaker?: string | null
+          audio_type?: string | null
+          categories?: string[] | null
+          file_size?: number | null
         }
         Update: {
           admin_notes?: string | null
@@ -103,6 +119,14 @@ export type Database = {
           title?: string
           type?: Database["public"]["Enums"]["content_type"]
           updated_at?: string
+          duration?: string | null
+          venue?: string | null
+          hijri_date?: string | null
+          lecture_date?: string | null
+          speaker?: string | null
+          audio_type?: string | null
+          categories?: string[] | null
+          file_size?: number | null
         }
         Relationships: []
       }
@@ -294,6 +318,7 @@ export type Database = {
           name: string
           type: Database["public"]["Enums"]["taxonomy_type"]
           updated_at: string
+          google_folder_id: string | null
         }
         Insert: {
           created_at?: string
@@ -301,6 +326,7 @@ export type Database = {
           name: string
           type: Database["public"]["Enums"]["taxonomy_type"]
           updated_at?: string
+          google_folder_id?: string | null
         }
         Update: {
           created_at?: string
@@ -308,6 +334,7 @@ export type Database = {
           name?: string
           type?: Database["public"]["Enums"]["taxonomy_type"]
           updated_at?: string
+          google_folder_id?: string | null
         }
         Relationships: []
       }

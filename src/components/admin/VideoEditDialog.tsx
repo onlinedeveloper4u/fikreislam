@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { getSignedUrl } from '@/lib/storage';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -46,6 +47,8 @@ export function VideoEditDialog({ content, open, onOpenChange, onSuccess }: Vide
 
     const [newFile, setNewFile] = useState<File | null>(null);
     const [newCoverImage, setNewCoverImage] = useState<File | null>(null);
+    const [signedCoverUrl, setSignedCoverUrl] = useState<string | null>(null);
+    const [fileType, setFileType] = useState<string>('');
 
     useEffect(() => {
         if (content && content.type === 'video') {
@@ -54,8 +57,35 @@ export function VideoEditDialog({ content, open, onOpenChange, onSuccess }: Vide
             setAuthor(content.author || '');
             setLanguage(content.language || 'اردو');
             setTags(content.tags?.join(', ') || '');
+
+            if (content.cover_image_url && !signedCoverUrl) {
+                getSignedUrl(content.cover_image_url, 3600, {
+                    transform: { width: 200, height: 200 }
+                }).then(setSignedCoverUrl);
+            }
+
+            if (content.file_url) {
+                const parts = content.file_url.split('.');
+                if (parts.length > 1) {
+                    setFileType(parts[parts.length - 1].toUpperCase());
+                }
+            }
         }
-    }, [content]);
+    }, [content, signedCoverUrl]);
+
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0] || null;
+        setNewFile(file);
+        if (file) {
+            const ext = file.name.split('.').pop()?.toUpperCase() || '';
+            setFileType(ext);
+        } else if (content?.file_url) {
+            const parts = content.file_url.split('.');
+            if (parts.length > 1) {
+                setFileType(parts[parts.length - 1].toUpperCase());
+            }
+        }
+    };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -71,7 +101,8 @@ export function VideoEditDialog({ content, open, onOpenChange, onSuccess }: Vide
                 status: content.status === 'rejected' ? 'pending' : content.status,
             };
 
-            await editContent(content.id, content.status, updatePayload, newFile, newCoverImage, content.title, content.file_url, 'video');
+            editContent(content.id, content.status, updatePayload, newFile, newCoverImage, content.title, content.file_url, 'video');
+            toast.info(t('dashboard.upload.started'));
             onSuccess();
             onOpenChange(false);
         } catch (e: any) {
@@ -92,16 +123,23 @@ export function VideoEditDialog({ content, open, onOpenChange, onSuccess }: Vide
                         <div className="space-y-2 md:col-span-3">
                             <Label>{t('dashboard.upload.fileLabel')} <span className="text-destructive">*</span></Label>
                             <div className="border-2 border-dashed border-border rounded-lg px-4 text-center h-[110px] flex items-center justify-center">
-                                <input id="edit-video-file" type="file" accept=".mp4,.webm,.mov" onChange={(e) => setNewFile(e.target.files?.[0] || null)} className="hidden" />
+                                <input id="edit-video-file" type="file" accept=".mp4,.webm,.mov" onChange={handleFileChange} className="hidden" />
                                 <label htmlFor="edit-video-file" className="cursor-pointer w-full text-sm text-muted-foreground flex flex-col items-center gap-1">
                                     <VideoIcon className="h-5 w-5" />
                                     <span className="max-w-[80%] truncate text-center font-medium">
-                                        {newFile ? newFile.name : (content?.title || t('dashboard.upload.clickToUpload', { type: t('nav.video') }))}
+                                        {newFile ? (newFile.name.includes('.') ? newFile.name.substring(0, newFile.name.lastIndexOf('.')) : newFile.name) :
+                                            (content?.title || t('dashboard.upload.clickToUpload', { type: t('nav.video') }))}
+                                        {fileType && <span className="ml-1 text-[10px] text-muted-foreground">({fileType})</span>}
                                     </span>
                                     {(newFile || content?.file_size) && (
                                         <span className="text-[10px] text-primary/70">
-                                            {formatBytes(newFile ? newFile.size : content?.file_size)}
-                                            {!newFile && content?.file_size && ` • ${t('dashboard.upload.existing') ?? 'Existing'}`}
+                                            {formatBytes(newFile ? newFile.size : content?.file_size, {
+                                                bytes: t('common.units.bytes'),
+                                                kb: t('common.units.kb'),
+                                                mb: t('common.units.mb'),
+                                                gb: t('common.units.gb')
+                                            })}
+                                            {!newFile && content?.file_size && ` • ${t('dashboard.upload.existing')}`}
                                         </span>
                                     )}
                                 </label>
@@ -113,7 +151,7 @@ export function VideoEditDialog({ content, open, onOpenChange, onSuccess }: Vide
                                 <input id="edit-video-cover" type="file" accept="image/*" onChange={(e) => setNewCoverImage(e.target.files?.[0] || null)} className="hidden" />
                                 <label htmlFor="edit-video-cover" className="cursor-pointer w-full h-full flex items-center justify-center">
                                     {newCoverImage ? <img src={URL.createObjectURL(newCoverImage)} className="w-full h-full object-cover" /> :
-                                        (content?.cover_image_url ? <img src={content.cover_image_url} className="w-full h-full object-cover" /> : <Upload className="h-5 w-5" />)}
+                                        (signedCoverUrl ? <img src={signedCoverUrl} className="w-full h-full object-cover" /> : <Upload className="h-5 w-5" />)}
                                 </label>
                             </div>
                         </div>

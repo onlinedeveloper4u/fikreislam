@@ -8,6 +8,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
 import { Loader2, Plus, Trash2, Pencil, Check, X } from 'lucide-react';
+import { renameFolderInGoogleDrive } from '@/lib/storage';
+import { renameFolderByIdInGoogleDrive } from '@/lib/storage'; // Assuming this new function is also in storage.ts
 
 export type TaxonomyType = 'speaker' | 'language' | 'audio_type' | 'category';
 
@@ -15,6 +17,8 @@ interface Taxonomy {
     id: string;
     type: TaxonomyType;
     name: string;
+    updated_at: string;
+    google_folder_id: string | null;
 }
 
 export function TaxonomyManagement() {
@@ -116,7 +120,98 @@ export function TaxonomyManagement() {
             toast.success(t('common.success'));
             setEditingId(null);
             setEditName('');
-            // Update locally (we already have the type from taxonomies)
+
+            // --- CASCADE UPDATE TO CONTENT TABLE ---
+            const oldName = itemToEdit?.name;
+            const newName = editName.trim();
+
+            if (oldName && oldName !== newName) {
+                const type = itemToEdit?.type;
+
+                // 1. Update simple columns in Supabase
+                if (type === 'speaker' || type === 'audio_type' || type === 'language') {
+                    const dbColumn = type === 'audio_type' ? 'audio_type' : type;
+                    console.log(`Cascading update for ${type} (${dbColumn}): ${oldName} -> ${newName}`);
+
+                    const { error: cascadeError } = await supabase
+                        .from('content')
+                        .update({ [dbColumn]: newName })
+                        .eq(dbColumn, oldName);
+
+                    if (cascadeError) {
+                        console.error(`Cascade update error for ${type}:`, cascadeError);
+                        toast.error(`Database sync failed for some files: ${cascadeError.message}`);
+                    } else {
+                        console.log(`Cascade successfully updated ${type} in content table`);
+                    }
+                }
+                // 2. Update categories (array column)
+                else if (type === 'category') {
+                    const { data: rowsToUpdate, error: fetchError } = await supabase
+                        .from('content')
+                        .select('id, categories')
+                        .contains('categories', [oldName]);
+
+                    if (fetchError) {
+                        console.error('Error fetching categories for cascade:', fetchError);
+                    } else if (rowsToUpdate && rowsToUpdate.length > 0) {
+                        console.log(`Updating categories for ${rowsToUpdate.length} rows`);
+                        for (const row of rowsToUpdate) {
+                            if (!row.categories) continue;
+                            const updatedCategories = row.categories.map((c: string) => c === oldName ? newName : c);
+                            await supabase.from('content').update({ categories: updatedCategories }).eq('id', row.id);
+                        }
+                    }
+                }
+
+                // --- GOOGLE DRIVE SYNC ---
+                if (type === 'speaker') {
+                    console.log(`Renaming Google Drive folders for speaker: ${oldName} -> ${newName}`);
+                    const folderId = itemToEdit?.google_folder_id;
+
+                    if (folderId) {
+                        // 1. Rename by ID (Most Reliable)
+                        console.log(`Using folder ID for rename: ${folderId}`);
+                        const result = await renameFolderByIdInGoogleDrive(folderId, newName);
+                        if (!result.success) {
+                            toast.error(`ID-based rename failed: ${result.message}`);
+                        }
+                    } else {
+                        // 2. Fallback: Search by path and save ID
+                        console.log(`No folder ID found. Searching for folder by path: "فکر اسلام/${oldName}"`);
+                        const result = await renameFolderInGoogleDrive(`فکر اسلام/${oldName}`, newName);
+
+                        if (result.success && result.folderId) {
+                            console.log(`Folder found/created. Saving folder ID: ${result.folderId}`);
+                            await supabase.from('taxonomies').update({ google_folder_id: result.folderId }).eq('id', id);
+                        } else {
+                            console.warn('Path-based rename failed. Trying without "فکر اسلام" prefix...');
+                            const altResult = await renameFolderInGoogleDrive(oldName, newName);
+                            if (altResult.success && altResult.folderId) {
+                                await supabase.from('taxonomies').update({ google_folder_id: altResult.folderId }).eq('id', id);
+                            } else {
+                                toast.error(`Google Drive rename failed: ${altResult.message || result.message}`);
+                            }
+                        }
+                    }
+                } else if (type === 'audio_type') {
+                    // For audio types, we need to find which speakers use this type and rename those subfolders
+                    // This is more complex since paths are Speaker/Type.
+                    // To keep it simple and effective, we'll notify that only the DB was updated 
+                    // or handle it if we find specific paths.
+                    console.log(`Renaming Google Drive subfolders for audio type: ${oldName} -> ${newName}`);
+                    const { data: speakers } = await supabase.from('content').select('speaker').eq('audio_type', newName);
+                    if (speakers) {
+                        // Manual unique speakers
+                        const uniqueSpeakers = Array.from(new Set(speakers.map(s => s.speaker).filter(Boolean)));
+                        for (const s of uniqueSpeakers) {
+                            if (s) await renameFolderInGoogleDrive(`${s}/${oldName}`, newName);
+                        }
+                    }
+                }
+            }
+
+            // Update locally
             setTaxonomies(prev => prev.map(item =>
                 item.id === id ? { ...item, name: editName.trim() } : item
             ));

@@ -97,12 +97,26 @@ export const UploadProvider: React.FC<{ children: React.ReactNode }> = ({ childr
                 if (controller.signal.aborted) throw new Error('Aborted');
 
                 let folderPath = formData.contentType;
+                let googleFolderId = null;
                 if (formData.contentType === 'audio') {
                     const speakerName = (formData.speaker || '').trim();
                     const audioType = (formData.audioType || '').trim();
 
                     if (speakerName) {
-                        folderPath = audioType ? `${speakerName}/${audioType}` : speakerName;
+                        // Try to get folder ID from taxonomies
+                        const { data: tax } = await supabase
+                            .from('taxonomies')
+                            .select('google_folder_id')
+                            .eq('type', 'speaker')
+                            .eq('name', speakerName)
+                            .maybeSingle();
+
+                        if (tax?.google_folder_id) {
+                            googleFolderId = tax.google_folder_id;
+                        } else {
+                            // Fallback to path - we'll capture the ID in GAS result
+                            folderPath = audioType ? `فکر اسلام/${speakerName}/${audioType}` : `فکر اسلام/${speakerName}`;
+                        }
                     }
                 }
 
@@ -115,6 +129,7 @@ export const UploadProvider: React.FC<{ children: React.ReactNode }> = ({ childr
                         contentType: mainFile.type,
                         base64: base64Data,
                         folderPath: folderPath,
+                        folderId: googleFolderId
                     }),
                     signal: controller.signal
                 });
@@ -194,6 +209,7 @@ export const UploadProvider: React.FC<{ children: React.ReactNode }> = ({ childr
                 language: formData.language,
                 tags: Array.isArray(formData.tags) ? formData.tags : (formData.tags?.split(',').map((t: string) => t.trim()).filter(Boolean) || []),
                 file_url: fileUrlPath,
+                file_size: mainFile.size,
                 cover_image_url: coverUrlPath || null,
                 status: 'approved',
                 published_at: new Date().toISOString(),
@@ -270,6 +286,8 @@ export const UploadProvider: React.FC<{ children: React.ReactNode }> = ({ childr
             let coverUrlPath = updatePayload.cover_image_url;
 
             if (newMainFile) {
+                updatePayload.file_url = fileUrlPath;
+                updatePayload.file_size = newMainFile.size;
                 updateUpload(uploadId, { status: 'uploading', progress: 10 });
                 const fileName = newMainFile.name;
                 const useGDrive = contentType === 'audio';

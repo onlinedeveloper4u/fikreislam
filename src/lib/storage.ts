@@ -8,7 +8,8 @@ import { supabase } from '@/integrations/supabase/client';
  */
 export async function getSignedUrl(
   path: string | null,
-  expiresIn: number = 3600
+  expiresIn: number = 3600,
+  options?: { transform?: { width: number, height: number } }
 ): Promise<string | null> {
   if (!path) return null;
   if (path.includes('google-drive://')) return null;
@@ -20,7 +21,7 @@ export async function getSignedUrl(
   try {
     const { data, error } = await supabase.storage
       .from('content-files')
-      .createSignedUrl(bucketPath, expiresIn);
+      .createSignedUrl(bucketPath, expiresIn, options);
 
     if (error) {
       console.error('Error creating signed URL:', error);
@@ -141,6 +142,66 @@ export async function renameInGoogleDrive(fileUrl: string | null, newName: strin
   } catch (error) {
     console.error('Error renaming in Google Drive:', error);
     return false;
+  }
+}
+
+/**
+ * Rename a folder in Google Drive via ID
+ */
+export async function renameFolderByIdInGoogleDrive(folderId: string, newName: string): Promise<{ success: boolean, folderId?: string, message?: string }> {
+  try {
+    const gasUrl = import.meta.env.VITE_GOOGLE_APPS_SCRIPT_URL;
+    if (!gasUrl) return { success: false, message: 'Google Apps Script URL not configured' };
+
+    const response = await fetch(gasUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify({
+        action: 'renameFolderById',
+        folderId: folderId,
+        newName: newName
+      }),
+    });
+
+    const result = await response.json();
+    return {
+      success: result.status === 'success',
+      folderId: result.folderId,
+      message: result.message || result.error
+    };
+  } catch (error: any) {
+    console.error('Error renaming folder by ID in Google Drive:', error);
+    return { success: false, message: error.message || 'Network error' };
+  }
+}
+
+/**
+ * Rename a folder in Google Drive via the Apps Script bridge
+ */
+export async function renameFolderInGoogleDrive(oldPath: string, newFolderName: string): Promise<{ success: boolean, folderId?: string, message?: string }> {
+  try {
+    const gasUrl = import.meta.env.VITE_GOOGLE_APPS_SCRIPT_URL;
+    if (!gasUrl) return { success: false, message: 'Google Apps Script URL not configured' };
+
+    const response = await fetch(gasUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify({
+        action: 'renameFolder',
+        oldPath: oldPath,
+        newFolderName: newFolderName
+      }),
+    });
+
+    const result = await response.json();
+    return {
+      success: result.status === 'success',
+      folderId: result.folderId,
+      message: result.message || result.error
+    };
+  } catch (error: any) {
+    console.error('Error renaming folder in Google Drive:', error);
+    return { success: false, message: error.message || 'Network error' };
   }
 }
 

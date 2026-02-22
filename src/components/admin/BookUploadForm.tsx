@@ -96,8 +96,18 @@ export function BookUploadForm({ onSuccess }: BookUploadFormProps) {
                         }} className="hidden" />
                         <label htmlFor="book-file" className="cursor-pointer w-full text-sm text-muted-foreground flex flex-col items-center gap-1">
                             <FileText className="h-5 w-5" />
-                            {file ? file.name : t('dashboard.upload.clickToUpload', { type: t('nav.books') })}
-                            {file && <span className="text-[10px]">{formatBytes(file.size)}</span>}
+                            <span>
+                                {file ? (file.name.includes('.') ? file.name.substring(0, file.name.lastIndexOf('.')) : file.name) : t('dashboard.upload.clickToUpload', { type: t('nav.books') })}
+                                {file && <span className="ml-1 text-[10px] text-muted-foreground">({file.name.split('.').pop()?.toUpperCase()})</span>}
+                            </span>
+                            {file && <span className="text-[10px] text-primary/70">
+                                {formatBytes(file.size, {
+                                    bytes: t('common.units.bytes'),
+                                    kb: t('common.units.kb'),
+                                    mb: t('common.units.mb'),
+                                    gb: t('common.units.gb')
+                                })}
+                            </span>}
                         </label>
                     </div>
                 </div>

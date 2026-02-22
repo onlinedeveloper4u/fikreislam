@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { getSignedUrl } from '@/lib/storage';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -79,6 +80,8 @@ export function AudioEditDialog({ content, open, onOpenChange, onSuccess }: Audi
     const [hDay, setHDay] = useState('');
     const [hMonth, setHMonth] = useState('');
     const [hYear, setHYear] = useState('');
+    const [signedCoverUrl, setSignedCoverUrl] = useState<string | null>(null);
+    const [fileType, setFileType] = useState<string>('');
 
     const DatePartSelect = ({
         type, value, onChange, placeholder, monthType
@@ -145,8 +148,47 @@ export function AudioEditDialog({ content, open, onOpenChange, onSuccess }: Audi
             setHDay(content.hijri_date_day?.toString() || '');
             setHMonth(content.hijri_date_month || '');
             setHYear(content.hijri_date_year?.toString() || '');
+
+            // Fetch signed URL for existing cover image with transformation for speed
+            if (content.cover_image_url && !signedCoverUrl) {
+                getSignedUrl(content.cover_image_url, 3600, {
+                    transform: { width: 200, height: 200 }
+                }).then(setSignedCoverUrl);
+            }
+
+            // Extract file extension
+            if (content.file_url) {
+                if (content.file_url.includes('google-drive://')) {
+                    setFileType('MP3'); // Most GDrive uploads are MP3 in this context
+                } else {
+                    const parts = content.file_url.split('.');
+                    if (parts.length > 1) {
+                        const ext = parts[parts.length - 1].toUpperCase();
+                        setFileType(ext);
+                    }
+                }
+            }
         }
-    }, [content, t]);
+    }, [content, t, signedCoverUrl]);
+
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0] || null;
+        setNewFile(file);
+        if (file) {
+            const ext = file.name.split('.').pop()?.toUpperCase() || '';
+            setFileType(ext);
+        } else if (content?.file_url) {
+            // Restore original file type if selection is cleared
+            if (content.file_url.includes('google-drive://')) {
+                setFileType('MP3');
+            } else {
+                const parts = content.file_url.split('.');
+                if (parts.length > 1) {
+                    setFileType(parts[parts.length - 1].toUpperCase());
+                }
+            }
+        }
+    };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -168,7 +210,8 @@ export function AudioEditDialog({ content, open, onOpenChange, onSuccess }: Audi
                 status: content.status === 'rejected' ? 'pending' : content.status,
             };
 
-            await editContent(content.id, content.status, updatePayload, newFile, newCoverImage, content.title, content.file_url, 'audio');
+            editContent(content.id, content.status, updatePayload, newFile, newCoverImage, content.title, content.file_url, 'audio');
+            toast.info(t('dashboard.upload.started'));
             onSuccess();
             onOpenChange(false);
         } catch (e: any) {
@@ -189,16 +232,23 @@ export function AudioEditDialog({ content, open, onOpenChange, onSuccess }: Audi
                         <div className="space-y-2 md:col-span-3">
                             <Label>{t('dashboard.upload.fileLabel')} <span className="text-destructive">*</span></Label>
                             <div className="border-2 border-dashed border-border rounded-lg px-4 text-center h-[110px] flex items-center justify-center">
-                                <input id="edit-audio-file" type="file" accept=".mp3,.wav,.ogg,.m4a" onChange={(e) => setNewFile(e.target.files?.[0] || null)} className="hidden" />
+                                <input id="edit-audio-file" type="file" accept=".mp3,.wav,.ogg,.m4a" onChange={handleFileChange} className="hidden" />
                                 <label htmlFor="edit-audio-file" className="cursor-pointer w-full text-sm text-muted-foreground flex flex-col items-center gap-1">
                                     <Headphones className="h-5 w-5" />
                                     <span className="max-w-[80%] truncate text-center font-medium">
-                                        {newFile ? newFile.name : (content?.title || t('dashboard.upload.clickToUpload', { type: t('nav.audio') }))}
+                                        {newFile ? (newFile.name.includes('.') ? newFile.name.substring(0, newFile.name.lastIndexOf('.')) : newFile.name) :
+                                            (content?.title || t('dashboard.upload.clickToUpload', { type: t('nav.audio') }))}
+                                        {fileType && <span className="ml-1 text-[10px] text-muted-foreground">({fileType})</span>}
                                     </span>
                                     {(newFile || content?.file_size) && (
                                         <span className="text-[10px] text-primary/70">
-                                            {formatBytes(newFile ? newFile.size : content?.file_size)}
-                                            {!newFile && content?.file_size && ` • ${t('dashboard.upload.existing') ?? 'Existing'}`}
+                                            {formatBytes(newFile ? newFile.size : content?.file_size, {
+                                                bytes: t('common.units.bytes'),
+                                                kb: t('common.units.kb'),
+                                                mb: t('common.units.mb'),
+                                                gb: t('common.units.gb')
+                                            })}
+                                            {!newFile && content?.file_size && ` • ${t('dashboard.upload.existing')}`}
                                         </span>
                                     )}
                                 </label>
@@ -210,7 +260,7 @@ export function AudioEditDialog({ content, open, onOpenChange, onSuccess }: Audi
                                 <input id="edit-audio-cover" type="file" accept="image/*" onChange={(e) => setNewCoverImage(e.target.files?.[0] || null)} className="hidden" />
                                 <label htmlFor="edit-audio-cover" className="cursor-pointer w-full h-full flex items-center justify-center">
                                     {newCoverImage ? <img src={URL.createObjectURL(newCoverImage)} className="w-full h-full object-cover" /> :
-                                        (content?.cover_image_url ? <img src={content.cover_image_url} className="w-full h-full object-cover" /> : <Upload className="h-5 w-5" />)}
+                                        (signedCoverUrl ? <img src={signedCoverUrl} className="w-full h-full object-cover" /> : <Upload className="h-5 w-5" />)}
                                 </label>
                             </div>
                         </div>
@@ -263,6 +313,10 @@ export function AudioEditDialog({ content, open, onOpenChange, onSuccess }: Audi
                                 <Label>{t('dashboard.upload.audioTypeLabel')} <span className="text-destructive">*</span></Label>
                                 <TaxonomyCombobox options={taxonomies.audio_type} value={audioType} onChange={setAudioType} />
                             </div>
+                        </div>
+                        <div className="space-y-2">
+                            <Label>{t('dashboard.upload.categoriesLabel')}</Label>
+                            <TaxonomyCombobox options={taxonomies.category} value={categories} onChange={setCategories} />
                         </div>
                     </div>
 
