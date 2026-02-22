@@ -51,7 +51,7 @@ export function ContentUploadForm({ onSuccess }: ContentUploadFormProps) {
   const { t } = useTranslation();
   const isAdmin = role === 'admin';
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [contentType, setContentType] = useState<ContentType>('book');
+  const [contentType, setContentType] = useState<ContentType>('audio');
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [author, setAuthor] = useState('');
