@@ -45,24 +45,66 @@ export function AudioUploadForm({ onSuccess }: AudioUploadFormProps) {
         category: string[];
     }>({ speaker: [], language: [], audio_type: [], category: [] });
 
+    const [speaker, setSpeaker] = useState('');
+    const [audioType, setAudioType] = useState('');
+    const [categories, setCategories] = useState('');
+
     useEffect(() => {
         const fetchData = async () => {
-            const [speakers, languages, audioTypes, categories] = await Promise.all([
-                supabase.from('speakers').select('name').order('name'),
+            const [speakers, languages, categoriesData] = await Promise.all([
+                supabase.from('speakers').select('id, name').order('name'),
                 supabase.from('languages').select('name').order('name'),
-                supabase.from('audio_types').select('name').order('name'),
                 supabase.from('categories').select('name').order('name'),
             ]);
 
             setMetadata({
                 speaker: speakers.data?.map(s => s.name) || [],
                 language: languages.data?.map(l => l.name) || [],
-                audio_type: audioTypes.data?.map(a => a.name) || [],
-                category: categories.data?.map(c => c.name) || [],
+                audio_type: [], // Loaded dynamically based on speaker
+                category: categoriesData.data?.map(c => c.name) || [],
             });
         };
         fetchData();
     }, []);
+
+    // Dynamically load audio types when speaker changes
+    useEffect(() => {
+        const fetchAudioTypesForSpeaker = async () => {
+            if (!speaker) {
+                setMetadata(prev => ({ ...prev, audio_type: [] }));
+                setAudioType('');
+                return;
+            }
+
+            try {
+                // 1. Get Speaker ID
+                const { data: speakerData } = await supabase
+                    .from('speakers')
+                    .select('id')
+                    .eq('name', speaker)
+                    .maybeSingle();
+
+                if (!speakerData) return;
+
+                // 2. Get Audio Types for that Speaker
+                const { data: typeData } = await supabase
+                    .from('audio_types')
+                    .select('name')
+                    .eq('speaker_id', speakerData.id)
+                    .order('name');
+
+                setMetadata(prev => ({
+                    ...prev,
+                    audio_type: typeData?.map(t => t.name) || []
+                }));
+                setAudioType(''); // Reset selected type when speaker changes
+            } catch (err) {
+                console.error("Failed to load audio types for speaker", err);
+            }
+        };
+
+        fetchAudioTypesForSpeaker();
+    }, [speaker]);
 
     // Set a default speaker if list not empty to help user
     useEffect(() => {
@@ -81,10 +123,6 @@ export function AudioUploadForm({ onSuccess }: AudioUploadFormProps) {
     const [venueTehsil, setVenueTehsil] = useState('');
     const [venueCity, setVenueCity] = useState('');
     const [venueArea, setVenueArea] = useState('');
-
-    const [speaker, setSpeaker] = useState('');
-    const [audioType, setAudioType] = useState('');
-    const [categories, setCategories] = useState('');
 
     const [gDay, setGDay] = useState('');
     const [gMonth, setGMonth] = useState('');

@@ -70,25 +70,7 @@ export function MetadataCombobox({
                     />
                     <CommandList>
                         <CommandEmpty>
-                            {showCustom ? (
-                                <div className="py-2 px-2">
-                                    <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        className="w-full justify-start text-primary font-medium"
-                                        onClick={() => {
-                                            onChange(search.trim());
-                                            setOpen(false);
-                                            setSearch("");
-                                        }}
-                                    >
-                                        <Plus className="mr-2 h-4 w-4" />
-                                        {t('common.add')} "{search}"
-                                    </Button>
-                                </div>
-                            ) : (
-                                emptyMessage || t('common.noResults')
-                            )}
+                            {!showCustom && (emptyMessage || t('common.noResults'))}
                         </CommandEmpty>
                         <CommandGroup>
                             {options.map((option) => (
@@ -111,6 +93,22 @@ export function MetadataCombobox({
                                 </CommandItem>
                             ))}
                         </CommandGroup>
+                        {showCustom && (
+                            <CommandGroup>
+                                <CommandItem
+                                    value={search}
+                                    onSelect={() => {
+                                        onChange(search.trim());
+                                        setOpen(false);
+                                        setSearch("");
+                                    }}
+                                    className="text-primary font-medium cursor-pointer"
+                                >
+                                    <Plus className="mr-2 h-4 w-4" />
+                                    {t('common.add')} "{search}"
+                                </CommandItem>
+                            </CommandGroup>
+                        )}
                     </CommandList>
                 </Command>
             </PopoverContent>

@@ -175,32 +175,33 @@ export async function renameFolderByIdInGoogleDrive(folderId: string, newName: s
   }
 }
 
+
 /**
- * Rename a folder in Google Drive via the Apps Script bridge
+ * Trashes a folder in Google Drive via the Apps Script bridge
  */
-export async function renameFolderInGoogleDrive(oldPath: string, newFolderName: string): Promise<{ success: boolean, folderId?: string, message?: string }> {
+export async function deleteFolderByIdInGoogleDrive(folderId: string): Promise<{ success: boolean, message?: string }> {
   try {
     const gasUrl = import.meta.env.VITE_GOOGLE_APPS_SCRIPT_URL;
     if (!gasUrl) return { success: false, message: 'Google Apps Script URL not configured' };
+
+    if (!folderId) return { success: false, message: 'No folder ID provided' };
 
     const response = await fetch(gasUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain' },
       body: JSON.stringify({
-        action: 'renameFolder',
-        oldPath: oldPath,
-        newFolderName: newFolderName
+        action: 'deleteFolderById',
+        folderId: folderId
       }),
     });
 
     const result = await response.json();
     return {
       success: result.status === 'success',
-      folderId: result.folderId,
       message: result.message || result.error
     };
   } catch (error: any) {
-    console.error('Error renaming folder in Google Drive:', error);
+    console.error('Error deleting folder by ID in Google Drive:', error);
     return { success: false, message: error.message || 'Network error' };
   }
 }
@@ -230,6 +231,37 @@ export async function createFolderInGoogleDrive(folderPath: string): Promise<{ s
     };
   } catch (error: any) {
     console.error('Error creating folder in Google Drive:', error);
+    return { success: false, message: error.message || 'Network error' };
+  }
+}
+
+/**
+ * Move a file in Google Drive via the Apps Script bridge
+ */
+export async function moveFileInGoogleDrive(fileId: string, folderId: string): Promise<{ success: boolean, message?: string }> {
+  try {
+    const gasUrl = import.meta.env.VITE_GOOGLE_APPS_SCRIPT_URL;
+    if (!gasUrl) return { success: false, message: 'Google Apps Script URL not configured' };
+
+    if (!folderId) return { success: false, message: 'Destination folder ID is required.' };
+
+    const response = await fetch(gasUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify({
+        action: 'moveFile',
+        fileId: fileId,
+        folderId: folderId
+      }),
+    });
+
+    const result = await response.json();
+    return {
+      success: result.status === 'success',
+      message: result.message || result.error
+    };
+  } catch (error: any) {
+    console.error('Error moving file in Google Drive:', error);
     return { success: false, message: error.message || 'Network error' };
   }
 }

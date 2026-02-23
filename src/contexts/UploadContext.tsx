@@ -104,20 +104,31 @@ export const UploadProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
                     if (speakerName) {
                         // Try to get folder ID from speakers and audio_types tables
-                        const [{ data: speaker }, { data: audioTypeData }] = await Promise.all([
-                            supabase.from('speakers').select('google_folder_id').eq('name', speakerName).maybeSingle(),
-                            supabase.from('audio_types').select('google_folder_id').eq('name', audioType).maybeSingle()
-                        ]);
+                        const { data: speaker } = await supabase
+                            .from('speakers')
+                            .select('id, google_folder_id')
+                            .eq('name', speakerName)
+                            .maybeSingle();
+
+                        let audioTypeData = null;
+                        if (speaker?.id && audioType) {
+                            const { data } = await supabase
+                                .from('audio_types')
+                                .select('google_folder_id')
+                                .eq('name', audioType)
+                                .eq('speaker_id', speaker.id)
+                                .maybeSingle();
+                            audioTypeData = data;
+                        }
 
                         if (audioTypeData?.google_folder_id) {
                             googleFolderId = audioTypeData.google_folder_id;
-                        } else if (speaker?.google_folder_id) {
-                            googleFolderId = speaker.google_folder_id;
-                            // Note: if speaker has ID but audioType doesn't, GAS will still handle subfolder creation if folderPath is provided
-                            folderPath = audioType ? `${audioType}` : '';
                         } else {
-                            // Fallback to full path
+                            // If we don't have the exact audio type folder ID, 
+                            // we must provide the FULL absolute path from the root so GAS can getOrCreateFolder it.
+                            // Passing speaker's folderId and a relative folderPath doesn't work with the current GAS logic.
                             folderPath = audioType ? `فکر اسلام/${speakerName}/${audioType}` : `فکر اسلام/${speakerName}`;
+                            googleFolderId = null; // Force GAS to use folderPath
                         }
                     }
                 }
@@ -181,24 +192,57 @@ export const UploadProvider: React.FC<{ children: React.ReactNode }> = ({ childr
             updateUpload(uploadId, { progress: 80, status: 'database' });
 
             // 2.5 Ensure metadata records exist
-            const insertMetadata = async (type: "speaker" | "language" | "audio_type" | "category", name: string) => {
-                if (!name) return;
+            const insertMetadata = async (type: "speaker" | "language" | "audio_type" | "category", name: string, parentSpeakerId?: string) => {
+                if (!name) return null;
                 const tableName = type === 'audio_type' ? 'audio_types' : (type === 'speaker' ? 'speakers' : (type === 'language' ? 'languages' : (type === 'category' ? 'categories' : null)));
-                if (!tableName) return;
+                if (!tableName) return null;
 
                 try {
-                    const { error } = await supabase
+                    let payload: any = { name };
+                    let conflictTarget = 'name';
+
+                    if (type === 'audio_type' && parentSpeakerId) {
+                        payload.speaker_id = parentSpeakerId;
+                        // Use a custom conflict logic since Prisma/Supabase upsert on composite keys needs precise handling
+                        const { data: existing } = await supabase
+                            .from('audio_types')
+                            .select('id')
+                            .eq('name', name)
+                            .eq('speaker_id', parentSpeakerId)
+                            .maybeSingle();
+
+                        if (existing) return existing.id;
+
+                        const { data: inserted, error } = await supabase
+                            .from('audio_types')
+                            .insert([payload])
+                            .select('id')
+                            .single();
+
+                        if (error) console.warn(`Metadata (audio_types) insert error:`, error);
+                        return inserted?.id || null;
+                    }
+
+                    const { data, error } = await supabase
                         .from(tableName as any)
-                        .upsert({ name }, { onConflict: 'name', ignoreDuplicates: true });
+                        .upsert(payload, { onConflict: conflictTarget })
+                        .select('id')
+                        .maybeSingle();
+
                     if (error && error.code !== '23505') console.warn(`Metadata (${tableName}) upsert error:`, error);
+                    return data?.id || null;
                 } catch (err) {
-                    console.debug('Metadata record already exists');
+                    console.debug('Metadata record already exists or failed:', err);
+                    return null;
                 }
             };
 
+            let currentSpeakerId = null;
             if (formData.contentType === 'audio') {
-                await insertMetadata('speaker', formData.speaker);
-                await insertMetadata('audio_type', formData.audioType);
+                currentSpeakerId = await insertMetadata('speaker', formData.speaker);
+                if (currentSpeakerId) {
+                    await insertMetadata('audio_type', formData.audioType, currentSpeakerId);
+                }
                 const catsRaw = formData.categoriesValue || [];
                 const cats = Array.isArray(catsRaw) ? catsRaw : (typeof catsRaw === 'string' ? catsRaw.split(',').map((c: string) => c.trim()).filter(Boolean) : []);
                 for (const c of cats) await insertMetadata('category', c);
@@ -365,6 +409,60 @@ export const UploadProvider: React.FC<{ children: React.ReactNode }> = ({ childr
                     fileUrlPath = filePath;
                 }
                 updateUpload(uploadId, { progress: 50 });
+            } else if (contentType === 'audio' && currentFileUrl?.startsWith('google-drive://')) {
+                // If no new file is uploaded but metadata changed, check if we need to move the file
+                const fileId = currentFileUrl.replace('google-drive://', '');
+
+                // Get the old content record to compare
+                const { data: oldContent } = await supabase
+                    .from('content')
+                    .select('speaker, audio_type')
+                    .eq('id', contentId)
+                    .single();
+
+                const oldSpeaker = oldContent?.speaker || '';
+                const oldAudioType = oldContent?.audio_type || '';
+                const newSpeaker = (updatePayload.speaker || '').trim();
+                const newAudioType = (updatePayload.audio_type || '').trim();
+
+                if (oldSpeaker !== newSpeaker || oldAudioType !== newAudioType) {
+                    updateUpload(uploadId, { status: 'uploading', progress: 30 }); // Reusing status for UI
+
+                    let folderPath = 'audio';
+                    let googleFolderId = null;
+
+                    if (newSpeaker) {
+                        const { data: speaker } = await supabase.from('speakers').select('id, google_folder_id').eq('name', newSpeaker).maybeSingle();
+
+                        let audioTypeData = null;
+                        if (speaker?.id && newAudioType) {
+                            const { data } = await supabase.from('audio_types').select('google_folder_id').eq('name', newAudioType).eq('speaker_id', speaker.id).maybeSingle();
+                            audioTypeData = data;
+                        }
+
+                        if (audioTypeData?.google_folder_id) {
+                            googleFolderId = audioTypeData.google_folder_id;
+                        } else {
+                            const newPath = newAudioType ? `فکر اسلام/${newSpeaker}/${newAudioType}` : `فکر اسلام/${newSpeaker}`;
+                            const { createFolderInGoogleDrive } = await import('@/lib/storage');
+                            const createResult = await createFolderInGoogleDrive(newPath);
+                            if (createResult.success && createResult.folderId) {
+                                googleFolderId = createResult.folderId;
+                            } else {
+                                toast.error('Could not create destination folder in Google Drive.');
+                            }
+                        }
+                    }
+
+                    if (googleFolderId) {
+                        const { moveFileInGoogleDrive } = await import('@/lib/storage');
+                        const moveResult = await moveFileInGoogleDrive(fileId, googleFolderId);
+                        if (!moveResult.success) {
+                            console.error('Failed to move file in Google Drive:', moveResult.message);
+                            toast.error('Could not move file to new folder in Google Drive.');
+                        }
+                    }
+                }
             }
 
             if (controller.signal.aborted) throw new Error('Aborted');
@@ -385,6 +483,46 @@ export const UploadProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
             if (controller.signal.aborted) throw new Error('Aborted');
             updateUpload(uploadId, { progress: 80, status: 'database' });
+
+            // 2.5 Ensure metadata records exist (same as upload logic)
+            const insertMetadata = async (type: "speaker" | "language" | "audio_type" | "category", name: string, parentSpeakerId?: string) => {
+                if (!name) return null;
+                const tableName = type === 'audio_type' ? 'audio_types' : (type === 'speaker' ? 'speakers' : (type === 'language' ? 'languages' : (type === 'category' ? 'categories' : null)));
+                if (!tableName) return null;
+
+                try {
+                    let payload: any = { name };
+                    let conflictTarget = 'name';
+
+                    if (type === 'audio_type' && parentSpeakerId) {
+                        payload.speaker_id = parentSpeakerId;
+                        const { data: existing } = await supabase.from('audio_types').select('id').eq('name', name).eq('speaker_id', parentSpeakerId).maybeSingle();
+                        if (existing) return existing.id;
+
+                        const { data: inserted, error } = await supabase.from('audio_types').insert([payload]).select('id').single();
+                        if (error) console.warn(`Metadata (audio_types) insert error:`, error);
+                        return inserted?.id || null;
+                    }
+
+                    const { data, error } = await supabase.from(tableName as any).upsert(payload, { onConflict: conflictTarget }).select('id').maybeSingle();
+                    if (error && error.code !== '23505') console.warn(`Metadata (${tableName}) upsert error:`, error);
+                    return data?.id || null;
+                } catch (err) {
+                    console.debug('Metadata record already exists or failed:', err);
+                    return null;
+                }
+            };
+
+            if (contentType === 'audio') {
+                const currentSpeakerId = await insertMetadata('speaker', updatePayload.speaker);
+                if (currentSpeakerId) {
+                    await insertMetadata('audio_type', updatePayload.audio_type, currentSpeakerId);
+                }
+                const catsRaw = updatePayload.categories || [];
+                const cats = Array.isArray(catsRaw) ? catsRaw : (typeof catsRaw === 'string' ? catsRaw.split(',').map((c: string) => c.trim()).filter(Boolean) : []);
+                for (const c of cats) await insertMetadata('category', c);
+            }
+            await insertMetadata('language', updatePayload.language);
 
             const { error: dbError } = await supabase
                 .from('content')

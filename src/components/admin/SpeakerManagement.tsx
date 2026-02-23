@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
 import { Loader2, Plus, Trash2, Pencil, Check, X, Mic2 } from 'lucide-react';
-import { renameFolderInGoogleDrive, renameFolderByIdInGoogleDrive, createFolderInGoogleDrive } from '@/lib/storage';
+import { renameFolderByIdInGoogleDrive, createFolderInGoogleDrive, deleteFolderByIdInGoogleDrive } from '@/lib/storage';
 
 interface Speaker {
     id: string;
@@ -127,18 +127,6 @@ export function SpeakerManagement() {
                 if (folderId) {
                     const result = await renameFolderByIdInGoogleDrive(folderId, updatedName);
                     if (!result.success) toast.error(`Google Drive error: ${result.message}`);
-                } else {
-                    // Fallback to path search
-                    const result = await renameFolderInGoogleDrive(`فکر اسلام/${oldName}`, updatedName);
-                    if (result.success && result.folderId) {
-                        await supabase.from('speakers').update({ google_folder_id: result.folderId }).eq('id', id);
-                    } else {
-                        // Try without prefix
-                        const altResult = await renameFolderInGoogleDrive(oldName, updatedName);
-                        if (altResult.success && altResult.folderId) {
-                            await supabase.from('speakers').update({ google_folder_id: altResult.folderId }).eq('id', id);
-                        }
-                    }
                 }
             }
 
@@ -159,12 +147,23 @@ export function SpeakerManagement() {
 
         setActionLoading(id);
         try {
+            const itemToDelete = speakers.find(s => s.id === id);
+
             const { error } = await supabase
                 .from('speakers')
                 .delete()
                 .eq('id', id);
 
             if (error) throw error;
+
+            if (itemToDelete?.google_folder_id) {
+                const folderId = itemToDelete.google_folder_id;
+                const result = await deleteFolderByIdInGoogleDrive(folderId);
+
+                if (!result.success) {
+                    toast.error(`Google Drive deletion error: ${result.message}`);
+                }
+            }
 
             toast.success(t('common.success'));
             setSpeakers(prev => prev.filter(s => s.id !== id));

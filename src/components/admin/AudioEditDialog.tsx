@@ -60,22 +60,58 @@ export function AudioEditDialog({ content, open, onOpenChange, onSuccess }: Audi
 
     useEffect(() => {
         const fetchData = async () => {
-            const [speakers, languages, audioTypes, categories] = await Promise.all([
-                supabase.from('speakers').select('name').order('name'),
+            const [speakers, languages, categories] = await Promise.all([
+                supabase.from('speakers').select('id, name').order('name'),
                 supabase.from('languages').select('name').order('name'),
-                supabase.from('audio_types').select('name').order('name'),
                 supabase.from('categories').select('name').order('name'),
             ]);
 
             setMetadata({
                 speaker: speakers.data?.map(s => s.name) || [],
                 language: languages.data?.map(l => l.name) || [],
-                audio_type: audioTypes.data?.map(a => a.name) || [],
+                audio_type: [], // Loaded dynamically based on speaker
                 category: categories.data?.map(c => c.name) || [],
             });
         };
         fetchData();
     }, []);
+
+    // Dynamically load audio types when speaker changes
+    useEffect(() => {
+        const fetchAudioTypesForSpeaker = async () => {
+            if (!speaker) {
+                setMetadata(prev => ({ ...prev, audio_type: [] }));
+                return;
+            }
+
+            try {
+                // 1. Get Speaker ID
+                const { data: speakerData } = await supabase
+                    .from('speakers')
+                    .select('id')
+                    .eq('name', speaker)
+                    .maybeSingle();
+
+                if (!speakerData) return;
+
+                // 2. Get Audio Types for that Speaker
+                const { data: typeData } = await supabase
+                    .from('audio_types')
+                    .select('name')
+                    .eq('speaker_id', speakerData.id)
+                    .order('name');
+
+                setMetadata(prev => ({
+                    ...prev,
+                    audio_type: typeData?.map(t => t.name) || []
+                }));
+            } catch (err) {
+                console.error("Failed to load audio types for speaker", err);
+            }
+        };
+
+        fetchAudioTypesForSpeaker();
+    }, [speaker]);
 
     const [newFile, setNewFile] = useState<File | null>(null);
     const [newCoverImage, setNewCoverImage] = useState<File | null>(null);
