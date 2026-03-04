@@ -1,0 +1,51 @@
+---
+import { ClientRouter } from 'astro:transitions';
+import Navbar from '../components/Navbar';
+import Footer from '../components/Footer';
+import GlobalAudioPlayer from '../components/GlobalAudioPlayer';
+import '../styles/global.css';
+
+interface Props {
+  title?: string;
+  description?: string;
+}
+
+const {
+  title = 'فکر اسلام — مستند اسلامی مواد',
+  description = 'مستند اسلامی کتب، خطبات اور ویڈیوز کا ایک جامع ذخیرہ — قابل اعتماد علماء سے',
+} = Astro.props;
+---
+
+<!doctype html>
+<html lang="ur" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content={description} />
+    <meta name="theme-color" content="#121212" />
+    <link rel="icon" type="image/svg+xml" href="/logo.png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap"
+      rel="stylesheet"
+    />
+    <title>{title}</title>
+    <ClientRouter />
+  </head>
+  <body class="bg-slate-50 text-slate-900/80 antialiased">
+    <!-- Navbar (React island) -->
+    <Navbar client:load />
+
+    <!-- Page Content -->
+    <main>
+      <slot />
+    </main>
+
+    <!-- Footer -->
+    <Footer client:visible />
+
+    <!-- Persistent Audio Player — survives view transitions -->
+    <GlobalAudioPlayer client:load transition:persist />
+  </body>
+</html>

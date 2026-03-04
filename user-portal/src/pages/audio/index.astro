@@ -1,0 +1,30 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import ContentSection from '../../components/ContentSection';
+import { supabase } from '../../lib/supabase';
+import { withSignedUrls } from '../../lib/storage';
+import type { ContentItem } from '../../lib/types';
+
+// Server-side fetch — all approved audio content
+const { data, error } = await supabase
+  .from('content')
+  .select('id, title, description, author, type, language, tags, file_url, cover_image_url, published_at')
+  .eq('status', 'approved')
+  .eq('type', 'audio')
+  .order('published_at', { ascending: false });
+
+let items: ContentItem[] = (data as ContentItem[]) || [];
+items = await withSignedUrls(items);
+---
+
+<BaseLayout title="آڈیو لائبریری — فکر اسلام" description="مختلف علماء کے بصیرت افروز خطبات، سلسلے اور قرآنی تلاوت سنیں۔">
+  <div class="container-app">
+    <ContentSection
+      client:load
+      items={items}
+      contentType="audio"
+      title="آڈیو لائبریری"
+      description="مختلف علماء کے بصیرت افروز خطبات، سلسلے اور قرآنی تلاوت سنیں۔"
+    />
+  </div>
+</BaseLayout>
