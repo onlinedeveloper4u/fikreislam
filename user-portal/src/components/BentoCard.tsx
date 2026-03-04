@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { Music, Play, User, Calendar } from 'lucide-react';
+import { Music, Play, User, Calendar, Download } from 'lucide-react';
 import { audioStore } from '../lib/audioStore';
 import { resolveMediaUrl } from '../lib/media';
 import type { ContentItem } from '../lib/types';
@@ -23,6 +23,31 @@ export default function BentoCard({ item, index }: BentoCardProps) {
             author: item.author ?? undefined,
             url,
         });
+    };
+
+    const handleDownload = async (e: React.MouseEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+
+        const url = resolveMediaUrl(item.file_url);
+        if (!url) return;
+
+        try {
+            const response = await fetch(url);
+            const blob = await response.blob();
+            const blobUrl = window.URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = blobUrl;
+            link.download = `${item.title}.mp3`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            window.URL.revokeObjectURL(blobUrl);
+        } catch (error) {
+            console.error('Download failed:', error);
+            // Fallback to simple window.open if fetch fails (e.g. CORS)
+            window.open(url, '_blank');
+        }
     };
 
     return (
@@ -55,7 +80,7 @@ export default function BentoCard({ item, index }: BentoCardProps) {
                 )}
 
                 {/* Hover Overlay */}
-                <div className="absolute inset-0 bg-white/60 opacity-0 group-hover:opacity-100 transition-all duration-400 flex items-center justify-center backdrop-blur-sm">
+                <div className="absolute inset-0 bg-white/60 opacity-0 group-hover:opacity-100 transition-all duration-400 flex items-center justify-center gap-4 backdrop-blur-sm">
                     <motion.div
                         initial={false}
                         whileHover={{ scale: 1.1 }}
@@ -64,6 +89,16 @@ export default function BentoCard({ item, index }: BentoCardProps) {
                         className="w-14 h-14 rounded-full gradient-emerald-glow flex items-center justify-center shadow-2xl shadow-emerald-500/40"
                     >
                         <Play className="w-6 h-6 text-slate-50 ml-0.5" />
+                    </motion.div>
+
+                    <motion.div
+                        initial={false}
+                        whileHover={{ scale: 1.1 }}
+                        whileTap={{ scale: 0.9 }}
+                        onClick={handleDownload}
+                        className="w-14 h-14 rounded-full glass border-slate-900/10 flex items-center justify-center shadow-xl hover:bg-emerald-500/10 transition-colors"
+                    >
+                        <Download className="w-6 h-6 text-emerald-700" />
                     </motion.div>
                 </div>
 
