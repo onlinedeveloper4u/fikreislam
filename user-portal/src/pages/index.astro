@@ -9,7 +9,7 @@ import type { ContentItem } from '../lib/types';
 // Server-side fetch — latest 8 audio items for featured section
 const { data: featuredAudio, error } = await supabase
   .from('content')
-  .select('id, title, description, author, type, language, tags, file_url, cover_image_url, published_at')
+  .select('id, title, description, author, type, language, tags, file_url, cover_image_url, duration, file_size, published_at')
   .eq('status', 'approved')
   .eq('type', 'audio')
   .order('published_at', { ascending: false })

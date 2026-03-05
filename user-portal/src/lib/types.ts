@@ -12,5 +12,7 @@ export interface ContentItem {
     tags: string[] | null;
     file_url: string | null;
     cover_image_url: string | null;
+    duration: string | null;
+    file_size: string | null;
     published_at: string | null;
 }

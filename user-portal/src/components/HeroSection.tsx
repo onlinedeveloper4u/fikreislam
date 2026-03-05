@@ -70,7 +70,7 @@ export default function HeroSection() {
                     {/* Heading */}
                     <motion.h1
                         variants={itemVariants}
-                        className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-bold text-slate-900 mb-6 tracking-tight leading-[1.1]"
+                        className="font-urdu text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-bold text-slate-900 mb-6 tracking-tight leading-[1.3]"
                     >
                         فکر{' '}
                         <span className="text-gradient-emerald">اسلام</span>
@@ -113,7 +113,7 @@ export default function HeroSection() {
                                 <div className="w-16 h-16 rounded-2xl gradient-emerald flex items-center justify-center mx-auto mb-5 group-hover:scale-110 transition-transform duration-500 shadow-lg shadow-emerald-500/20">
                                     <Headphones className="w-8 h-8 text-slate-900" />
                                 </div>
-                                <h3 className="text-xl font-bold text-slate-900 mb-3">آڈیو خطبات</h3>
+                                <h3 className="font-urdu text-xl font-bold text-slate-900 mb-3">آڈیو خطبات</h3>
                                 <p className="text-slate-900/30 text-sm leading-relaxed">
                                     مختلف علماء کے بصیرت افروز خطبات اور قرآنی تلاوت سنیں۔
                                 </p>

@@ -24,7 +24,12 @@
 
   --font-display: 'Inter', 'Segoe UI', system-ui, sans-serif;
   --font-body: 'Inter', 'Segoe UI', system-ui, sans-serif;
-  --font-urdu: 'Noto Nastaliq Urdu', 'Jameel Noori Nastaleeq', serif;
+  --font-urdu: "Noto Nastaliq Urdu", "Jameel Noori Nastaliq", serif;
+}
+
+.font-urdu {
+  font-family: var(--font-urdu);
+  line-height: 1.8 !important;
 }
 
 /* ── Base Reset ── */
@@ -44,10 +49,12 @@ body {
   margin: 0;
   background-color: var(--color-night-800);
   color: var(--color-glass-white-80);
-  font-family: var(--font-body);
-  line-height: 1.6;
+  font-family: var(--font-urdu);
+  line-height: 1.8;
   overflow-x: hidden;
   min-height: 100vh;
+  /* Add padding to ensure content isn't cut off by persistent audio player */
+  padding-bottom: 80px;
 }
 
 /* ── Scrollbar Styling ── */
@@ -163,6 +170,33 @@ body {
   animation: shimmer 3s linear infinite;
 }
 
+/* Waveform Animation */
+@keyframes wave {
+
+  0%,
+  100% {
+    height: 4px;
+  }
+
+  50% {
+    height: 16px;
+  }
+}
+
+.waveform-line {
+  width: 3px;
+  background-color: currentColor;
+  border-radius: 99px;
+  animation: wave 1s ease-in-out infinite;
+}
+
+/* Button Active States for Mobile */
+button:active,
+.glass-card:active {
+  transform: scale(0.96) !important;
+  opacity: 0.9;
+}
+
 /* ── Layout Utilities ── */
 .container-app {
   width: 100%;
@@ -186,37 +220,74 @@ body {
   }
 }
 
-/* ── Bento Grid ── */
+/* ── Audio Grid ── */
 .bento-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: 1fr;
   gap: 1rem;
 }
 
-@media (min-width: 640px) {
+/* All Mobiles & Small Tablets: 2 columns */
+@media (min-width: 320px) {
   .bento-grid {
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 0.75rem;
+  }
+}
+
+/* Tablets: 3 columns */
+@media (min-width: 768px) {
+  .bento-grid {
+    grid-template-columns: repeat(3, 1fr) !important;
     gap: 1.25rem;
   }
 }
 
+/* Desktop: 4 columns */
 @media (min-width: 1024px) {
   .bento-grid {
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(4, 1fr) !important;
     gap: 1.5rem;
   }
 }
 
-/* Bento feature cells */
-.bento-grid> :nth-child(1) {
-  grid-column: span 2;
-  grid-row: span 2;
+/* Force all items to NOT span multiple columns/rows */
+.bento-grid>* {
+  grid-column: span 1 !important;
+  grid-row: span 1 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  height: 100% !important;
 }
 
-@media (min-width: 1024px) {
-  .bento-grid> :nth-child(5) {
-    grid-column: span 2;
-  }
+/* Updated Card Styles for better visibility */
+.glass-card {
+  background: #ffffff;
+  border: 1px solid rgba(15, 23, 42, 0.05);
+  border-radius: 1rem;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.glass-card:active {
+  transform: scale(0.97);
+  background: #f8fafc;
+}
+
+.language-badge {
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.2), 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+/* Ensure all card images/placeholders have the same exact square dimensions */
+.glass-card .aspect-square {
+  aspect-ratio: 1 / 1 !important;
+  width: 100% !important;
+  height: auto !important;
+  flex-shrink: 0 !important;
 }
 
 /* ── View Transition Defaults ── */

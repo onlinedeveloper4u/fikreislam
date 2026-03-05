@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Filter, X, Music } from 'lucide-react';
+import { Search, Filter, X, Music, Grid, List as ListIcon } from 'lucide-react';
 import BentoGrid from './BentoGrid';
 import type { ContentItem, ContentType } from '../lib/types';
 
@@ -17,6 +17,7 @@ export default function ContentSection({ items, contentType, title, description 
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedLanguage, setSelectedLanguage] = useState('تمام');
     const [selectedTag, setSelectedTag] = useState<string | null>(null);
+    const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
     const TypeIcon = Music;
 
@@ -65,7 +66,7 @@ export default function ContentSection({ items, contentType, title, description 
                 >
                     <TypeIcon className="w-10 h-10 text-slate-900" />
                 </motion.div>
-                <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-slate-900 mb-4 tracking-tight">
+                <h1 className="font-urdu text-4xl sm:text-5xl lg:text-6xl font-bold text-slate-900 mb-4 tracking-tight">
                     {title}
                 </h1>
                 <p className="text-slate-900/35 text-lg max-w-2xl mx-auto leading-relaxed">
@@ -92,8 +93,32 @@ export default function ContentSection({ items, contentType, title, description 
                     />
                 </div>
 
-                {/* Language Filter */}
+                {/* Controls Area */}
                 <div className="flex gap-3 flex-wrap sm:flex-nowrap">
+                    {/* View Toggle */}
+                    <div className="flex bg-slate-100 rounded-xl p-1 border border-slate-900/5">
+                        <button
+                            onClick={() => setViewMode('grid')}
+                            className={`p-2.5 rounded-lg transition-all ${viewMode === 'grid'
+                                ? 'bg-white text-emerald-600 shadow-sm'
+                                : 'text-slate-400 hover:text-slate-600'
+                                }`}
+                            aria-label="Grid View"
+                        >
+                            <Grid className="w-5 h-5" />
+                        </button>
+                        <button
+                            onClick={() => setViewMode('list')}
+                            className={`p-2.5 rounded-lg transition-all ${viewMode === 'list'
+                                ? 'bg-white text-emerald-600 shadow-sm'
+                                : 'text-slate-400 hover:text-slate-600'
+                                }`}
+                            aria-label="List View"
+                        >
+                            <ListIcon className="w-5 h-5" />
+                        </button>
+                    </div>
+
                     <div className="relative">
                         <select
                             value={selectedLanguage}
@@ -126,7 +151,7 @@ export default function ContentSection({ items, contentType, title, description 
                     {hasActiveFilters && (
                         <button
                             onClick={clearFilters}
-                            className="h-12 w-12 rounded-xl bg-slate-900/5 border border-slate-900/5 text-slate-900/30 hover:text-red-400 hover:border-red-400/20 hover:bg-red-400/5 transition-all flex items-center justify-center flex-shrink-0"
+                            className="h-12 w-12 rounded-xl bg-slate-900/5 border border-slate-900/5 text-slate-900/30 hover:text-red-400 hover:border-red-400/20 hover:bg-red-400/5 transition-all flex items-center justify-center shrink-0"
                         >
                             <X className="w-5 h-5" />
                         </button>
@@ -153,7 +178,10 @@ export default function ContentSection({ items, contentType, title, description 
             </div>
 
             {/* Bento Grid */}
-            <BentoGrid items={filtered} />
+            <BentoGrid
+                items={filtered}
+                viewMode={viewMode}
+            />
         </div>
     );
 }

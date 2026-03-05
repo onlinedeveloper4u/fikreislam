@@ -7,9 +7,16 @@ interface BentoGridProps {
     title?: string;
     description?: string;
     emptyMessage?: string;
+    viewMode?: 'grid' | 'list';
 }
 
-export default function BentoGrid({ items, title, description, emptyMessage }: BentoGridProps) {
+export default function BentoGrid({
+    items,
+    title,
+    description,
+    emptyMessage,
+    viewMode = 'grid'
+}: BentoGridProps) {
     if (items.length === 0) {
         return (
             <motion.div
@@ -20,7 +27,7 @@ export default function BentoGrid({ items, title, description, emptyMessage }: B
                 <div className="w-20 h-20 rounded-full bg-slate-900/5 flex items-center justify-center mx-auto mb-6">
                     <span className="text-4xl">🎵</span>
                 </div>
-                <p className="text-slate-900/30 text-lg font-medium">
+                <p className="font-urdu text-slate-900/40 text-lg font-medium">
                     {emptyMessage || 'ابھی تک کوئی مواد نہیں ملا'}
                 </p>
             </motion.div>
@@ -37,7 +44,7 @@ export default function BentoGrid({ items, title, description, emptyMessage }: B
                     className="text-center"
                 >
                     {title && (
-                        <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-slate-900 mb-3 tracking-tight">
+                        <h2 className="font-urdu text-3xl sm:text-4xl lg:text-5xl font-bold text-slate-900 mb-3 tracking-tight">
                             {title}
                         </h2>
                     )}
@@ -49,9 +56,14 @@ export default function BentoGrid({ items, title, description, emptyMessage }: B
                 </motion.div>
             )}
 
-            <div className="bento-grid">
+            <div className={viewMode === 'list' ? 'flex flex-col gap-4' : 'bento-grid'}>
                 {items.map((item, index) => (
-                    <BentoCard key={item.id} item={item} index={index} />
+                    <BentoCard
+                        key={item.id}
+                        item={item}
+                        index={index}
+                        viewMode={viewMode}
+                    />
                 ))}
             </div>
         </section>
