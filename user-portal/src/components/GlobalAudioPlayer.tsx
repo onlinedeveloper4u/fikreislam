@@ -158,7 +158,7 @@ export default function GlobalAudioPlayer() {
                                             >
                                                 <span className="font-sans leading-none">{speed}x</span>
                                                 {playbackRate === speed && <Check className="w-3.5 h-3.5" />}
-                                                {speed === 1 && playbackRate !== 1 && <span className="text-[9px] opacity-40 font-sans leading-none">Normal</span>}
+                                                {speed === 1 && playbackRate !== 1 && <span className="text-[9px] opacity-40 font-urdu leading-none">عام</span>}
                                             </button>
                                         ))}
                                     </div>
