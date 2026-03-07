@@ -1,5 +1,6 @@
+import { useState, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { Music, Play, User, Calendar, Download, Clock } from 'lucide-react';
+import { Music, Play, User, Calendar, Download, Clock, Loader2 } from 'lucide-react';
 import { audioStore } from '../lib/audioStore';
 import { resolveMediaUrl } from '../lib/media';
 import type { ContentItem } from '../lib/types';
@@ -60,29 +61,48 @@ export default function BentoCard({ item, index, viewMode = 'grid' }: BentoCardP
         });
     };
 
-    const handleDownload = async (e: React.MouseEvent) => {
+    const [isDownloading, setIsDownloading] = useState(false);
+
+    const handleDownload = useCallback((e: React.MouseEvent) => {
         e.preventDefault();
         e.stopPropagation();
+
+        if (isDownloading) return;
 
         const url = resolveMediaUrl(item.file_url);
         if (!url) return;
 
-        try {
-            const response = await fetch(url);
-            const blob = await response.blob();
-            const blobUrl = window.URL.createObjectURL(blob);
-            const link = document.createElement('a');
-            link.href = blobUrl;
-            link.download = `${item.title}.mp3`;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            window.URL.revokeObjectURL(blobUrl);
-        } catch (error) {
-            console.error('Download failed:', error);
-            window.open(url, '_blank');
-        }
-    };
+        setIsDownloading(true);
+
+        const token = Math.random().toString(36).substring(2, 10);
+        const cookieName = `dl_${token}`;
+        const fileName = `${item.title}.mp3`;
+        const downloadUrl = `/api/download?url=${encodeURIComponent(url)}&name=${encodeURIComponent(fileName)}&token=${token}`;
+
+        const link = document.createElement('a');
+        link.href = downloadUrl;
+        link.download = fileName;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+
+        // Poll for the cookie that the API sets when the download stream starts
+        const maxWait = 15000; // 15s failsafe timeout
+        const startTime = Date.now();
+        const interval = setInterval(() => {
+            const hasCookie = document.cookie.includes(cookieName);
+            const timedOut = Date.now() - startTime > maxWait;
+
+            if (hasCookie || timedOut) {
+                clearInterval(interval);
+                setIsDownloading(false);
+                // Clean up the cookie
+                if (hasCookie) {
+                    document.cookie = `${cookieName}=; Path=/; Max-Age=0`;
+                }
+            }
+        }, 200);
+    }, [isDownloading, item.file_url, item.title]);
 
     if (viewMode === 'list') {
         return (
@@ -165,16 +185,26 @@ export default function BentoCard({ item, index, viewMode = 'grid' }: BentoCardP
                     </button>
                     <button
                         onClick={handleDownload}
-                        className="h-10 px-4 rounded-xl border border-slate-200 hover:border-emerald-500 hover:bg-emerald-50/50 text-slate-600 hover:text-emerald-700 flex items-center justify-center gap-3 active:scale-95 transition-all group/btn"
+                        disabled={isDownloading}
+                        className={`h-10 px-4 rounded-xl border flex items-center justify-center gap-3 active:scale-95 transition-all group/btn ${isDownloading
+                                ? 'border-emerald-300 bg-emerald-50/80 text-emerald-600 cursor-wait'
+                                : 'border-slate-200 hover:border-emerald-500 hover:bg-emerald-50/50 text-slate-600 hover:text-emerald-700'
+                            }`}
                         aria-label="Download"
                     >
-                        {sizeParts && (
-                            <div className="flex items-center gap-1.5 font-sans leading-none">
-                                <span className="text-xs font-extrabold text-slate-800 group-hover:text-emerald-800 transition-colors">{sizeParts.value}</span>
-                                <span className="text-[9px] opacity-60 font-medium">{sizeParts.unit}</span>
-                            </div>
+                        {isDownloading ? (
+                            <Loader2 className="w-4 h-4 text-emerald-600 animate-spin" />
+                        ) : (
+                            <>
+                                {sizeParts && (
+                                    <div className="flex items-center gap-1.5 font-sans leading-none">
+                                        <span className="text-xs font-extrabold text-slate-800 group-hover:text-emerald-800 transition-colors">{sizeParts.value}</span>
+                                        <span className="text-[9px] opacity-60 font-medium">{sizeParts.unit}</span>
+                                    </div>
+                                )}
+                                <Download className="w-4 h-4 text-slate-400 group-hover:text-emerald-600 transition-colors" />
+                            </>
                         )}
-                        <Download className="w-4 h-4 text-slate-400 group-hover:text-emerald-600 transition-colors" />
                     </button>
                 </div>
             </motion.a>
@@ -274,16 +304,26 @@ export default function BentoCard({ item, index, viewMode = 'grid' }: BentoCardP
                 <div className="px-4 pb-5 mt-auto">
                     <button
                         onClick={handleDownload}
-                        className="w-full h-11 rounded-2xl border border-slate-200 hover:border-emerald-500 hover:bg-emerald-50/50 text-slate-600 hover:text-emerald-700 flex items-center justify-center gap-4 active:scale-95 transition-all group/btn"
+                        disabled={isDownloading}
+                        className={`w-full h-11 rounded-2xl border flex items-center justify-center gap-4 active:scale-95 transition-all group/btn ${isDownloading
+                                ? 'border-emerald-300 bg-emerald-50/80 text-emerald-600 cursor-wait'
+                                : 'border-slate-200 hover:border-emerald-500 hover:bg-emerald-50/50 text-slate-600 hover:text-emerald-700'
+                            }`}
                         aria-label="Download"
                     >
-                        {sizeParts && (
-                            <div className="flex items-center gap-2 font-sans leading-none">
-                                <span className="text-sm font-extrabold tracking-tight text-slate-800 group-hover/btn:text-emerald-700 transition-colors">{sizeParts.value}</span>
-                                <span className="text-[10px] opacity-60 font-medium group-hover/btn:text-emerald-600 transition-colors">{sizeParts.unit}</span>
-                            </div>
+                        {isDownloading ? (
+                            <Loader2 className="w-5 h-5 text-emerald-600 animate-spin" />
+                        ) : (
+                            <>
+                                {sizeParts && (
+                                    <div className="flex items-center gap-2 font-sans leading-none">
+                                        <span className="text-sm font-extrabold tracking-tight text-slate-800 group-hover/btn:text-emerald-700 transition-colors">{sizeParts.value}</span>
+                                        <span className="text-[10px] opacity-60 font-medium group-hover/btn:text-emerald-600 transition-colors">{sizeParts.unit}</span>
+                                    </div>
+                                )}
+                                <Download className="w-5 h-5 text-slate-400 group-hover/btn:text-emerald-600 group-hover/btn:scale-110 transition-all" />
+                            </>
                         )}
-                        <Download className="w-5 h-5 text-slate-400 group-hover/btn:text-emerald-600 group-hover/btn:scale-110 transition-all" />
                     </button>
                 </div>
             </div>
