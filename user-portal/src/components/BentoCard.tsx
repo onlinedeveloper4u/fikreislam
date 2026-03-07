@@ -137,8 +137,8 @@ export default function BentoCard({ item, index, viewMode = 'grid' }: BentoCardP
 
                     {/* Centered Play Overlay for List */}
                     <div className={`absolute inset-0 flex items-center justify-center bg-black/5 transition-opacity ${isPlaying ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
-                        <button onClick={handlePlay} className="w-10 h-10 rounded-full bg-emerald-600 text-white flex items-center justify-center shadow-lg active:scale-90 transition-transform">
-                            {isPlaying ? <Waveform /> : <Play className="w-5 h-5 fill-current ml-0.5" />}
+                        <button onClick={handlePlay} className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-emerald-600 text-white flex items-center justify-center shadow-lg active:scale-90 transition-transform">
+                            {isPlaying ? <Waveform /> : <Play className="w-4 h-4 sm:w-5 sm:h-5 fill-current ml-0.5" />}
                         </button>
                     </div>
                     {/* Unified Metadata Overlay Bar for List (Premium Glass) */}
@@ -187,8 +187,8 @@ export default function BentoCard({ item, index, viewMode = 'grid' }: BentoCardP
                         onClick={handleDownload}
                         disabled={isDownloading}
                         className={`h-10 px-4 rounded-xl border flex items-center justify-center gap-3 active:scale-95 transition-all group/btn ${isDownloading
-                                ? 'border-emerald-300 bg-emerald-50/80 text-emerald-600 cursor-wait'
-                                : 'border-slate-200 hover:border-emerald-500 hover:bg-emerald-50/50 text-slate-600 hover:text-emerald-700'
+                            ? 'border-emerald-300 bg-emerald-50/80 text-emerald-600 cursor-wait'
+                            : 'border-slate-200 hover:border-emerald-500 hover:bg-emerald-50/50 text-slate-600 hover:text-emerald-700'
                             }`}
                         aria-label="Download"
                     >
@@ -248,14 +248,14 @@ export default function BentoCard({ item, index, viewMode = 'grid' }: BentoCardP
                 <div className="absolute inset-0 flex items-center justify-center">
                     <button
                         onClick={handlePlay}
-                        className={`w-16 h-16 rounded-full flex items-center justify-center active:scale-90 transition-all border-4 border-white/30 backdrop-blur-sm z-10
+                        className={`w-11 h-11 sm:w-14 sm:h-14 md:w-16 md:h-16 rounded-full flex items-center justify-center active:scale-90 transition-all border-2 sm:border-4 border-white/30 backdrop-blur-sm z-10
                             ${isPlaying
                                 ? 'bg-emerald-600/40 text-white shadow-xl hover:bg-emerald-600/60'
                                 : 'bg-emerald-600 text-white shadow-[0_8px_32px_rgba(0,0,0,0.4)] hover:bg-emerald-500 hover:scale-105'
                             }`}
                         aria-label={isPlaying ? 'Pause' : 'Play'}
                     >
-                        {isPlaying ? <Waveform /> : <Play className="w-8 h-8 fill-current ml-1" />}
+                        {isPlaying ? <Waveform /> : <Play className="w-5 h-5 sm:w-7 sm:h-7 md:w-8 md:h-8 fill-current ml-0.5 sm:ml-1" />}
                     </button>
                 </div>
 
@@ -306,8 +306,8 @@ export default function BentoCard({ item, index, viewMode = 'grid' }: BentoCardP
                         onClick={handleDownload}
                         disabled={isDownloading}
                         className={`w-full h-11 rounded-2xl border flex items-center justify-center gap-4 active:scale-95 transition-all group/btn ${isDownloading
-                                ? 'border-emerald-300 bg-emerald-50/80 text-emerald-600 cursor-wait'
-                                : 'border-slate-200 hover:border-emerald-500 hover:bg-emerald-50/50 text-slate-600 hover:text-emerald-700'
+                            ? 'border-emerald-300 bg-emerald-50/80 text-emerald-600 cursor-wait'
+                            : 'border-slate-200 hover:border-emerald-500 hover:bg-emerald-50/50 text-slate-600 hover:text-emerald-700'
                             }`}
                         aria-label="Download"
                     >
