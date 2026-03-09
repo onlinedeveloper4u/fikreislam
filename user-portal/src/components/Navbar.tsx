@@ -4,7 +4,6 @@ import { Menu, X, Headphones, Home } from 'lucide-react';
 
 const navLinks = [
     { name: 'ہوم', href: '/', icon: Home },
-    { name: 'آڈیو', href: '/audio', icon: Headphones },
 ];
 
 export default function Navbar() {

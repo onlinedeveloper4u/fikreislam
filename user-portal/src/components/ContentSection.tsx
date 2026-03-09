@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Search, Filter, X, Music, Grid, List as ListIcon } from 'lucide-react';
-import BentoGrid from './BentoGrid';
+import AudioLibraryView from './AudioLibraryView';
 import type { ContentItem, ContentType } from '../lib/types';
 
 interface ContentSectionProps {
@@ -51,7 +51,7 @@ export default function ContentSection({ items, contentType, title, description 
     };
 
     return (
-        <div className="space-y-10 pb-24 pt-28">
+        <div className="space-y-6 pb-12 pt-16">
             {/* Header */}
             <motion.div
                 initial={{ opacity: 0, y: -20 }}
@@ -178,7 +178,7 @@ export default function ContentSection({ items, contentType, title, description 
             </div>
 
             {/* Bento Grid */}
-            <BentoGrid
+            <AudioLibraryView
                 items={filtered}
                 viewMode={viewMode}
             />

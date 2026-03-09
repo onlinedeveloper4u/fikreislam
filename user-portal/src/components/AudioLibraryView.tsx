@@ -1,8 +1,9 @@
 import { motion } from 'framer-motion';
-import BentoCard from './BentoCard';
+import AudioGridCard from './AudioGridCard';
+import AudioListCard from './AudioListCard';
 import type { ContentItem } from '../lib/types';
 
-interface BentoGridProps {
+interface AudioLibraryViewProps {
     items: ContentItem[];
     title?: string;
     description?: string;
@@ -10,13 +11,13 @@ interface BentoGridProps {
     viewMode?: 'grid' | 'list';
 }
 
-export default function BentoGrid({
+export default function AudioLibraryView({
     items,
     title,
     description,
     emptyMessage,
     viewMode = 'grid'
-}: BentoGridProps) {
+}: AudioLibraryViewProps) {
     if (items.length === 0) {
         return (
             <motion.div
@@ -56,14 +57,21 @@ export default function BentoGrid({
                 </motion.div>
             )}
 
-            <div className={viewMode === 'list' ? 'flex flex-col gap-4' : 'bento-grid'}>
+            <div className={viewMode === 'list' ? 'flex flex-col gap-1.5' : 'bento-grid'}>
                 {items.map((item, index) => (
-                    <BentoCard
-                        key={item.id}
-                        item={item}
-                        index={index}
-                        viewMode={viewMode}
-                    />
+                    viewMode === 'list' ? (
+                        <AudioListCard
+                            key={item.id}
+                            item={item}
+                            index={index}
+                        />
+                    ) : (
+                        <AudioGridCard
+                            key={item.id}
+                            item={item}
+                            index={index}
+                        />
+                    )
                 ))}
             </div>
         </section>

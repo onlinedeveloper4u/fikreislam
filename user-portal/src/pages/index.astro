@@ -1,47 +1,30 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
+import ContentSection from '../components/ContentSection';
 import { supabase } from '../lib/supabase';
-import HeroSection from '../components/HeroSection';
-import BentoGrid from '../components/BentoGrid';
 import { withSignedUrls } from '../lib/storage';
 import type { ContentItem } from '../lib/types';
 
-// Server-side fetch — latest 8 audio items for featured section
-const { data: featuredAudio, error } = await supabase
+// Server-side fetch — all approved audio content for the home page library
+const { data, error } = await supabase
   .from('content')
   .select('id, title, description, author, type, language, tags, file_url, cover_image_url, duration, file_size, published_at')
   .eq('status', 'approved')
   .eq('type', 'audio')
-  .order('published_at', { ascending: false })
-  .limit(8);
+  .order('published_at', { ascending: false });
 
-let items: ContentItem[] = (featuredAudio as ContentItem[]) || [];
+let items: ContentItem[] = (data as ContentItem[]) || [];
 items = await withSignedUrls(items);
 ---
 
-<BaseLayout title="فکر اسلام — ہوم" description="مختلف علماء کے بصیرت افروز خطبات اور قرآنی تلاوت سنیں">
-  <HeroSection client:load />
-
-  <!-- Featured Audio Section -->
-  <section class="container-app py-16">
-    <BentoGrid
-      client:visible
+<BaseLayout title="فکر اسلام — آڈیو لائبریری" description="مختلف علماء کے بصیرت افروز خطبات، سلسلے اور قرآنی تلاوت سنیں۔">
+  <div class="container-app">
+    <ContentSection
+      client:load
       items={items}
-      title="تازہ ترین آڈیو"
-      description="ہمارے ذخیرے سے تازہ ترین اسلامی خطبات اور تلاوت"
+      contentType="audio"
+      title="آڈیو لائبریری"
+      description="مختلف علماء کے بصیرت افروز خطبات، سلسلے اور قرآنی تلاوت سنیں۔"
     />
-
-    <!-- View All CTA -->
-    <div class="text-center mt-12">
-      <a
-        href="/audio"
-        class="inline-flex items-center gap-2 px-8 py-4 rounded-2xl glass text-slate-900/60 hover:text-slate-900 font-bold text-sm hover:bg-slate-900/10 transition-all group"
-      >
-        تمام آڈیو دیکھیں
-        <svg class="w-4 h-4 group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3" />
-        </svg>
-      </a>
-    </div>
-  </section>
+  </div>
 </BaseLayout>

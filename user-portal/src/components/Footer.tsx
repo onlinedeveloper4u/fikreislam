@@ -1,4 +1,4 @@
-import { Headphones, Heart } from 'lucide-react';
+import { Headphones, Heart, Home } from 'lucide-react';
 
 export default function Footer() {
     const currentYear = new Date().getFullYear();
@@ -24,19 +24,15 @@ export default function Footer() {
                     <div>
                         <h4 className="text-slate-900/60 font-bold text-xs uppercase tracking-widest mb-4">مواد</h4>
                         <ul className="space-y-3">
-                            {[
-                                { name: 'آڈیو', href: '/audio', icon: Headphones },
-                            ].map((link) => (
-                                <li key={link.name}>
-                                    <a
-                                        href={link.href}
-                                        className="group flex items-center gap-2 text-slate-900/30 hover:text-emerald-700 text-sm transition-colors"
-                                    >
-                                        <link.icon className="w-3.5 h-3.5 group-hover:text-emerald-600 transition-colors" />
-                                        {link.name}
-                                    </a>
-                                </li>
-                            ))}
+                            <li>
+                                <a
+                                    href="/"
+                                    className="group flex items-center gap-2 text-slate-900/30 hover:text-emerald-700 text-sm transition-colors"
+                                >
+                                    <Home className="w-3.5 h-3.5 group-hover:text-emerald-600 transition-colors" />
+                                    ہوم
+                                </a>
+                            </li>
                         </ul>
                     </div>
 
@@ -47,11 +43,6 @@ export default function Footer() {
                             <li>
                                 <a href="/" className="text-slate-900/30 hover:text-emerald-700 text-sm transition-colors">
                                     ہوم
-                                </a>
-                            </li>
-                            <li>
-                                <a href="/audio" className="text-slate-900/30 hover:text-emerald-700 text-sm transition-colors">
-                                    آڈیو لائبریری
                                 </a>
                             </li>
                         </ul>
