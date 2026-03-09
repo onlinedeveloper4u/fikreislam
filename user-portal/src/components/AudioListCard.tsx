@@ -146,25 +146,24 @@ export default function AudioListCard({ item, index }: AudioListCardProps) {
                     </motion.button>
 
                     {/* Download Action */}
-                    <div className="flex items-center justify-center gap-2 w-[92px] h-9 rounded-xl border border-slate-100 hover:border-slate-200 bg-white transition-all group/dl">
-                        <button
-                            onClick={handleDownload}
-                            disabled={isDownloading}
-                            className="text-slate-400 group-hover/dl:text-emerald-600 transition-colors"
-                        >
-                            {isDownloading ? (
-                                <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                            ) : (
-                                <Download className="w-4 h-4" />
-                            )}
-                        </button>
+                    <button
+                        onClick={handleDownload}
+                        disabled={isDownloading}
+                        className="flex items-center justify-center gap-2 w-[92px] h-9 rounded-xl border border-slate-100 hover:border-slate-200 bg-white transition-all group/dl disabled:opacity-50 disabled:cursor-wait"
+                        aria-label="Download"
+                    >
+                        {isDownloading ? (
+                            <Loader2 className="w-3.5 h-3.5 text-emerald-600 animate-spin" />
+                        ) : (
+                            <Download className="w-4 h-4 text-slate-400 group-hover/dl:text-emerald-600 transition-colors" />
+                        )}
                         {sizeParts && (
-                            <div className="flex items-baseline gap-1 font-sans font-bold text-[10px] text-slate-500">
+                            <div className="flex items-baseline gap-1 font-sans font-bold text-[10px] text-slate-500 group-hover/dl:text-slate-700">
                                 <span className="tracking-tight">{sizeParts.value}</span>
                                 <span className="text-[8px] opacity-60 font-medium">{sizeParts.unit}</span>
                             </div>
                         )}
-                    </div>
+                    </button>
 
                     {/* Language Badge */}
                     {item.language ? (
