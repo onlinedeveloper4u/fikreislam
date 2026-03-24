@@ -1,3 +1,4 @@
+"use client";
 import React, { createContext, useContext, useEffect, ReactNode } from 'react';
 
 type Direction = 'rtl';

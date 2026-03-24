@@ -4,7 +4,7 @@ Islamic Books, Audio & Video Library. Discover authentic Islamic content includi
 
 ## Technologies Used
 
-- **Frontend**: React, Vite, TypeScript
+- **Framework**: Next.js (App Router), TypeScript
 - **Styling**: Tailwind CSS, shadcn/ui
 - **Backend / Database**: Supabase
 - **Icons**: Lucide React
@@ -33,8 +33,8 @@ Islamic Books, Audio & Video Library. Discover authentic Islamic content includi
 3. Set up environment variables:
    Create a `.env` file in the root directory and add your Supabase credentials:
    ```env
-   VITE_SUPABASE_URL=your_supabase_project_url
-   VITE_SUPABASE_PUBLISHABLE_KEY=your_supabase_anon_key
+   NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
+   NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
    ```
 
 4. Start the development server:
@@ -44,8 +44,9 @@ Islamic Books, Audio & Video Library. Discover authentic Islamic content includi
 
 ## Project Structure
 
+- `src/app`: Next.js App Router pages and layouts
 - `src/components`: Reusable UI components
-- `src/pages`: Application pages and routes
+- `src/contexts`: React context providers (Auth, Language, Upload)
 - `src/integrations/supabase`: Supabase type definitions and client configuration
 - `src/hooks`: Custom React hooks for data fetching and state management
 - `supabase/migrations`: Database schema migrations

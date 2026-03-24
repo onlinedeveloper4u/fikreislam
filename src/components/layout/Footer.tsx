@@ -1,6 +1,6 @@
-import { Link } from "react-router-dom";
+import Link from "next/link";
 import { Book, Headphones, Video, Heart, HelpCircle, Library } from "lucide-react";
-import logo from "@/assets/logo.png";
+const logo = "/logo.png";
 
 const Footer = () => {
 return (
@@ -9,7 +9,7 @@ return (
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           {/* Brand */}
           <div className="md:col-span-1">
-            <Link to="/" className="flex items-center gap-2 mb-4">
+            <Link href="/" className="flex items-center gap-2 mb-4">
               <img src={logo} alt={"فکر اسلام"} className="w-10 h-10 object-contain" />
               <span className="font-display text-xl font-semibold text-foreground">
                 {"فکر اسلام"}
@@ -26,19 +26,19 @@ return (
             <h4 className="font-display font-semibold text-foreground mb-4">{"مواد"}</h4>
             <ul className="space-y-3">
               <li>
-                <Link to="/books" className="flex items-center gap-2 text-muted-foreground hover:text-primary transition-colors text-sm">
+                <Link href="/books" className="flex items-center gap-2 text-muted-foreground hover:text-primary transition-colors text-sm">
                   <Book className="w-4 h-4" />
                   {"کتب"}
                 </Link>
               </li>
               <li>
-                <Link to="/audio" className="flex items-center gap-2 text-muted-foreground hover:text-primary transition-colors text-sm">
+                <Link href="/audio" className="flex items-center gap-2 text-muted-foreground hover:text-primary transition-colors text-sm">
                   <Headphones className="w-4 h-4" />
                   {"آڈیو"}
                 </Link>
               </li>
               <li>
-                <Link to="/video" className="flex items-center gap-2 text-muted-foreground hover:text-primary transition-colors text-sm">
+                <Link href="/video" className="flex items-center gap-2 text-muted-foreground hover:text-primary transition-colors text-sm">
                   <Video className="w-4 h-4" />
                   {"ویڈیو"}
                 </Link>
@@ -51,13 +51,13 @@ return (
             <h4 className="font-display font-semibold text-foreground mb-4">{"فوری روابط"}</h4>
             <ul className="space-y-3">
               <li>
-                <Link to="/library" className="flex items-center gap-2 text-muted-foreground hover:text-primary transition-colors text-sm">
+                <Link href="/library" className="flex items-center gap-2 text-muted-foreground hover:text-primary transition-colors text-sm">
                   <Library className="w-4 h-4" />
                   {"میرا کتب خانہ"}
                 </Link>
               </li>
               <li>
-                <Link to="/qa" className="flex items-center gap-2 text-muted-foreground hover:text-primary transition-colors text-sm">
+                <Link href="/qa" className="flex items-center gap-2 text-muted-foreground hover:text-primary transition-colors text-sm">
                   <HelpCircle className="w-4 h-4" />
                   {"سوال و جواب"}
                 </Link>
@@ -70,17 +70,17 @@ return (
             <h4 className="font-display font-semibold text-foreground mb-4">{"اکاؤنٹ"}</h4>
             <ul className="space-y-3">
               <li>
-                <Link to="/login" className="text-muted-foreground hover:text-primary transition-colors text-sm">
+                <Link href="/login" className="text-muted-foreground hover:text-primary transition-colors text-sm">
                   {"داخل ہوں"}
                 </Link>
               </li>
               <li>
-                <Link to="/register" className="text-muted-foreground hover:text-primary transition-colors text-sm">
+                <Link href="/register" className="text-muted-foreground hover:text-primary transition-colors text-sm">
                   {"شروع کریں"}
                 </Link>
               </li>
               <li>
-                <Link to="/dashboard" className="text-muted-foreground hover:text-primary transition-colors text-sm">
+                <Link href="/admin" className="text-muted-foreground hover:text-primary transition-colors text-sm">
                   {"ڈیش بورڈ"}
                 </Link>
               </li>

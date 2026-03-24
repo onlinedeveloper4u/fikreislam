@@ -6,10 +6,13 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
+build_log.txt
+
+# Next.js
+.next/
+out/
 
 node_modules
-dist
-dist-ssr
 *.local
 
 # Editor directories and files
@@ -31,3 +34,4 @@ dist-ssr
 # Supabase
 supabase/.temp
 supabase/.database
+

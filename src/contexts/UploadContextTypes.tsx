@@ -1,3 +1,5 @@
+'use client';
+
 import { createContext, useContext } from 'react';
 
 export type UploadStatus = 'preparing' | 'uploading' | 'database' | 'completed' | 'error' | 'interrupted' | 'deleting' | 'cancelled';

@@ -1,9 +1,10 @@
 import { Button } from "@/components/ui/button";
-import { Link } from "react-router-dom";
+import Link from "next/link";
 import { ArrowRight, Book, Headphones, Video, Sparkles } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { motion, Variants } from "framer-motion";
-import logo from "@/assets/logo.png";
+import Image from "next/image";
+const logo = "/logo.png";
 
 const Hero = () => {
 const { dir, language } = useLanguage();
@@ -67,13 +68,20 @@ const { dir, language } = useLanguage();
             variants={itemVariants}
             className="mb-8"
           >
-            <motion.img
-              src={logo}
-              alt={"فکر اسلام"}
-              className="w-40 h-40 md:w-56 md:h-56 mx-auto drop-shadow-2xl"
+            <motion.div
+              className="w-40 h-40 md:w-56 md:h-56 mx-auto relative drop-shadow-2xl"
               animate={{ y: [0, -10, 0] }}
               transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-            />
+            >
+              <Image
+                src={logo}
+                alt={"فکر اسلام"}
+                fill
+                priority
+                sizes="(max-width: 768px) 160px, 224px"
+                className="object-contain"
+              />
+            </motion.div>
           </motion.div>
 
           {/* Badge */}
@@ -111,13 +119,13 @@ const { dir, language } = useLanguage();
             className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-20"
           >
             <Button variant="hero" size="lg" className="w-full sm:w-auto text-base px-8 shadow-glow" asChild>
-              <Link to="/register" className="flex items-center gap-2">
+              <Link href="/register" className="flex items-center gap-2">
                 {"سفر شروع کریں"}
                 <ArrowRight className={`w-5 h-5 transition-transform ${dir === 'rtl' ? 'rotate-180' : ''}`} />
               </Link>
             </Button>
             <Button variant="outline" size="lg" className="w-full sm:w-auto text-base px-8 glass hover:bg-primary/5 border-primary/20" asChild>
-              <Link to="/books">{"کتب دیکھیں"}</Link>
+              <Link href="/books">{"کتب دیکھیں"}</Link>
             </Button>
           </motion.div>
 
@@ -133,7 +141,7 @@ const { dir, language } = useLanguage();
             ].map((card, idx) => (
               <motion.div key={idx} variants={itemVariants}>
                 <Link
-                  to={card.to}
+                  href={card.to}
                   className="group relative block p-8 rounded-2xl glass-dark hover-lift shadow-card border border-border/50 hover:border-primary/40 transition-all duration-500 overflow-hidden"
                 >
                   <div className="absolute inset-0 bg-gradient-to-br from-primary/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />

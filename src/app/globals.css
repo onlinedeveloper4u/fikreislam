@@ -1,0 +1,351 @@
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap');
+
+@font-face {
+  font-family: 'Jameel Noori Nastaleeq';
+  src: url('https://cdn.jsdelivr.net/gh/tariq-abdullah/urdu-web-font-CDN/JameelNooriNastaleeq.woff') format('woff');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 45 20% 97%;
+    --foreground: 150 30% 15%;
+
+    --card: 45 25% 95%;
+    --card-foreground: 150 30% 15%;
+
+    --popover: 45 25% 95%;
+    --popover-foreground: 150 30% 15%;
+
+    --primary: 158 64% 25%;
+    --primary-foreground: 45 20% 97%;
+
+    --secondary: 45 40% 90%;
+    --secondary-foreground: 150 30% 20%;
+
+    --muted: 45 20% 92%;
+    --muted-foreground: 150 15% 45%;
+
+    --accent: 43 80% 55%;
+    --accent-foreground: 150 30% 15%;
+
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 150 15% 85%;
+    --input: 150 15% 85%;
+    --ring: 158 64% 25%;
+
+    --radius: 0.75rem;
+
+    /* Custom tokens */
+    --gold: 43 80% 55%;
+    --gold-light: 43 70% 75%;
+    --emerald: 158 64% 25%;
+    --emerald-light: 158 50% 40%;
+    --emerald-dark: 158 70% 18%;
+    --cream: 45 30% 96%;
+    --cream-dark: 45 25% 90%;
+
+    /* Gradients */
+    --gradient-primary: linear-gradient(135deg, hsl(var(--emerald)) 0%, hsl(var(--emerald-light)) 100%);
+    --gradient-gold: linear-gradient(135deg, hsl(var(--gold)) 0%, hsl(var(--gold-light)) 100%);
+    --gradient-hero: linear-gradient(180deg, hsl(var(--cream)) 0%, hsl(var(--cream-dark)) 100%);
+
+    /* Shadows */
+    --shadow-soft: 0 4px 20px -4px hsl(var(--emerald) / 0.15);
+    --shadow-glow: 0 0 40px hsl(var(--gold) / 0.3);
+    --shadow-card: 0 8px 30px -8px hsl(var(--foreground) / 0.1);
+
+    /* Fonts */
+    --font-display: 'Playfair Display', serif;
+    --font-body: 'Inter', sans-serif;
+
+    --sidebar-background: 0 0% 98%;
+    --sidebar-foreground: 240 5.3% 26.1%;
+    --sidebar-primary: 240 5.9% 10%;
+    --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-accent: 240 4.8% 95.9%;
+    --sidebar-accent-foreground: 240 5.9% 10%;
+    --sidebar-border: 220 13% 91%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+
+  .dark {
+    --background: 150 30% 8%;
+    --foreground: 45 20% 95%;
+
+    --card: 150 25% 12%;
+    --card-foreground: 45 20% 95%;
+
+    --popover: 150 25% 12%;
+    --popover-foreground: 45 20% 95%;
+
+    --primary: 158 55% 45%;
+    --primary-foreground: 150 30% 8%;
+
+    --secondary: 150 20% 18%;
+    --secondary-foreground: 45 20% 90%;
+
+    --muted: 150 20% 18%;
+    --muted-foreground: 45 15% 60%;
+
+    --accent: 43 75% 50%;
+    --accent-foreground: 150 30% 8%;
+
+    --destructive: 0 62% 50%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 150 20% 20%;
+    --input: 150 20% 20%;
+    --ring: 158 55% 45%;
+
+    --gold: 43 75% 50%;
+    --gold-light: 43 60% 65%;
+    --emerald: 158 55% 45%;
+    --emerald-light: 158 45% 55%;
+    --emerald-dark: 158 60% 30%;
+    --cream: 150 25% 12%;
+    --cream-dark: 150 30% 8%;
+
+    --sidebar-background: 240 5.9% 10%;
+    --sidebar-foreground: 240 4.8% 95.9%;
+    --sidebar-primary: 224.3 76.3% 48%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 240 3.7% 15.9%;
+    --sidebar-accent-foreground: 240 4.8% 95.9%;
+    --sidebar-border: 240 3.7% 15.9%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-body antialiased;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    @apply font-display;
+  }
+}
+
+@layer utilities {
+  .font-display {
+    font-family: var(--font-display);
+  }
+
+  .font-body {
+    font-family: var(--font-body);
+  }
+
+  .font-urdu {
+    font-family: 'Jameel Noori Nastaleeq', serif;
+    line-height: 3;
+  }
+
+  .gradient-primary {
+    background: var(--gradient-primary);
+  }
+
+  .gradient-gold {
+    background: var(--gradient-gold);
+  }
+
+  .gradient-hero {
+    background: var(--gradient-hero);
+  }
+
+  .shadow-soft {
+    box-shadow: var(--shadow-soft);
+  }
+
+  .shadow-glow {
+    box-shadow: var(--shadow-glow);
+  }
+
+  .shadow-card {
+    box-shadow: var(--shadow-card);
+  }
+
+  .glass {
+    @apply bg-background/60 backdrop-blur-xl border border-white/20 shadow-soft;
+  }
+
+  .glass-dark {
+    @apply bg-background/40 backdrop-blur-xl border border-white/5 shadow-soft;
+  }
+
+  .hover-lift {
+    @apply transition-transform duration-300 hover:-translate-y-1 hover:shadow-card;
+  }
+
+  .text-gradient {
+    background: linear-gradient(135deg, hsl(158 64% 25%) 0%, hsl(158 50% 40%) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .islamic-pattern {
+    background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23166534' fill-opacity='0.05'%3E%3Cpath d='M30 0l30 30-30 30L0 30 30 0zm0 10L10 30l20 20 20-20-20-20z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+  }
+}
+
+/* Animations */
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes slide-right {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-15px);
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-scale-in {
+  animation: scale-in 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-slide-right {
+  animation: slide-right 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-float {
+  animation: float 6s ease-in-out infinite;
+}
+
+.animate-shimmer {
+  background: linear-gradient(90deg, transparent 0%, hsl(var(--gold) / 0.1) 50%, transparent 100%);
+  background-size: 200% 100%;
+  animation: shimmer 3s infinite;
+}
+
+.delay-100 { animation-delay: 100ms; }
+.delay-200 { animation-delay: 200ms; }
+.delay-300 { animation-delay: 300ms; }
+.delay-400 { animation-delay: 400ms; }
+.delay-500 { animation-delay: 500ms; }.library-container {
+  @apply container mx-auto px-4 py-12 md:py-20 max-w-7xl;
+}
+
+.library-header {
+  @apply mb-12 relative;
+}
+
+.library-header-content {
+  @apply flex flex-col md:flex-row md:items-end justify-between gap-6;
+}
+
+.library-title-container {
+  @apply flex items-center gap-4 mb-4;
+}
+
+.library-icon-wrapper {
+  background: var(--gradient-primary);
+  @apply w-16 h-16 rounded-2xl flex items-center justify-center shadow-xl;
+  box-shadow: 0 20px 25px -5px rgb(var(--primary) / 0.2), 0 8px 10px -6px rgb(var(--primary) / 0.2);
+}
+
+.library-title {
+  @apply text-4xl md:text-5xl font-display font-bold text-foreground tracking-tight;
+}
+
+.library-description {
+  @apply text-muted-foreground text-lg max-w-2xl opacity-80 leading-relaxed font-medium;
+}
+
+.library-tabs-list {
+  @apply flex w-fit bg-card/40 p-1.5 rounded-2xl border border-border/40 shadow-xl overflow-hidden;
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+}
+
+.library-tab-trigger {
+  @apply flex items-center gap-3 px-8 py-3.5 rounded-xl data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-lg transition-all text-base font-bold;
+}
+
+.library-content-card {
+  @apply border-border/40 bg-card/30 overflow-hidden transition-all duration-500 hover:border-primary/30 rounded-2xl;
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+}
+
+.library-card-image-container {
+  @apply w-24 h-32 rounded-xl bg-muted/20 flex-shrink-0 overflow-hidden relative shadow-inner;
+}
+
+.library-card-overlay {
+  @apply absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center;
+}
+
+.library-card-title {
+  @apply font-display font-bold text-lg text-foreground line-clamp-1 group-hover:text-primary transition-colors leading-tight;
+}
+
+.home-container {
+  @apply relative min-h-screen flex flex-col overflow-hidden;
+}
+
+.animate-glow {
+  @apply animate-pulse;
+}

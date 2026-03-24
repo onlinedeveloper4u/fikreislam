@@ -1,4 +1,6 @@
-import logo from "@/assets/logo.png";
+"use client";
+
+import { Loader2 } from "lucide-react";
 
 interface LoadingSpinnerProps {
   size?: "sm" | "md" | "lg";
@@ -6,7 +8,7 @@ interface LoadingSpinnerProps {
 }
 
 const LoadingSpinner = ({ size = "md", fullScreen = false }: LoadingSpinnerProps) => {
-const sizeClasses = {
+  const sizeClasses = {
     sm: "w-8 h-8",
     md: "w-16 h-16",
     lg: "w-24 h-24",
@@ -16,7 +18,7 @@ const sizeClasses = {
     <div className="flex flex-col items-center justify-center gap-4">
       <div className="relative">
         <img
-          src={logo}
+          src="/logo.png"
           alt={"لوڈ ہو رہا ہے..."}
           className={`${sizeClasses[size]} object-contain animate-pulse`}
         />

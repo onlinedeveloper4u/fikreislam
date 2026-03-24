@@ -90,7 +90,7 @@ export async function deleteFromGoogleDrive(fileUrl: string | null): Promise<boo
   }
 
   try {
-    const gasUrl = import.meta.env.VITE_GOOGLE_APPS_SCRIPT_URL;
+    const gasUrl = process.env.NEXT_PUBLIC_GOOGLE_APPS_SCRIPT_URL;
     if (!gasUrl) return false;
 
     const response = await fetch(gasUrl, {
@@ -126,7 +126,7 @@ export async function renameInGoogleDrive(fileUrl: string | null, newName: strin
   const fileId = fileUrl.replace('google-drive://', '');
 
   try {
-    const gasUrl = import.meta.env.VITE_GOOGLE_APPS_SCRIPT_URL;
+    const gasUrl = process.env.NEXT_PUBLIC_GOOGLE_APPS_SCRIPT_URL;
     if (!gasUrl) return false;
 
     const response = await fetch(gasUrl, {
@@ -152,7 +152,7 @@ export async function renameInGoogleDrive(fileUrl: string | null, newName: strin
  */
 export async function renameFolderByIdInGoogleDrive(folderId: string, newName: string): Promise<{ success: boolean, folderId?: string, message?: string }> {
   try {
-    const gasUrl = import.meta.env.VITE_GOOGLE_APPS_SCRIPT_URL;
+    const gasUrl = process.env.NEXT_PUBLIC_GOOGLE_APPS_SCRIPT_URL;
     if (!gasUrl) return { success: false, message: 'Google Apps Script URL not configured' };
 
     const response = await fetch(gasUrl, {
@@ -183,7 +183,7 @@ export async function renameFolderByIdInGoogleDrive(folderId: string, newName: s
  */
 export async function deleteFolderByIdInGoogleDrive(folderId: string): Promise<{ success: boolean, message?: string }> {
   try {
-    const gasUrl = import.meta.env.VITE_GOOGLE_APPS_SCRIPT_URL;
+    const gasUrl = process.env.NEXT_PUBLIC_GOOGLE_APPS_SCRIPT_URL;
     if (!gasUrl) return { success: false, message: 'Google Apps Script URL not configured' };
 
     if (!folderId) return { success: false, message: 'No folder ID provided' };
@@ -213,7 +213,7 @@ export async function deleteFolderByIdInGoogleDrive(folderId: string): Promise<{
  */
 export async function createFolderInGoogleDrive(folderPath: string): Promise<{ success: boolean, folderId?: string, message?: string }> {
   try {
-    const gasUrl = import.meta.env.VITE_GOOGLE_APPS_SCRIPT_URL;
+    const gasUrl = process.env.NEXT_PUBLIC_GOOGLE_APPS_SCRIPT_URL;
     if (!gasUrl) return { success: false, message: 'Google Apps Script URL not configured' };
 
     const response = await fetch(gasUrl, {
@@ -242,7 +242,7 @@ export async function createFolderInGoogleDrive(folderPath: string): Promise<{ s
  */
 export async function moveFileInGoogleDrive(fileId: string, folderId: string): Promise<{ success: boolean, message?: string }> {
   try {
-    const gasUrl = import.meta.env.VITE_GOOGLE_APPS_SCRIPT_URL;
+    const gasUrl = process.env.NEXT_PUBLIC_GOOGLE_APPS_SCRIPT_URL;
     if (!gasUrl) return { success: false, message: 'Google Apps Script URL not configured' };
 
     if (!folderId) return { success: false, message: 'Destination folder ID is required.' };

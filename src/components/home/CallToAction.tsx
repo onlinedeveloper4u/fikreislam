@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
-import { Link } from "react-router-dom";
+import Link from "next/link";
 import { ArrowRight, Upload, Sparkles } from "lucide-react";
-import logo from "@/assets/logo.png";
+const logo = "/logo.png";
 import { useContentStats } from "@/hooks/useContentStats";
 import { Skeleton } from "@/components/ui/skeleton";
 import { motion } from "framer-motion";
@@ -69,7 +69,7 @@ const containerVariants = {
                   className="group/btn bg-white text-primary hover:bg-white/90 shadow-xl px-12 h-14 text-lg"
                   asChild
                 >
-                  <Link to="/register">
+                  <Link href="/register">
                     {"مفت شروع کریں"}
                     <ArrowRight className="w-6 h-6 ml-2 group-hover/btn:translate-x-2 transition-transform" />
                   </Link>

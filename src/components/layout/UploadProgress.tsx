@@ -1,3 +1,4 @@
+"use client";
 import React, { useState } from 'react';
 import { useUpload } from '@/contexts/UploadContextTypes';
 import { Progress } from '@/components/ui/progress';

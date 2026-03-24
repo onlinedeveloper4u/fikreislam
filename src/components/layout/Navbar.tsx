@@ -1,9 +1,13 @@
-import { Link, useNavigate } from "react-router-dom";
+"use client";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Book, Headphones, Video, Menu, X, LogOut, User, Heart, LayoutDashboard, HelpCircle, Settings } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import logo from "@/assets/logo.png";
+// Logo is in public folder
+const logo = "/logo.png";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   DropdownMenu,
@@ -17,7 +21,7 @@ const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const { user, role, signOut, loading } = useAuth();
-const navigate = useNavigate();
+  const router = useRouter();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -29,7 +33,7 @@ const navigate = useNavigate();
 
   const handleSignOut = async () => {
     await signOut();
-    navigate("/");
+    router.push("/");
   };
 
   const navLinks = [
@@ -62,8 +66,17 @@ const navigate = useNavigate();
     >
       <nav className="container mx-auto px-4 h-full flex items-center justify-between">
         {/* Logo */}
-        <Link to="/" className="flex items-center gap-2">
-          <img src={logo} alt={"فکر اسلام"} className="w-16 h-16 object-contain" />
+        <Link href="/" className="flex items-center gap-2">
+          <div className="w-16 h-16 relative">
+            <Image
+              src={logo}
+              alt={"فکر اسلام"}
+              fill
+              priority
+              sizes="64px"
+              className="object-contain"
+            />
+          </div>
           <span className="font-display text-2xl font-bold text-foreground">
             {"فکر اسلام"}
           </span>
@@ -76,7 +89,7 @@ const navigate = useNavigate();
             .map((link) => (
               <Link
                 key={link.name}
-                to={link.href}
+                href={link.href}
                 className="group relative flex items-center gap-2 text-muted-foreground hover:text-primary transition-colors duration-200"
               >
                 <link.icon className="w-4 h-4 transition-transform group-hover:scale-110" />
@@ -113,20 +126,20 @@ const navigate = useNavigate();
                 </div>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem asChild className="cursor-pointer">
-                  <Link to="/library">
+                  <Link href="/library">
                     <Heart className="w-4 h-4 mr-2" />
                     {"میری لائبریری"}
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild className="cursor-pointer">
-                  <Link to="/settings">
+                  <Link href="/settings">
                     <Settings className="w-4 h-4 mr-2" />
                     {"ترتیبات"}
                   </Link>
                 </DropdownMenuItem>
                 {role === 'admin' && (
                   <DropdownMenuItem asChild className="cursor-pointer">
-                    <Link to="/dashboard">
+                    <Link href="/admin">
                       <LayoutDashboard className="w-4 h-4 mr-2" />
                       {"ڈیش بورڈ"}
                     </Link>
@@ -142,10 +155,10 @@ const navigate = useNavigate();
           ) : (
             <>
               <Button variant="ghost" asChild>
-                <Link to="/login">{"داخل ہوں"}</Link>
+                <Link href="/login">{"داخل ہوں"}</Link>
               </Button>
               <Button variant="hero" asChild>
-                <Link to="/register">{"شروع کریں"}</Link>
+                <Link href="/register">{"شروع کریں"}</Link>
               </Button>
             </>
           )}
@@ -175,7 +188,7 @@ const navigate = useNavigate();
                     transition={{ delay: index * 0.1 }}
                   >
                     <Link
-                      to={link.href}
+                      href={link.href}
                       className="flex items-center gap-3 text-muted-foreground hover:text-primary transition-colors p-2 rounded-lg hover:bg-muted"
                       onClick={() => setIsOpen(false)}
                     >
@@ -201,10 +214,10 @@ const navigate = useNavigate();
               ) : (
                 <>
                   <Button variant="outline" asChild>
-                    <Link to="/login">{"داخل ہوں"}</Link>
+                    <Link href="/login">{"داخل ہوں"}</Link>
                   </Button>
                   <Button variant="hero" asChild>
-                    <Link to="/register">{"شروع کریں"}</Link>
+                    <Link href="/register">{"شروع کریں"}</Link>
                   </Button>
 
                 </>

@@ -1,3 +1,4 @@
+"use client";
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -9,31 +10,37 @@ import { uploadToInternetArchive, deleteFromInternetArchive } from '@/lib/intern
 const STORAGE_KEY = 'fikreislam_active_uploads';
 
 export const UploadProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-    const [activeUploads, setActiveUploads] = useState<ActiveUpload[]>(() => {
+    const [activeUploads, setActiveUploads] = useState<ActiveUpload[]>([]);
+    const [isInitialized, setIsInitialized] = useState(false);
+    const { user, role } = useAuth();
+    const abortControllers = useRef<Record<string, AbortController>>({});
+
+    // Load from localStorage on mount
+    useEffect(() => {
         const saved = localStorage.getItem(STORAGE_KEY);
         if (saved) {
             try {
                 const parsed = JSON.parse(saved) as ActiveUpload[];
                 // Mark previously active uploads as interrupted
-                return parsed.map(u =>
+                const restored = parsed.map(u =>
                     (u.status === 'uploading' || u.status === 'preparing' || u.status === 'database' || u.status === 'deleting')
                         ? { ...u, status: 'interrupted' as const }
                         : u
                 );
+                setActiveUploads(restored);
             } catch (e) {
                 console.error('Failed to parse saved uploads', e);
-                return [];
             }
         }
-        return [];
-    });
-    const { user, role } = useAuth();
-    const abortControllers = useRef<Record<string, AbortController>>({});
+        setIsInitialized(true);
+    }, []);
 
     // Keep localStorage in sync
     useEffect(() => {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(activeUploads));
-    }, [activeUploads]);
+        if (isInitialized) {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(activeUploads));
+        }
+    }, [activeUploads, isInitialized]);
 
     const updateUpload = useCallback((id: string, updates: Partial<ActiveUpload>) => {
         setActiveUploads(prev => prev.map(u => u.id === id ? { ...u, ...updates } : u));
@@ -147,7 +154,7 @@ export const UploadProvider: React.FC<{ children: React.ReactNode }> = ({ childr
                     }
                 }
 
-                const response = await fetch(import.meta.env.VITE_GOOGLE_APPS_SCRIPT_URL, {
+                const response = await fetch(process.env.NEXT_PUBLIC_GOOGLE_APPS_SCRIPT_URL, {
                     method: 'POST',
                     headers: { 'Content-Type': 'text/plain' },
                     body: JSON.stringify({
@@ -418,7 +425,7 @@ export const UploadProvider: React.FC<{ children: React.ReactNode }> = ({ childr
                         }
                     }
 
-                    const response = await fetch(import.meta.env.VITE_GOOGLE_APPS_SCRIPT_URL, {
+                    const response = await fetch(process.env.NEXT_PUBLIC_GOOGLE_APPS_SCRIPT_URL, {
                         method: 'POST',
                         headers: { 'Content-Type': 'text/plain' },
                         body: JSON.stringify({

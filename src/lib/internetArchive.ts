@@ -9,10 +9,10 @@
 const IA_S3_ENDPOINT = 'https://s3.us.archive.org';
 
 function getIACredentials(): { accessKey: string; secretKey: string } {
-    const accessKey = import.meta.env.VITE_IA_ACCESS_KEY;
-    const secretKey = import.meta.env.VITE_IA_SECRET_KEY;
+    const accessKey = process.env.NEXT_PUBLIC_IA_ACCESS_KEY;
+    const secretKey = process.env.NEXT_PUBLIC_IA_SECRET_KEY;
     if (!accessKey || !secretKey) {
-        throw new Error('Internet Archive credentials not configured. Set VITE_IA_ACCESS_KEY and VITE_IA_SECRET_KEY in .env');
+        throw new Error('Internet Archive credentials not configured. Set NEXT_PUBLIC_IA_ACCESS_KEY and NEXT_PUBLIC_IA_SECRET_KEY in .env');
     }
     return { accessKey, secretKey };
 }
