@@ -1,0 +1,9 @@
+name = "fikreislam"
+compatibility_date = "2024-11-18"
+compatibility_flags = ["nodejs_compat"]
+
+[vars]
+# NEXT_PUBLIC_ variables are baked into the build, but others need to be defined here or in the dashboard
+# ENCRYPTION_PASS = "..."
+# NEXT_PUBLIC_SUPABASE_URL = "..."
+# NEXT_PUBLIC_SUPABASE_ANON_KEY = "..."
