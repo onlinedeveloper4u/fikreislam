@@ -46,13 +46,14 @@ export async function middleware(req: NextRequest) {
     }
   )
 
-  const { data: { session } } = await supabase.auth.getSession()
+  // Use getUser() for security as recommended by Supabase
+  const { data: { user } } = await supabase.auth.getUser()
 
   const isAdminRoute = pathname.startsWith('/admin')
   const isUserProtectedRoute = ['/settings', '/library', '/qa'].some(p => pathname.startsWith(p))
   const isAuthRoute = ['/login', '/register', '/forgot-password', '/reset-password'].some(p => pathname.startsWith(p))
 
-  if ((isAdminRoute || isUserProtectedRoute) && !session) {
+  if ((isAdminRoute || isUserProtectedRoute) && !user) {
     const redirectUrl = req.nextUrl.clone()
     redirectUrl.pathname = '/login'
     redirectUrl.searchParams.set('redirectedFrom', pathname)
@@ -60,11 +61,11 @@ export async function middleware(req: NextRequest) {
   }
 
   // Admin Check
-  if (isAdminRoute && session) {
+  if (isAdminRoute && user) {
     const { data: roleData } = await supabase
       .from('user_roles')
       .select('role')
-      .eq('user_id', session.user.id)
+      .eq('user_id', user.id)
       .single()
 
     if (roleData?.role !== 'admin') {
@@ -72,7 +73,7 @@ export async function middleware(req: NextRequest) {
     }
   }
 
-  if (isAuthRoute && session) {
+  if (isAuthRoute && user) {
     return NextResponse.redirect(new URL('/', req.url))
   }
 

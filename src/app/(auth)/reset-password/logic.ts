@@ -15,11 +15,8 @@ export const useResetPasswordLogic = () => {
 
   useEffect(() => {
     const checkSession = async () => {
-      // Small delay to ensure Supabase handles the recovery token
-      await new Promise(resolve => setTimeout(resolve, 500));
-
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
         toast({
           title: "غلط یا ختم شدہ لنک",
           description: "براہ کرم نیا پاس ورڈ تبدیلی کا لنک حاصل کریں۔",

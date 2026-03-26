@@ -57,13 +57,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     );
 
-    // THEN check for existing session
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
+    // THEN verify existing user
+    supabase.auth.getUser().then(async ({ data: { user } }) => {
+      setUser(user);
 
-      if (session?.user) {
-        await fetchUserRole(session.user.id);
+      if (user) {
+        await fetchUserRole(user.id);
+        // Also get the session if we need it for something else
+        const { data: { session } } = await supabase.auth.getSession();
+        setSession(session);
+      } else {
+        setSession(null);
       }
       setLoading(false);
     });
