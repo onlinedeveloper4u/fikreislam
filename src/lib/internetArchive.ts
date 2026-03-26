@@ -52,8 +52,9 @@ function sanitizeFileName(name: string): string {
 export interface IAUploadResult {
     identifier: string;
     fileName: string;
-    iaUrl: string;       // ia://identifier/filename — stored in DB
-    downloadUrl: string; // https://archive.org/download/...
+    iaUrl: string;           // ia://identifier/filename — stored in DB
+    downloadUrl: string;     // https://archive.org/download/...
+    coverIaUrl?: string | null;  // ia://identifier/cover_filename
 }
 
 /**
@@ -65,7 +66,9 @@ export async function uploadToInternetArchive(
         speaker?: string;
         audioType?: string;
         title?: string;
+        contentType?: 'audio' | 'video' | 'book';
     },
+    coverFile?: File | null,
     signal?: AbortSignal
 ): Promise<IAUploadResult> {
     const { accessKey, secretKey } = getIACredentials();
@@ -73,9 +76,7 @@ export async function uploadToInternetArchive(
     const fileName = sanitizeFileName(file.name);
 
     // Helper: IA supports URI-encoded metadata values via uri() wrapper
-    // This is needed because HTTP headers only allow ISO-8859-1 characters
     const encMeta = (value: string): string => {
-        // Check if value contains non-ASCII characters
         if (/[^\x00-\x7F]/.test(value)) {
             return `uri(${encodeURIComponent(value)})`;
         }
@@ -83,17 +84,19 @@ export async function uploadToInternetArchive(
     };
 
     const title = metadata.title || fileName;
-    const description = `Audio content from Fikr-e-Islam${metadata.speaker ? ` by ${metadata.speaker}` : ''}`;
+    const mediaType = metadata.contentType === 'video' ? 'movies' : 
+                      (metadata.contentType === 'book' ? 'texts' : 'audio');
+    
+    const collection = 'opensource';
 
     const headers: Record<string, string> = {
         'Authorization': `LOW ${accessKey}:${secretKey}`,
         'Content-Type': file.type || 'application/octet-stream',
         'x-amz-auto-make-bucket': '1',
-        // IA metadata headers — URI-encode non-ASCII values
-        'x-archive-meta-mediatype': 'audio',
-        'x-archive-meta-collection': 'opensource_audio',
+        'x-archive-meta-mediatype': mediaType,
+        'x-archive-meta-collection': collection,
         'x-archive-meta-title': encMeta(title),
-        'x-archive-meta-description': encMeta(description),
+        'x-archive-meta-description': encMeta(`Content from Fikr-e-Islam: ${title}`),
     };
 
     if (metadata.speaker) {
@@ -103,6 +106,7 @@ export async function uploadToInternetArchive(
         headers['x-archive-meta-subject'] = encMeta(metadata.audioType);
     }
 
+    // 1. Upload main file
     const uploadUrl = `${IA_S3_ENDPOINT}/${identifier}/${encodeURIComponent(fileName)}`;
 
     const response = await fetch(uploadUrl, {
@@ -114,16 +118,39 @@ export async function uploadToInternetArchive(
 
     if (!response.ok) {
         let errorDetail = '';
-        try {
-            errorDetail = await response.text();
-        } catch { /* ignore */ }
+        try { errorDetail = await response.text(); } catch { /* ignore */ }
         throw new Error(`Internet Archive upload failed (${response.status}): ${errorDetail || response.statusText}`);
+    }
+
+    // 2. Upload cover if provided (to the SAME identifier)
+    let coverIaUrl = null;
+    if (coverFile) {
+        const coverFileName = `cover_${sanitizeFileName(coverFile.name)}`;
+        const coverUploadUrl = `${IA_S3_ENDPOINT}/${identifier}/${encodeURIComponent(coverFileName)}`;
+        
+        const coverHeaders = {
+            'Authorization': `LOW ${accessKey}:${secretKey}`,
+            'Content-Type': coverFile.type || 'image/jpeg',
+        };
+
+        const coverResponse = await fetch(coverUploadUrl, {
+            method: 'PUT',
+            headers: coverHeaders,
+            body: coverFile,
+            signal,
+        });
+
+        if (coverResponse.ok) {
+            coverIaUrl = `ia://${identifier}/${coverFileName}`;
+        } else {
+            console.warn('Cover upload to Internet Archive failed (non-blocking):', coverResponse.status);
+        }
     }
 
     const iaUrl = `ia://${identifier}/${fileName}`;
     const downloadUrl = `https://archive.org/download/${identifier}/${encodeURIComponent(fileName)}`;
 
-    return { identifier, fileName, iaUrl, downloadUrl };
+    return { identifier, fileName, iaUrl, downloadUrl, coverIaUrl };
 }
 
 /**

@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { getSignedUrl } from '@/lib/storage';
+import { resolveExternalUrl } from '@/lib/storage';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -8,18 +8,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import {
     Dialog,
     DialogContent,
-    DialogDescription,
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
 import { toast } from 'sonner';
-import { z } from 'zod';
-import { Upload, Headphones, Loader2, Save, Archive, HardDrive } from 'lucide-react';
+import { Upload, Headphones, Loader2, Save } from 'lucide-react';
 import { useUpload } from '@/contexts/UploadContextTypes';
 import { MetadataCombobox } from './MetadataCombobox';
 import { formatBytes } from '@/lib/utils';
 import { Checkbox } from '@/components/ui/checkbox';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 
 interface AudioEditDialogProps {
     content: any;
@@ -121,9 +118,7 @@ const { editContent } = useUpload();
     const [hDay, setHDay] = useState('');
     const [hMonth, setHMonth] = useState('');
     const [hYear, setHYear] = useState('');
-    const [signedCoverUrl, setSignedCoverUrl] = useState<string | null>(null);
     const [fileType, setFileType] = useState<string>('');
-    const [storageProvider, setStorageProvider] = useState<'internet-archive' | 'google-drive'>('internet-archive');
 
     const DatePartSelect = ({
         type, value, onChange, placeholder, monthType
@@ -197,31 +192,19 @@ const { editContent } = useUpload();
             setHMonth(content.hijri_date_month || '');
             setHYear(content.hijri_date_year?.toString() || '');
 
-            // Fetch signed URL for existing cover image with transformation for speed
-            if (content.cover_image_url && !signedCoverUrl) {
-                getSignedUrl(content.cover_image_url, 3600, {
-                    transform: { width: 200, height: 200 }
-                }).then(setSignedCoverUrl);
-            }
-
             if (content.file_url) {
-                if (content.file_url.includes('ia://')) {
-                    setFileType('MP3');
-                    setStorageProvider('internet-archive');
-                } else if (content.file_url.includes('google-drive://')) {
-                    setFileType('MP3'); // Most GDrive uploads are MP3 in this context
-                    setStorageProvider('google-drive');
-                } else {
+                if (!content.file_url.includes('ia://')) {
                     const parts = content.file_url.split('.');
                     if (parts.length > 1) {
                         const ext = parts[parts.length - 1].toUpperCase();
                         setFileType(ext);
                     }
-                    setStorageProvider('internet-archive'); // Default for new
+                } else {
+                    setFileType('MP3');
                 }
             }
         }
-    }, [content, signedCoverUrl]);
+    }, [content]);
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0] || null;
@@ -232,8 +215,6 @@ const { editContent } = useUpload();
         } else if (content?.file_url) {
             // Restore original file type if selection is cleared
             if (content.file_url.includes('ia://')) {
-                setFileType('MP3');
-            } else if (content.file_url.includes('google-drive://')) {
                 setFileType('MP3');
             } else {
                 const parts = content.file_url.split('.');
@@ -262,7 +243,6 @@ const { editContent } = useUpload();
                 hijri_date_month: hMonth || null,
                 hijri_date_year: hYear ? parseInt(hYear) : null,
                 status: content.status === 'rejected' ? 'pending' : content.status,
-                _storageProvider: storageProvider,
             };
 
             editContent(content.id, content.status, updatePayload, newFile, newCoverImage, content.title, content.file_url, 'audio');
@@ -315,7 +295,7 @@ const { editContent } = useUpload();
                                 <input id="edit-audio-cover" type="file" accept="image/*" onChange={(e) => setNewCoverImage(e.target.files?.[0] || null)} className="hidden" />
                                 <label htmlFor="edit-audio-cover" className="cursor-pointer w-full h-full flex items-center justify-center">
                                     {newCoverImage ? <img src={URL.createObjectURL(newCoverImage)} className="w-full h-full object-cover" /> :
-                                        (signedCoverUrl ? <img src={signedCoverUrl} className="w-full h-full object-cover" /> : <Upload className="h-5 w-5" />)}
+                                        (content.cover_image_url ? <img src={resolveExternalUrl(content.cover_image_url)} className="w-full h-full object-cover" /> : <Upload className="h-5 w-5" />)}
                                 </label>
                             </div>
                         </div>
@@ -331,37 +311,7 @@ const { editContent } = useUpload();
                         <MetadataCombobox options={metadata.language} value={language} onChange={setLanguage} />
                     </div>
 
-                    <div className="space-y-2">
-                        <Label>{"اسٹوریج"}</Label>
-                        <RadioGroup
-                            value={storageProvider}
-                            onValueChange={(val) => setStorageProvider(val as 'internet-archive' | 'google-drive')}
-                            className="flex gap-3"
-                        >
-                            <label
-                                htmlFor="edit-sp-ia"
-                                className={`flex items-center gap-2 px-4 py-3 rounded-lg border-2 cursor-pointer transition-all flex-1 ${storageProvider === 'internet-archive'
-                                        ? 'border-primary bg-primary/5'
-                                        : 'border-border hover:border-primary/30'
-                                    }`}
-                            >
-                                <RadioGroupItem value="internet-archive" id="edit-sp-ia" />
-                                <Archive className="h-4 w-4 shrink-0" />
-                                <span className="text-sm font-medium">Internet Archive</span>
-                            </label>
-                            <label
-                                htmlFor="edit-sp-gd"
-                                className={`flex items-center gap-2 px-4 py-3 rounded-lg border-2 cursor-pointer transition-all flex-1 ${storageProvider === 'google-drive'
-                                        ? 'border-primary bg-primary/5'
-                                        : 'border-border hover:border-primary/30'
-                                    }`}
-                            >
-                                <RadioGroupItem value="google-drive" id="edit-sp-gd" />
-                                <HardDrive className="h-4 w-4 shrink-0" />
-                                <span className="text-sm font-medium">Google Drive</span>
-                            </label>
-                        </RadioGroup>
-                    </div>
+                    {/* Removed Google Drive storage selector */}
 
                     <div className="space-y-6 pt-4">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

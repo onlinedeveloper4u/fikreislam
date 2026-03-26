@@ -6,13 +6,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { Loader2, Plus, Trash2, Pencil, Check, X, Music } from 'lucide-react';
-import { deleteFolderByIdInGoogleDrive, renameFolderByIdInGoogleDrive, createFolderInGoogleDrive } from "@/lib/storage";
 import { MetadataCombobox } from './MetadataCombobox';
 
 interface AudioType {
     id: string;
     name: string;
-    google_folder_id: string | null;
     speaker_id: string | null;
     updated_at: string;
 }
@@ -23,7 +21,7 @@ interface Speaker {
 }
 
 export function AudioTypeManagement() {
-const [audioTypes, setAudioTypes] = useState<AudioType[]>([]);
+    const [audioTypes, setAudioTypes] = useState<AudioType[]>([]);
     const [speakers, setSpeakers] = useState<Speaker[]>([]);
     const [selectedSpeaker, setSelectedSpeaker] = useState<string>('');
     const [loading, setLoading] = useState(true);
@@ -81,7 +79,7 @@ const [audioTypes, setAudioTypes] = useState<AudioType[]>([]);
                 .order('name', { ascending: true });
 
             if (error) throw error;
-            setAudioTypes((data as unknown as AudioType[]) || []);
+            setAudioTypes((data as any) || []);
         } catch (error: any) {
             console.error('Error fetching audio types:', error);
             toast.error("ایک غلطی واقع ہوئی ہے");
@@ -104,22 +102,12 @@ const [audioTypes, setAudioTypes] = useState<AudioType[]>([]);
                 throw new Error("یہ نام پہلے سے موجود ہے");
             }
 
-            // 1. Create subfolder in GDrive for the specific speaker
-            const gdrivePath = `فکر اسلام/${selectedSpeaker}/${newName.trim()}`;
-            const gdriveResult = await createFolderInGoogleDrive(gdrivePath);
-            const folderId = gdriveResult.success && gdriveResult.folderId ? gdriveResult.folderId : null;
-
-            if (!gdriveResult.success) {
-                toast.error('Failed to create Google Drive folder. Metadata will be created without folder association.');
-            }
-
-            // 2. Insert into database attached to speaker
+            // Insert into database attached to speaker (No Google Drive folder creation)
             const { error } = await supabase
                 .from('audio_types')
                 .insert([{
                     name: newName.trim(),
-                    speaker_id: speakerId,
-                    google_folder_id: folderId
+                    speaker_id: speakerId
                 }]);
 
             if (error) throw error;
@@ -162,20 +150,12 @@ const [audioTypes, setAudioTypes] = useState<AudioType[]>([]);
             const updatedName = editName.trim();
 
             if (oldName && oldName !== updatedName) {
-                // 1. Cascade update to content table
+                // Cascade update to content table
                 await supabase
                     .from('content')
                     .update({ audio_type: updatedName })
                     .eq('speaker', selectedSpeaker)
                     .eq('audio_type', oldName);
-
-                // 2. Google Drive Sync for subfolder
-                if (itemToEdit?.google_folder_id) {
-                    const result = await renameFolderByIdInGoogleDrive(itemToEdit.google_folder_id, updatedName);
-                    if (!result.success) {
-                        toast.error(`Google Drive error: ${result.message}`);
-                    }
-                }
             }
 
             toast.success("کامیاب");
@@ -195,23 +175,12 @@ const [audioTypes, setAudioTypes] = useState<AudioType[]>([]);
 
         setActionLoading(id);
         try {
-            const itemToDelete = audioTypes.find(a => a.id === id);
-
             const { error } = await supabase
                 .from('audio_types')
                 .delete()
                 .eq('id', id);
 
             if (error) throw error;
-
-            if (itemToDelete?.google_folder_id) {
-                const folderId = itemToDelete.google_folder_id;
-                const result = await deleteFolderByIdInGoogleDrive(folderId);
-
-                if (!result.success) {
-                    toast.error(`Google Drive deletion error: ${result.message}`);
-                }
-            }
 
             toast.success("کامیاب");
             setAudioTypes(prev => prev.filter(a => a.id !== id));

@@ -5,7 +5,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
 import { z } from 'zod';
 import { formatBytes } from '@/lib/utils';
@@ -14,9 +13,7 @@ import { useUpload } from '@/contexts/UploadContextTypes';
 import { MetadataCombobox } from './MetadataCombobox';
 
 const ALLOWED_VIDEO_TYPES = ['video/mp4', 'video/webm', 'video/quicktime'];
-const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
 const MAX_FILE_SIZE = 500 * 1024 * 1024; // 500MB
-const MAX_IMAGE_SIZE = 10 * 1024 * 1024; // 10MB
 
 interface VideoUploadFormProps {
     onSuccess?: () => void;
@@ -67,7 +64,6 @@ export function VideoUploadForm({ onSuccess }: VideoUploadFormProps) {
                 language,
                 tags: tags.split(',').map(t => t.trim()).filter(Boolean),
                 contentType: 'video' as const,
-                useGoogleDrive: false,
             };
 
             uploadContent(uploadData, file, coverImage);

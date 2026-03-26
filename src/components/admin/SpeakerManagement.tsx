@@ -6,13 +6,10 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { Loader2, Plus, Trash2, Pencil, Check, X, Mic2 } from 'lucide-react';
-import { renameFolderByIdInGoogleDrive, createFolderInGoogleDrive, deleteFolderByIdInGoogleDrive } from '@/lib/storage';
-
 interface Speaker {
     id: string;
     name: string;
     updated_at: string;
-    google_folder_id: string | null;
 }
 
 export function SpeakerManagement() {
@@ -58,19 +55,10 @@ const [speakers, setSpeakers] = useState<Speaker[]>([]);
                 throw new Error("یہ نام پہلے سے موجود ہے");
             }
 
-            // Google Drive Folder Automation
-            const folderPath = `فکر اسلام/${newName.trim()}`;
-            const result = await createFolderInGoogleDrive(folderPath);
-
-            if (!result.success) {
-                console.warn('Google Drive folder creation failed, but speaker record will be created:', result.message);
-            }
-
             const { error } = await supabase
                 .from('speakers')
                 .insert({
-                    name: newName.trim(),
-                    google_folder_id: result.folderId || null
+                    name: newName.trim()
                 });
 
             if (error) throw error;
@@ -110,7 +98,7 @@ const [speakers, setSpeakers] = useState<Speaker[]>([]);
             const updatedName = editName.trim();
 
             if (oldName && oldName !== updatedName) {
-                // 1. Cascade update to content table
+                // Cascade update to content table
                 const { error: cascadeError } = await supabase
                     .from('content')
                     .update({ speaker: updatedName })
@@ -118,13 +106,6 @@ const [speakers, setSpeakers] = useState<Speaker[]>([]);
 
                 if (cascadeError) {
                     console.error('Cascade update error:', cascadeError);
-                }
-
-                // 2. Google Drive Sync
-                const folderId = itemToEdit?.google_folder_id;
-                if (folderId) {
-                    const result = await renameFolderByIdInGoogleDrive(folderId, updatedName);
-                    if (!result.success) toast.error(`Google Drive error: ${result.message}`);
                 }
             }
 
@@ -145,23 +126,12 @@ const [speakers, setSpeakers] = useState<Speaker[]>([]);
 
         setActionLoading(id);
         try {
-            const itemToDelete = speakers.find(s => s.id === id);
-
             const { error } = await supabase
                 .from('speakers')
                 .delete()
                 .eq('id', id);
 
             if (error) throw error;
-
-            if (itemToDelete?.google_folder_id) {
-                const folderId = itemToDelete.google_folder_id;
-                const result = await deleteFolderByIdInGoogleDrive(folderId);
-
-                if (!result.success) {
-                    toast.error(`Google Drive deletion error: ${result.message}`);
-                }
-            }
 
             toast.success("کامیاب");
             setSpeakers(prev => prev.filter(s => s.id !== id));

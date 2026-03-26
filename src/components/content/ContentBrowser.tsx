@@ -3,9 +3,9 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useFavorites } from '@/hooks/useFavorites';
 import { useAnalytics } from '@/hooks/useAnalytics';
-import { getSignedUrl } from '@/lib/storage';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { resolveExternalUrl } from '@/lib/storage';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -14,7 +14,7 @@ import { MediaPlayer } from './MediaPlayer';
 import { motion, Variants, AnimatePresence } from 'framer-motion';
 import {
   Search, Download, Play, FileText, Music, Video,
-  Loader2, Filter, X, User, Calendar, Heart, ListPlus
+  Loader2, Filter, X, User, Calendar, Heart, ListPlus, ExternalLink
 } from 'lucide-react';
 
 type ContentType = 'book' | 'audio' | 'video';
@@ -32,10 +32,6 @@ interface Content {
   published_at: string | null;
 }
 
-interface ContentWithSignedUrls extends Content {
-  signed_file_url?: string | null;
-  signed_cover_url?: string | null;
-}
 
 interface ContentBrowserProps {
   contentType: ContentType;
@@ -83,7 +79,7 @@ export function ContentBrowser({ contentType, title, description }: ContentBrows
   const { user } = useAuth();
   const { isFavorite, toggleFavorite } = useFavorites();
   const { trackDownload, trackPlay } = useAnalytics();
-  const [content, setContent] = useState<ContentWithSignedUrls[]>([]);
+  const [content, setContent] = useState<Content[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedLanguage, setSelectedLanguage] = useState('تمام');
@@ -91,7 +87,7 @@ export function ContentBrowser({ contentType, title, description }: ContentBrows
   const [playlistDialogOpen, setPlaylistDialogOpen] = useState(false);
   const [selectedContentId, setSelectedContentId] = useState<string | null>(null);
   const [playerOpen, setPlayerOpen] = useState(false);
-  const [selectedItem, setSelectedItem] = useState<ContentWithSignedUrls | null>(null);
+  const [selectedItem, setSelectedItem] = useState<Content | null>(null);
 
   const typeConfig: Record<ContentType, { icon: React.ElementType; actionLabel: string; actionIcon: React.ElementType }> = {
     book: { icon: FileText, actionLabel: "حاصل کریں", actionIcon: Download },
@@ -118,21 +114,7 @@ export function ContentBrowser({ contentType, title, description }: ContentBrows
 
       if (error) throw error;
 
-      const contentWithSignedUrls = await Promise.all(
-        ((data as Content[]) || []).map(async (item) => {
-          const [signedFileUrl, signedCoverUrl] = await Promise.all([
-            getSignedUrl(item.file_url),
-            getSignedUrl(item.cover_image_url)
-          ]);
-          return {
-            ...item,
-            signed_file_url: signedFileUrl,
-            signed_cover_url: signedCoverUrl
-          };
-        })
-      );
-
-      setContent(contentWithSignedUrls);
+      setContent(data as Content[] || []);
     } catch (error) {
       console.error('Error fetching content:', error);
     } finally {
@@ -162,7 +144,7 @@ export function ContentBrowser({ contentType, title, description }: ContentBrows
     });
   }, [content, searchQuery, selectedLanguage, selectedTag]);
 
-  const handleAction = (item: ContentWithSignedUrls) => {
+  const handleAction = (item: Content) => {
     if (item.type === 'book') {
       trackDownload(item.id);
     } else {
@@ -326,9 +308,9 @@ export function ContentBrowser({ contentType, title, description }: ContentBrows
               >
                 {/* Visual Anchor */}
                 <div className="aspect-[3/4] relative bg-muted/20 overflow-hidden">
-                  {item.signed_cover_url || item.cover_image_url ? (
+                  {item.cover_image_url ? (
                     <img
-                      src={item.signed_cover_url || item.cover_image_url || ''}
+                      src={resolveExternalUrl(item.cover_image_url)}
                       alt={item.title}
                       className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000 ease-out"
                     />
@@ -374,6 +356,13 @@ export function ContentBrowser({ contentType, title, description }: ContentBrows
                       >
                         <ListPlus className="h-5 w-5" />
                       </Button>
+                      {item.file_url && (
+                    <Button variant="ghost" size="icon" asChild title={"فائل دیکھیں"}>
+                      <a href={resolveExternalUrl(item.file_url)} target="_blank" rel="noopener noreferrer">
+                        <ExternalLink className="h-4 w-4" />
+                      </a>
+                    </Button>
+                  )}
                     </div>
                   )}
 
@@ -447,7 +436,7 @@ export function ContentBrowser({ contentType, title, description }: ContentBrows
             isOpen={playerOpen}
             onClose={() => setPlayerOpen(false)}
             title={selectedItem.title}
-            url={selectedItem.signed_file_url || selectedItem.file_url}
+            url={selectedItem.file_url}
             type={selectedItem.type}
           />
         )}

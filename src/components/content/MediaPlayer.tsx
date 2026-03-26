@@ -6,9 +6,9 @@ import {
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import {
-    ExternalLink, X, Music, FileText, Video as VideoIcon,
+    ExternalLink, X, Music,
     Play, Pause, SkipBack, SkipForward, Volume2, VolumeX,
-    Download, Repeat, Minimize2
+    Download, Repeat
 } from "lucide-react";
 import { resolveIADownloadUrl, resolveIAItemUrl } from '@/lib/internetArchive';
 
@@ -31,16 +31,6 @@ const resolveMediaUrl = (url: string | null) => {
         return resolveIADownloadUrl(url);
     }
 
-    // Handle internal google-drive:// scheme
-    if (url.includes('google-drive://')) {
-        const parts = url.split('google-drive://');
-        let fileId = parts[1];
-        if (fileId.includes('?')) {
-            fileId = fileId.split('?')[0];
-        }
-        fileId = fileId.replace(/['"]/g, '').trim();
-        return `https://drive.google.com/file/d/${fileId}/preview`;
-    }
 
     // Handle standard Google Drive links
     if (url.includes('drive.google.com')) {
@@ -59,12 +49,6 @@ const resolveExternalUrl = (url: string | null) => {
     if (url.includes('ia://')) {
         return resolveIAItemUrl(url);
     }
-    if (url.includes('google-drive://')) {
-        const parts = url.split('google-drive://');
-        let fileId = parts[1];
-        if (fileId.includes('?')) fileId = fileId.split('?')[0];
-        return `https://drive.google.com/file/d/${fileId}/view`;
-    }
     return url;
 };
 
@@ -72,12 +56,6 @@ const resolveDownloadUrl = (url: string | null) => {
     if (!url) return '';
     if (url.includes('ia://')) {
         return resolveIADownloadUrl(url);
-    }
-    if (url.includes('google-drive://')) {
-        const parts = url.split('google-drive://');
-        let fileId = parts[1];
-        if (fileId.includes('?')) fileId = fileId.split('?')[0];
-        return `https://drive.google.com/uc?export=download&id=${fileId}`;
     }
     return url;
 };
@@ -449,8 +427,7 @@ export function MediaPlayer({ isOpen, onClose, title, url, type }: MediaPlayerPr
     const downloadUrl = resolveDownloadUrl(url);
 
     // Determine if we can use native player (IA or Supabase URLs)
-    const isNativePlayable = url ? (url.includes('ia://') || (!url.includes('google-drive://') && !url.includes('drive.google.com'))) : false;
-    const isGoogleDrive = url ? (url.includes('google-drive://') || url.includes('drive.google.com')) : false;
+    const isNativePlayable = url ? (url.includes('ia://') || (!url.includes('drive.google.com'))) : false;
 
     return (
         <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
@@ -487,28 +464,6 @@ export function MediaPlayer({ isOpen, onClose, title, url, type }: MediaPlayerPr
                         externalUrl={externalUrl}
                         downloadUrl={downloadUrl}
                     />
-                ) : isGoogleDrive ? (
-                    /* Google Drive iframe */
-                    <div className="flex flex-col h-full">
-                        <div className="flex items-center justify-between px-6 py-4 border-b border-white/5">
-                            <h2 className="text-lg font-bold text-white truncate flex-1 pr-4">{title}</h2>
-                            {externalUrl && (
-                                <Button variant="ghost" size="icon" className="text-white/60 hover:text-white h-9 w-9" asChild>
-                                    <a href={externalUrl} target="_blank" rel="noopener noreferrer">
-                                        <ExternalLink className="h-4 w-4" />
-                                    </a>
-                                </Button>
-                            )}
-                        </div>
-                        <div className="flex-1">
-                            <iframe
-                                src={resolvedUrl}
-                                className="w-full h-full border-none"
-                                title={title}
-                                allow="autoplay"
-                            />
-                        </div>
-                    </div>
                 ) : type === 'book' ? (
                     /* Book viewer */
                     <div className="flex flex-col h-full">

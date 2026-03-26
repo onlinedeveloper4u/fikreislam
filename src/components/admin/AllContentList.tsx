@@ -1,18 +1,18 @@
 import { useState, useEffect } from 'react';
 import { useUpload } from '@/contexts/UploadContextTypes';
 import { supabase } from '@/integrations/supabase/client';
-import { getSignedUrl, deleteFromGoogleDrive, resolveExternalUrl } from '@/lib/storage';
+import { resolveItemPageUrl } from '@/lib/storage';
 import { deleteFromInternetArchive } from '@/lib/internetArchive';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
 import {
-  FileText, Music, Video, Check, X, Loader2,
+  FileText, Music, Video, Loader2,
   Clock, CheckCircle, XCircle, Search, ExternalLink,
-  Trash2, Plus, Globe, Pencil
+  Trash2, Plus, Pencil
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -81,7 +81,7 @@ export function AllContentList() {
   const [isUploadOpen, setIsUploadOpen] = useState(false);
   const [uploadType, setUploadType] = useState<ContentType>('audio');
   const [editingItem, setEditingItem] = useState<Content | null>(null);
-const { activeUploads, uploadContent, editContent, deleteContent, cancelUpload } = useUpload();
+  const { activeUploads, uploadContent, editContent, deleteContent, cancelUpload } = useUpload();
 
   const statusConfig: Record<ContentStatus, { icon: React.ElementType; color: string; label: string }> = {
     pending: { icon: Clock, color: 'bg-amber-500/10 text-amber-600', label: "غیر شائع شدہ" },
@@ -108,14 +108,7 @@ const { activeUploads, uploadContent, editContent, deleteContent, cancelUpload }
 
       if (error) throw error;
 
-      const contentWithSignedUrls = await Promise.all(
-        ((data as Content[]) || []).map(async (item) => {
-          const signedUrl = await getSignedUrl(item.file_url);
-          return { ...item, signed_file_url: signedUrl };
-        })
-      );
-
-      setContent(contentWithSignedUrls);
+      setContent(data as Content[] || []);
     } catch (error: any) {
       console.error('Error fetching content:', error);
       toast.error("آپ کا مواد لوڈ کرنے میں ناکامی");
@@ -148,8 +141,6 @@ const { activeUploads, uploadContent, editContent, deleteContent, cancelUpload }
         const item = content.find(c => c.id === id);
         if (item?.file_url?.startsWith('ia://')) {
           await deleteFromInternetArchive(item.file_url);
-        } else if (item?.file_url?.startsWith('google-drive://')) {
-          await deleteFromGoogleDrive(item.file_url);
         }
       }
 
@@ -312,9 +303,9 @@ const { activeUploads, uploadContent, editContent, deleteContent, cancelUpload }
                     {statusCfg.label}
                   </Badge>
 
-                  {(item.signed_file_url || item.file_url) && (
+                  {item.file_url && (
                     <Button variant="ghost" size="icon" asChild title={"فائل دیکھیں"}>
-                      <a href={resolveExternalUrl(item.signed_file_url || item.file_url)} target="_blank" rel="noopener noreferrer">
+                      <a href={resolveItemPageUrl(item.file_url)} target="_blank" rel="noopener noreferrer">
                         <ExternalLink className="h-4 w-4" />
                       </a>
                     </Button>

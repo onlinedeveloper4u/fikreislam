@@ -1,6 +1,6 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { getSignedUrl } from '@/lib/storage';
+import { resolveExternalUrl } from '@/lib/storage';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -8,7 +8,6 @@ import { Textarea } from '@/components/ui/textarea';
 import {
     Dialog,
     DialogContent,
-    DialogDescription,
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
@@ -26,7 +25,7 @@ interface VideoEditDialogProps {
 }
 
 export function VideoEditDialog({ content, open, onOpenChange, onSuccess }: VideoEditDialogProps) {
-const { editContent } = useUpload();
+    const { editContent } = useUpload();
 
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [title, setTitle] = useState('');
@@ -45,7 +44,6 @@ const { editContent } = useUpload();
 
     const [newFile, setNewFile] = useState<File | null>(null);
     const [newCoverImage, setNewCoverImage] = useState<File | null>(null);
-    const [signedCoverUrl, setSignedCoverUrl] = useState<string | null>(null);
     const [fileType, setFileType] = useState<string>('');
 
     useEffect(() => {
@@ -56,12 +54,6 @@ const { editContent } = useUpload();
             setLanguage(content.language || 'اردو');
             setTags(content.tags?.join(', ') || '');
 
-            if (content.cover_image_url && !signedCoverUrl) {
-                getSignedUrl(content.cover_image_url, 3600, {
-                    transform: { width: 200, height: 200 }
-                }).then(setSignedCoverUrl);
-            }
-
             if (content.file_url) {
                 const parts = content.file_url.split('.');
                 if (parts.length > 1) {
@@ -69,7 +61,7 @@ const { editContent } = useUpload();
                 }
             }
         }
-    }, [content, signedCoverUrl]);
+    }, [content]);
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0] || null;
@@ -149,7 +141,7 @@ const { editContent } = useUpload();
                                 <input id="edit-video-cover" type="file" accept="image/*" onChange={(e) => setNewCoverImage(e.target.files?.[0] || null)} className="hidden" />
                                 <label htmlFor="edit-video-cover" className="cursor-pointer w-full h-full flex items-center justify-center">
                                     {newCoverImage ? <img src={URL.createObjectURL(newCoverImage)} className="w-full h-full object-cover" /> :
-                                        (signedCoverUrl ? <img src={signedCoverUrl} className="w-full h-full object-cover" /> : <Upload className="h-5 w-5" />)}
+                                        (content.cover_image_url ? <img src={resolveExternalUrl(content.cover_image_url)} className="w-full h-full object-cover" /> : <Upload className="h-5 w-5" />)}
                                 </label>
                             </div>
                         </div>

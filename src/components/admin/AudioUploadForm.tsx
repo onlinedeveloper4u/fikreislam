@@ -5,18 +5,13 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
 import { z } from 'zod';
 import { formatBytes } from '@/lib/utils';
-import {
-    Upload, Music, Loader2, Headphones, Archive, HardDrive
-} from 'lucide-react';
-
+import { Upload, Loader2, Headphones } from 'lucide-react';
 import { useUpload } from '@/contexts/UploadContextTypes';
 import { Checkbox } from '@/components/ui/checkbox';
 import { MetadataCombobox } from './MetadataCombobox';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 
 const ALLOWED_AUDIO_TYPES = ['audio/mpeg', 'audio/wav', 'audio/ogg', 'audio/mp4', 'audio/x-m4a'];
 const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
@@ -35,7 +30,6 @@ export function AudioUploadForm({ onSuccess }: AudioUploadFormProps) {
     const [language, setLanguage] = useState('اردو');
     const [file, setFile] = useState<File | null>(null);
     const [coverImage, setCoverImage] = useState<File | null>(null);
-    const [storageProvider, setStorageProvider] = useState<'internet-archive' | 'google-drive'>('internet-archive');
 
     const [metadata, setMetadata] = useState<{
         speaker: string[];
@@ -223,7 +217,6 @@ export function AudioUploadForm({ onSuccess }: AudioUploadFormProps) {
                 title,
                 language,
                 contentType: 'audio' as const,
-                storageProvider,
                 duration: [durHours.padStart(2, '0') || '00', durMinutes.padStart(2, '0') || '00', durSeconds.padStart(2, '0') || '00'].join(':'),
                 venue: venueManual ? venueText : [venueDistrict, venueTehsil, venueCity, venueArea].filter(Boolean).join(', '),
                 speaker,
@@ -293,37 +286,7 @@ export function AudioUploadForm({ onSuccess }: AudioUploadFormProps) {
                 <MetadataCombobox options={metadata.language} value={language} onChange={setLanguage} />
             </div>
 
-            <div className="space-y-2">
-                <Label>{"اسٹوریج"}</Label>
-                <RadioGroup
-                    value={storageProvider}
-                    onValueChange={(val) => setStorageProvider(val as 'internet-archive' | 'google-drive')}
-                    className="flex gap-3"
-                >
-                    <label
-                        htmlFor="sp-ia"
-                        className={`flex items-center gap-2 px-4 py-3 rounded-lg border-2 cursor-pointer transition-all flex-1 ${storageProvider === 'internet-archive'
-                            ? 'border-primary bg-primary/5'
-                            : 'border-border hover:border-primary/30'
-                            }`}
-                    >
-                        <RadioGroupItem value="internet-archive" id="sp-ia" />
-                        <Archive className="h-4 w-4 shrink-0" />
-                        <span className="text-sm font-medium">Internet Archive</span>
-                    </label>
-                    <label
-                        htmlFor="sp-gd"
-                        className={`flex items-center gap-2 px-4 py-3 rounded-lg border-2 cursor-pointer transition-all flex-1 ${storageProvider === 'google-drive'
-                            ? 'border-primary bg-primary/5'
-                            : 'border-border hover:border-primary/30'
-                            }`}
-                    >
-                        <RadioGroupItem value="google-drive" id="sp-gd" />
-                        <HardDrive className="h-4 w-4 shrink-0" />
-                        <span className="text-sm font-medium">Google Drive</span>
-                    </label>
-                </RadioGroup>
-            </div>
+            {/* Removed Google Drive storage provider selection */}
 
             <div className="space-y-6 pt-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

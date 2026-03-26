@@ -4,7 +4,6 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { supabase } from '@/integrations/supabase/client';
 import {
   Sidebar,
   SidebarContent,
@@ -20,7 +19,6 @@ import {
   SidebarTrigger,
 } from '@/components/ui/sidebar';
 import {
-  Upload,
   Clock,
   FileText,
   Users,
@@ -38,7 +36,7 @@ interface DashboardSidebarProps {
 }
 
 export function NextDashboardSidebar({ activeTab }: DashboardSidebarProps) {
-  const { role, signOut } = useAuth();
+  const { signOut } = useAuth();
   const { dir } = useLanguage();
   const pathname = usePathname();
   const router = useRouter();
