@@ -2,7 +2,9 @@ import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
-export default async function proxy(req: NextRequest) {
+export const runtime = 'edge'
+
+export default async function middleware(req: NextRequest) {
   let res = NextResponse.next({
     request: {
       headers: req.headers,
