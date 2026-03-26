@@ -2,9 +2,8 @@ import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
-// Use 'edge', not 'experimental-edge'
 export const config = {
-  runtime: 'edge',
+  runtime: 'experimental-edge',
 };
 
 export async function middleware(req: NextRequest) {
