@@ -2,9 +2,25 @@ import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
-export const runtime = 'experimental-edge'
-
 export default async function proxy(req: NextRequest) {
+  const { pathname } = req.nextUrl
+
+  // Manual Matcher Check (Replaces the deprecated export const config)
+  const shouldProxy = [
+    '/admin',
+    '/settings',
+    '/library',
+    '/qa',
+    '/login',
+    '/register',
+    '/forgot-password',
+    '/reset-password'
+  ].some(path => pathname.startsWith(path))
+
+  if (!shouldProxy) {
+    return NextResponse.next()
+  }
+
   let res = NextResponse.next({
     request: {
       headers: req.headers,
@@ -61,8 +77,6 @@ export default async function proxy(req: NextRequest) {
     data: { session },
   } = await supabase.auth.getSession()
 
-  const { pathname } = req.nextUrl
-
   // Protected Routes Configuration
   const isAdminRoute = pathname.startsWith('/admin')
   const isUserProtectedRoute = pathname.startsWith('/settings') || pathname.startsWith('/library') || pathname.startsWith('/qa')
@@ -102,15 +116,3 @@ export default async function proxy(req: NextRequest) {
   return res
 }
 
-export const config = {
-  matcher: [
-    '/admin/:path*',
-    '/settings/:path*',
-    '/library/:path*',
-    '/qa/:path*',
-    '/login',
-    '/register',
-    '/forgot-password',
-    '/reset-password',
-  ],
-}
