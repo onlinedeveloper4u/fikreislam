@@ -2,12 +2,9 @@ import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
-export const runtime = 'experimental-edge'
-
 export default async function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl
 
-  // Manual Matcher Check (Replaces the deprecated export const config)
   const shouldProxy = [
     '/admin',
     '/settings',
@@ -38,38 +35,18 @@ export default async function proxy(req: NextRequest) {
           return req.cookies.get(name)?.value
         },
         set(name: string, value: string, options: CookieOptions) {
-          req.cookies.set({
-            name,
-            value,
-            ...options,
-          })
+          req.cookies.set({ name, value, ...options })
           res = NextResponse.next({
-            request: {
-              headers: req.headers,
-            },
+            request: { headers: req.headers },
           })
-          res.cookies.set({
-            name,
-            value,
-            ...options,
-          })
+          res.cookies.set({ name, value, ...options })
         },
         remove(name: string, options: CookieOptions) {
-          req.cookies.set({
-            name,
-            value: '',
-            ...options,
-          })
+          req.cookies.set({ name, value: '', ...options })
           res = NextResponse.next({
-            request: {
-              headers: req.headers,
-            },
+            request: { headers: req.headers },
           })
-          res.cookies.set({
-            name,
-            value: '',
-            ...options,
-          })
+          res.cookies.set({ name, value: '', ...options })
         },
       },
     }
@@ -79,12 +56,17 @@ export default async function proxy(req: NextRequest) {
     data: { session },
   } = await supabase.auth.getSession()
 
-  // Protected Routes Configuration
   const isAdminRoute = pathname.startsWith('/admin')
-  const isUserProtectedRoute = pathname.startsWith('/settings') || pathname.startsWith('/library') || pathname.startsWith('/qa')
-  const isAuthRoute = pathname.startsWith('/login') || pathname.startsWith('/register') || pathname.startsWith('/forgot-password') || pathname.startsWith('/reset-password')
+  const isUserProtectedRoute =
+    pathname.startsWith('/settings') ||
+    pathname.startsWith('/library') ||
+    pathname.startsWith('/qa')
+  const isAuthRoute =
+    pathname.startsWith('/login') ||
+    pathname.startsWith('/register') ||
+    pathname.startsWith('/forgot-password') ||
+    pathname.startsWith('/reset-password')
 
-  // 1. Redirect unauthenticated users from protected routes
   if ((isAdminRoute || isUserProtectedRoute) && !session) {
     const redirectUrl = req.nextUrl.clone()
     redirectUrl.pathname = '/login'
@@ -92,9 +74,7 @@ export default async function proxy(req: NextRequest) {
     return NextResponse.redirect(redirectUrl)
   }
 
-  // 2. Role-based access for Admin routes
   if (isAdminRoute && session) {
-    // Check role from user_roles table
     const { data: roleData } = await supabase
       .from('user_roles')
       .select('role')
@@ -108,7 +88,6 @@ export default async function proxy(req: NextRequest) {
     }
   }
 
-  // 3. Redirect authenticated users away from auth routes
   if (isAuthRoute && session) {
     const redirectUrl = req.nextUrl.clone()
     redirectUrl.pathname = '/'
@@ -117,4 +96,3 @@ export default async function proxy(req: NextRequest) {
 
   return res
 }
-
