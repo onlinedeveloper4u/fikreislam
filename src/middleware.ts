@@ -2,7 +2,12 @@ import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
-export default async function proxy(req: NextRequest) {
+// Use 'edge', not 'experimental-edge'
+export const config = {
+  runtime: 'edge',
+};
+
+export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl
 
   const shouldProxy = [
@@ -16,14 +21,10 @@ export default async function proxy(req: NextRequest) {
     '/reset-password'
   ].some(path => pathname.startsWith(path))
 
-  if (!shouldProxy) {
-    return NextResponse.next()
-  }
+  if (!shouldProxy) return NextResponse.next()
 
   let res = NextResponse.next({
-    request: {
-      headers: req.headers,
-    },
+    request: { headers: req.headers },
   })
 
   const supabase = createServerClient(
@@ -31,41 +32,26 @@ export default async function proxy(req: NextRequest) {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
-        get(name: string) {
-          return req.cookies.get(name)?.value
-        },
+        get(name: string) { return req.cookies.get(name)?.value },
         set(name: string, value: string, options: CookieOptions) {
           req.cookies.set({ name, value, ...options })
-          res = NextResponse.next({
-            request: { headers: req.headers },
-          })
+          res = NextResponse.next({ request: { headers: req.headers } })
           res.cookies.set({ name, value, ...options })
         },
         remove(name: string, options: CookieOptions) {
           req.cookies.set({ name, value: '', ...options })
-          res = NextResponse.next({
-            request: { headers: req.headers },
-          })
+          res = NextResponse.next({ request: { headers: req.headers } })
           res.cookies.set({ name, value: '', ...options })
         },
       },
     }
   )
 
-  const {
-    data: { session },
-  } = await supabase.auth.getSession()
+  const { data: { session } } = await supabase.auth.getSession()
 
   const isAdminRoute = pathname.startsWith('/admin')
-  const isUserProtectedRoute =
-    pathname.startsWith('/settings') ||
-    pathname.startsWith('/library') ||
-    pathname.startsWith('/qa')
-  const isAuthRoute =
-    pathname.startsWith('/login') ||
-    pathname.startsWith('/register') ||
-    pathname.startsWith('/forgot-password') ||
-    pathname.startsWith('/reset-password')
+  const isUserProtectedRoute = ['/settings', '/library', '/qa'].some(p => pathname.startsWith(p))
+  const isAuthRoute = ['/login', '/register', '/forgot-password', '/reset-password'].some(p => pathname.startsWith(p))
 
   if ((isAdminRoute || isUserProtectedRoute) && !session) {
     const redirectUrl = req.nextUrl.clone()
@@ -74,6 +60,7 @@ export default async function proxy(req: NextRequest) {
     return NextResponse.redirect(redirectUrl)
   }
 
+  // Admin Check
   if (isAdminRoute && session) {
     const { data: roleData } = await supabase
       .from('user_roles')
@@ -82,16 +69,12 @@ export default async function proxy(req: NextRequest) {
       .single()
 
     if (roleData?.role !== 'admin') {
-      const redirectUrl = req.nextUrl.clone()
-      redirectUrl.pathname = '/'
-      return NextResponse.redirect(redirectUrl)
+      return NextResponse.redirect(new URL('/', req.url))
     }
   }
 
   if (isAuthRoute && session) {
-    const redirectUrl = req.nextUrl.clone()
-    redirectUrl.pathname = '/'
-    return NextResponse.redirect(redirectUrl)
+    return NextResponse.redirect(new URL('/', req.url))
   }
 
   return res
