@@ -2,9 +2,6 @@ import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
-export const config = {
-  runtime: 'experimental-edge',
-};
 
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl
