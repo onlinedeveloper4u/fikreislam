@@ -1,14 +1,13 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
-import { User, Shield, Upload, Loader2, Users, Mail } from 'lucide-react';
-import type { Database } from '@/integrations/supabase/types';
+import { User, Shield, Loader2, Users, Mail } from 'lucide-react';
+import { getUsersWithRoles, updateUserRole } from '@/actions/auth';
 
-type AppRole = Database['public']['Enums']['app_role'];
+type AppRole = 'admin' | 'user';
 
 interface UserDetails {
   id: string;
@@ -22,7 +21,8 @@ export function UserManagement() {
   const [users, setUsers] = useState<UserDetails[]>([]);
   const [loading, setLoading] = useState(true);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
-const roleConfig: Record<AppRole, { icon: React.ElementType; color: string; label: string }> = {
+  
+  const roleConfig: Record<AppRole, { icon: React.ElementType; color: string; label: string }> = {
     admin: { icon: Shield, color: 'bg-red-500/10 text-red-600', label: "منتظم" },
     user: { icon: User, color: 'bg-gray-500/10 text-gray-600', label: "صارف" },
   };
@@ -33,12 +33,11 @@ const roleConfig: Record<AppRole, { icon: React.ElementType; color: string; labe
 
   const fetchUsers = async () => {
     try {
-      const { data, error } = await supabase.rpc('get_users_with_metadata' as any);
-
-      if (error) throw error;
-      setUsers((data as UserDetails[]) || []);
+      const res = await getUsersWithRoles();
+      if (res.error) throw res.error;
+      setUsers((res.data as unknown as UserDetails[]) || []);
     } catch (error: any) {
-      console.error('Error fetching users via RPC:', error);
+      console.error('Error fetching users:', error);
       const errorMessage = error.message || 'Unknown error';
       toast.error(`${"صارفین لوڈ کرنے میں ناکامی"}: ${errorMessage}`);
     } finally {
@@ -49,11 +48,7 @@ const roleConfig: Record<AppRole, { icon: React.ElementType; color: string; labe
   const handleRoleChange = async (userId: string, newRole: AppRole) => {
     setUpdatingId(userId);
     try {
-      const { error } = await supabase
-        .from('user_roles')
-        .update({ role: newRole })
-        .eq('user_id', userId);
-
+      const { error } = await updateUserRole(userId, newRole);
       if (error) throw error;
 
       setUsers(prev => prev.map(u =>

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useUpload } from '@/contexts/UploadContextTypes';
-import { supabase } from '@/integrations/supabase/client';
+import { getContent, updateContentStatus } from '@/actions/content';
 import { resolveItemPageUrl } from '@/lib/storage';
 import { deleteFromInternetArchive } from '@/lib/internetArchive';
 import { Button } from '@/components/ui/button';
@@ -101,14 +101,11 @@ export function AllContentList() {
 
   const fetchContent = async () => {
     try {
-      const { data, error } = await supabase
-        .from('content')
-        .select('*')
-        .order('created_at', { ascending: false });
+      const { data, error } = await getContent();
 
       if (error) throw error;
 
-      setContent(data as Content[] || []);
+      setContent(data as unknown as Content[] || []);
     } catch (error: any) {
       console.error('Error fetching content:', error);
       toast.error("آپ کا مواد لوڈ کرنے میں ناکامی");
@@ -120,15 +117,8 @@ export function AllContentList() {
   const handleStatusChange = async (id: string, newStatus: ContentStatus) => {
     setActionLoading(id);
     try {
-      const updateData: any = { status: newStatus };
-      if (newStatus === 'approved') {
-        updateData.published_at = new Date().toISOString();
-      }
-
-      const { error } = await supabase
-        .from('content')
-        .update(updateData)
-        .eq('id', id);
+      const publishedAt = newStatus === 'approved' ? new Date().toISOString() : undefined;
+      const { error } = await updateContentStatus(id, newStatus, publishedAt);
 
       if (error) throw error;
 

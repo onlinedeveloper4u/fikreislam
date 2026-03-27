@@ -1,10 +1,15 @@
 "use client";
 import React, { useState, useCallback, useEffect, useRef } from 'react';
-import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { UploadContext, ActiveUpload } from './UploadContextTypes';
 import { uploadToInternetArchive, deleteFromInternetArchive } from '@/lib/internetArchive';
+
+import { 
+    createSpeaker, createLanguage, createCategory, createAudioType, 
+    getSpeakers, getAudioTypes, getCategories, getLanguages 
+} from '@/actions/metadata';
+import { insertContent, updateContentById, deleteContentById } from '@/actions/content';
 
 const STORAGE_KEY = 'fikreislam_active_uploads';
 
@@ -14,13 +19,11 @@ export const UploadProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     const { user } = useAuth();
     const abortControllers = useRef<Record<string, AbortController>>({});
 
-    // Load from localStorage on mount
     useEffect(() => {
         const saved = localStorage.getItem(STORAGE_KEY);
         if (saved) {
             try {
                 const parsed = JSON.parse(saved) as ActiveUpload[];
-                // Mark previously active uploads as interrupted
                 const restored = parsed.map(u =>
                     (u.status === 'uploading' || u.status === 'preparing' || u.status === 'database' || u.status === 'deleting')
                         ? { ...u, status: 'interrupted' as const }
@@ -34,7 +37,6 @@ export const UploadProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         setIsInitialized(true);
     }, []);
 
-    // Keep localStorage in sync
     useEffect(() => {
         if (isInitialized) {
             localStorage.setItem(STORAGE_KEY, JSON.stringify(activeUploads));
@@ -80,7 +82,6 @@ export const UploadProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         try {
             updateUpload(uploadId, { status: 'uploading', progress: 10 });
 
-            // 1. Upload to Internet Archive (Main File + optional Cover)
             const iaResult = await uploadToInternetArchive(
                 mainFile,
                 {
@@ -96,63 +97,36 @@ export const UploadProvider: React.FC<{ children: React.ReactNode }> = ({ childr
             if (controller.signal.aborted) throw new Error('Aborted');
             updateUpload(uploadId, { progress: 80, status: 'database' });
 
-            // 2. Ensure metadata records exist
-            const insertMetadata = async (type: "speaker" | "language" | "audio_type" | "category", name: string, parentSpeakerId?: string) => {
+            const ensureMetadata = async (type: string, name: string, parentSpeakerId?: string) => {
                 if (!name) return null;
-                const tableName = type === 'audio_type' ? 'audio_types' : (type === 'speaker' ? 'speakers' : (type === 'language' ? 'languages' : (type === 'category' ? 'categories' : null)));
-                if (!tableName) return null;
-
                 try {
-                    let payload: any = { name };
-                    let conflictTarget = 'name';
-
-                    if (type === 'audio_type' && parentSpeakerId) {
-                        payload.speaker_id = parentSpeakerId;
-                        const { data: existing } = await supabase
-                            .from('audio_types')
-                            .select('id')
-                            .eq('name', name)
-                            .eq('speaker_id', parentSpeakerId)
-                            .maybeSingle();
-
-                        if (existing) return existing.id;
-
-                        const { data: inserted, error } = await supabase
-                            .from('audio_types')
-                            .insert([payload])
-                            .select('id')
-                            .single();
-
-                        if (error) console.warn(`Metadata error:`, error);
-                        return inserted?.id || null;
+                    if (type === 'speaker') {
+                        const { data } = await createSpeaker(name);
+                        return data?.id || null;
                     }
-
-                    const { data, error } = await supabase
-                        .from(tableName as any)
-                        .upsert(payload, { onConflict: conflictTarget })
-                        .select('id')
-                        .maybeSingle();
-
-                    if (error && error.code !== '23505') console.warn(`Metadata upsert error:`, error);
-                    return data?.id || null;
-                } catch (err) {
-                    return null;
+                    if (type === 'language') return (await createLanguage(name)).data?.id;
+                    if (type === 'category') return (await createCategory(name)).data?.id;
+                    if (type === 'audio_type' && parentSpeakerId) {
+                        return (await createAudioType(name, parentSpeakerId)).data?.id;
+                    }
+                } catch (e) {
+                    console.log("Upsert ignored error", e);
                 }
+                return null;
             };
 
             let currentSpeakerId = null;
             if (formData.contentType === 'audio') {
-                currentSpeakerId = await insertMetadata('speaker', formData.speaker);
+                currentSpeakerId = await ensureMetadata('speaker', formData.speaker);
                 if (currentSpeakerId) {
-                    await insertMetadata('audio_type', formData.audioType, currentSpeakerId);
+                    await ensureMetadata('audio_type', formData.audioType, currentSpeakerId);
                 }
                 const catsRaw = formData.categoriesValue || [];
                 const cats = Array.isArray(catsRaw) ? catsRaw : (typeof catsRaw === 'string' ? catsRaw.split(',').map((c: string) => c.trim()).filter(Boolean) : []);
-                for (const c of cats) await insertMetadata('category', c);
+                for (const c of cats) await ensureMetadata('category', c);
             }
-            await insertMetadata('language', formData.language);
+            await ensureMetadata('language', formData.language);
 
-            // 3. Create database record
             const contentPayload: any = {
                 title: formData.title,
                 description: formData.description,
@@ -175,14 +149,14 @@ export const UploadProvider: React.FC<{ children: React.ReactNode }> = ({ childr
                     speaker: formData.speaker || null,
                     audio_type: formData.audioType || null,
                     categories: Array.isArray(formData.categoriesValue) ? formData.categoriesValue : (formData.categoriesValue?.split(',').map((c: string) => c.trim()).filter(Boolean) || []),
-                    lecture_date_gregorian: formData.gDate || null,
+                    lecture_date_gregorian: formData.gDate ? new Date(formData.gDate) : null,
                     hijri_date_day: formData.hDay ? parseInt(formData.hDay) : null,
                     hijri_date_month: formData.hMonth ? formData.hMonth.toString() : null,
                     hijri_date_year: formData.hYear ? parseInt(formData.hYear) : null,
                 });
             }
 
-            const { error: dbError } = await supabase.from('content').insert(contentPayload);
+            const { error: dbError } = await insertContent(contentPayload);
             if (dbError) throw dbError;
 
             updateUpload(uploadId, { progress: 100, status: 'completed' });
@@ -234,17 +208,10 @@ export const UploadProvider: React.FC<{ children: React.ReactNode }> = ({ childr
             let fileUrlPath = currentFileUrl;
             let coverUrlPath = updatePayload.cover_image_url;
 
-            // If new file or cover is provided, we might need to upload to IA
             if (newMainFile || newCoverFile) {
                 updateUpload(uploadId, { status: 'uploading', progress: 10 });
-                
-                // If we have a new main file, we use the standard upload process
-                // If we only have a new cover, we need a special logic but IA works per-item.
-                // However, the easiest way is to re-upload to a NEW IA item because I can't easily get the identifier 
-                // of the old item without parsing the URL.
-                
                 const iaResult = await uploadToInternetArchive(
-                    newMainFile || new File([], "empty"), // This needs refinement if only cover changes
+                    newMainFile || new File([], "empty"),
                     {
                         speaker: updatePayload.speaker,
                         audioType: updatePayload.audio_type,
@@ -258,55 +225,39 @@ export const UploadProvider: React.FC<{ children: React.ReactNode }> = ({ childr
                 if (newMainFile) {
                     fileUrlPath = iaResult.iaUrl;
                     updatePayload.file_size = newMainFile.size;
-                    // Delete old IA file if applicable
                     if (currentFileUrl?.startsWith('ia://')) await deleteFromInternetArchive(currentFileUrl);
                 }
-                
-                if (newCoverFile) {
-                    coverUrlPath = iaResult.coverIaUrl;
-                    // Delete old IA cover is harder because we don't store it separately, 
-                    // but IA delete works on the whole item if we cascade.
-                }
+                if (newCoverFile) coverUrlPath = iaResult.coverIaUrl;
             }
 
             if (controller.signal.aborted) throw new Error('Aborted');
             updateUpload(uploadId, { progress: 80, status: 'database' });
 
-            // Metadata records
-            const insertMetadata = async (type: "speaker" | "language" | "audio_type" | "category", name: string, parentSpeakerId?: string) => {
+            const ensureMetadata = async (type: string, name: string, parentSpeakerId?: string) => {
                 if (!name) return null;
-                const tableName = type === 'audio_type' ? 'audio_types' : (type === 'speaker' ? 'speakers' : (type === 'language' ? 'languages' : (type === 'category' ? 'categories' : null)));
-                if (!tableName) return null;
                 try {
-                    let payload: any = { name };
+                    if (type === 'speaker') return (await createSpeaker(name)).data?.id;
+                    if (type === 'language') return (await createLanguage(name)).data?.id;
+                    if (type === 'category') return (await createCategory(name)).data?.id;
                     if (type === 'audio_type' && parentSpeakerId) {
-                        payload.speaker_id = parentSpeakerId;
-                        const { data: existing } = await supabase.from('audio_types').select('id').eq('name', name).eq('speaker_id', parentSpeakerId).maybeSingle();
-                        if (existing) return existing.id;
-                        const { data: inserted, error } = await supabase.from('audio_types').insert([payload]).select('id').single();
-                        return inserted?.id || null;
+                        return (await createAudioType(name, parentSpeakerId)).data?.id;
                     }
-                    const { data, error } = await supabase.from(tableName as any).upsert(payload, { onConflict: 'name' }).select('id').maybeSingle();
-                    return data?.id || null;
-                } catch (err) { return null; }
+                } catch (e) { console.log(e); }
+                return null;
             };
 
             if (contentType === 'audio') {
-                const currentSpeakerId = await insertMetadata('speaker', updatePayload.speaker);
-                if (currentSpeakerId) await insertMetadata('audio_type', updatePayload.audio_type, currentSpeakerId);
+                const currentSpeakerId = await ensureMetadata('speaker', updatePayload.speaker);
+                if (currentSpeakerId) await ensureMetadata('audio_type', updatePayload.audio_type, currentSpeakerId);
                 const catsRaw = updatePayload.categories || [];
                 const cats = Array.isArray(catsRaw) ? catsRaw : (typeof catsRaw === 'string' ? catsRaw.split(',').map((c: string) => c.trim()).filter(Boolean) : []);
-                for (const c of cats) await insertMetadata('category', c);
+                for (const c of cats) await ensureMetadata('category', c);
             }
-            await insertMetadata('language', updatePayload.language);
+            await ensureMetadata('language', updatePayload.language);
 
             const { _storageProvider, ...dbPayload } = updatePayload;
 
-            const { error: dbError } = await supabase
-                .from('content')
-                .update({ ...dbPayload, file_url: fileUrlPath, cover_image_url: coverUrlPath })
-                .eq('id', contentId);
-
+            const { error: dbError } = await updateContentById(contentId, { ...dbPayload, file_url: fileUrlPath, cover_image_url: coverUrlPath });
             if (dbError) throw dbError;
 
             updateUpload(uploadId, { progress: 100, status: 'completed' });
@@ -321,7 +272,7 @@ export const UploadProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         }
     }, [user, updateUpload]);
 
-    const deleteContent = useCallback(async (id: string, title: string, fileUrl: string | null, coverImageUrl: string | null) => {
+    const deleteContentWrapper = useCallback(async (id: string, title: string, fileUrl: string | null, coverImageUrl: string | null) => {
         const uploadId = crypto.randomUUID();
         const startTime = Date.now();
 
@@ -338,22 +289,13 @@ export const UploadProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         setActiveUploads(prev => [newDelete, ...prev]);
 
         try {
-            // Sequential deletion from Internet Archive
             if (fileUrl && fileUrl.startsWith('ia://')) {
                 updateUpload(uploadId, { progress: 30 });
                 await deleteFromInternetArchive(fileUrl);
             }
 
             updateUpload(uploadId, { progress: 60 });
-            await Promise.all([
-                supabase.from('content_analytics').delete().eq('content_id', id),
-                supabase.from('favorites').delete().eq('content_id', id),
-                supabase.from('playlist_items').delete().eq('content_id', id)
-            ]);
-
-            updateUpload(uploadId, { progress: 80 });
-            const { error: dbError } = await supabase.from('content').delete().eq('id', id);
-            if (dbError) throw dbError;
+            await deleteContentById(id);
 
             updateUpload(uploadId, { progress: 100, status: 'completed' });
             toast.success(`مواد کامیابی سے حذف کر دیا گیا: ${title}`);
@@ -369,7 +311,7 @@ export const UploadProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }, []);
 
     return (
-        <UploadContext.Provider value={{ activeUploads, uploadContent, editContent, deleteContent, cancelUpload, clearCompleted }}>
+        <UploadContext.Provider value={{ activeUploads, uploadContent, editContent, deleteContent: deleteContentWrapper, cancelUpload, clearCompleted }}>
             {children}
         </UploadContext.Provider>
     );

@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { Loader2, Plus, Trash2, Pencil, Check, X, Globe } from 'lucide-react';
+import { getLanguages, createLanguage, updateLanguage, deleteLanguage } from '@/actions/metadata';
 
 interface Language {
     id: string;
@@ -14,12 +14,11 @@ interface Language {
 }
 
 export function LanguageManagement() {
-const [languages, setLanguages] = useState<Language[]>([]);
+    const [languages, setLanguages] = useState<Language[]>([]);
     const [loading, setLoading] = useState(true);
     const [actionLoading, setActionLoading] = useState<string | null>(null);
     const [newName, setNewName] = useState('');
 
-    // Edit state
     const [editingId, setEditingId] = useState<string | null>(null);
     const [editName, setEditName] = useState('');
 
@@ -30,13 +29,9 @@ const [languages, setLanguages] = useState<Language[]>([]);
     const fetchLanguages = async () => {
         try {
             setLoading(true);
-            const { data, error } = await supabase
-                .from('languages')
-                .select('*')
-                .order('name', { ascending: true });
-
+            const { data, error } = await getLanguages();
             if (error) throw error;
-            setLanguages(data || []);
+            setLanguages((data as unknown as Language[]) || []);
         } catch (error: any) {
             console.error('Error fetching languages:', error);
             toast.error("ایک غلطی واقع ہوئی ہے");
@@ -56,10 +51,7 @@ const [languages, setLanguages] = useState<Language[]>([]);
                 throw new Error("یہ نام پہلے سے موجود ہے");
             }
 
-            const { error } = await supabase
-                .from('languages')
-                .insert({ name: newName.trim() });
-
+            const { error } = await createLanguage(newName.trim());
             if (error) throw error;
 
             toast.success("کامیاب");
@@ -78,28 +70,13 @@ const [languages, setLanguages] = useState<Language[]>([]);
 
         setActionLoading(id);
         try {
-            const itemToEdit = languages.find(l => l.id === id);
             const exists = languages.some(l => l.id !== id && l.name.toLowerCase() === editName.trim().toLowerCase());
             if (exists) {
                 throw new Error("یہ نام پہلے سے موجود ہے");
             }
 
-            const { error } = await supabase
-                .from('languages')
-                .update({ name: editName.trim() })
-                .eq('id', id);
-
+            const { error } = await updateLanguage(id, editName.trim());
             if (error) throw error;
-
-            // Cascade update to content table
-            const oldName = itemToEdit?.name;
-            const updatedName = editName.trim();
-            if (oldName && oldName !== updatedName) {
-                await supabase
-                    .from('content')
-                    .update({ language: updatedName })
-                    .eq('language', oldName);
-            }
 
             toast.success("کامیاب");
             setEditingId(null);
@@ -114,15 +91,11 @@ const [languages, setLanguages] = useState<Language[]>([]);
     };
 
     const handleDelete = async (id: string, name: string) => {
-        if (!window.confirm(`کیا آپ واقعی "{{name}}" کو حذف کرنا چاہتے ہیں؟`)) return;
+        if (!window.confirm(`کیا آپ واقعی "${name}" کو حذف کرنا چاہتے ہیں؟`)) return;
 
         setActionLoading(id);
         try {
-            const { error } = await supabase
-                .from('languages')
-                .delete()
-                .eq('id', id);
-
+            const { error } = await deleteLanguage(id);
             if (error) throw error;
 
             toast.success("کامیاب");

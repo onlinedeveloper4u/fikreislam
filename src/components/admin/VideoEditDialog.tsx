@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+
 import { resolveExternalUrl } from '@/lib/storage';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -16,6 +16,7 @@ import { Video as VideoIcon, Upload, Loader2, Save } from 'lucide-react';
 import { useUpload } from '@/contexts/UploadContextTypes';
 import { MetadataCombobox } from './MetadataCombobox';
 import { formatBytes } from '@/lib/utils';
+import { getLanguages } from '@/actions/metadata';
 
 interface VideoEditDialogProps {
     content: any;
@@ -37,7 +38,7 @@ export function VideoEditDialog({ content, open, onOpenChange, onSuccess }: Vide
     const [metadata, setMetadata] = useState<{ language: string[]; }>({ language: [] });
 
     useEffect(() => {
-        supabase.from('languages').select('name').order('name').then(({ data }) => {
+        getLanguages().then(({ data }) => {
             if (data) setMetadata({ language: data.map(l => l.name) });
         });
     }, []);

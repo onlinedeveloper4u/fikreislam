@@ -1,87 +1,65 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
-import { Loader2, Plus, Trash2, Pencil, Check, X, Music } from 'lucide-react';
-import { MetadataCombobox } from './MetadataCombobox';
-
-interface AudioType {
-    id: string;
-    name: string;
-    speaker_id: string | null;
-    updated_at: string;
-}
+import { Loader2, Plus, Trash2, Pencil, Check, X, FileAudio } from 'lucide-react';
+import { getAudioTypes, createAudioType, updateAudioType, deleteAudioType, getSpeakers } from '@/actions/metadata';
 
 interface Speaker {
     id: string;
     name: string;
 }
 
+interface AudioType {
+    id: string;
+    name: string;
+    speaker_id: string;
+    speakers: { name: string };
+    updated_at: string;
+}
+
 export function AudioTypeManagement() {
     const [audioTypes, setAudioTypes] = useState<AudioType[]>([]);
     const [speakers, setSpeakers] = useState<Speaker[]>([]);
-    const [selectedSpeaker, setSelectedSpeaker] = useState<string>('');
     const [loading, setLoading] = useState(true);
     const [actionLoading, setActionLoading] = useState<string | null>(null);
-    const [newName, setNewName] = useState('');
 
-    // Edit state
+    const [newName, setNewName] = useState('');
+    const [selectedSpeakerId, setSelectedSpeakerId] = useState<string>('');
+
     const [editingId, setEditingId] = useState<string | null>(null);
     const [editName, setEditName] = useState('');
 
     useEffect(() => {
-        fetchSpeakers();
+        fetchData();
     }, []);
 
-    useEffect(() => {
-        if (selectedSpeaker) {
-            fetchAudioTypes(selectedSpeaker);
-        } else {
-            setAudioTypes([]);
-            setLoading(false);
-        }
-    }, [selectedSpeaker]);
-
-    const fetchSpeakers = async () => {
-        try {
-            const { data, error } = await supabase
-                .from('speakers')
-                .select('id, name')
-                .order('name', { ascending: true });
-
-            if (error) throw error;
-            setSpeakers(data || []);
-            if (data && data.length > 0) {
-                setSelectedSpeaker(data[0].name);
-            } else {
-                setLoading(false);
-            }
-        } catch (error: any) {
-            console.error('Error fetching speakers:', error);
-            toast.error("ایک غلطی واقع ہوئی ہے");
-            setLoading(false);
-        }
-    };
-
-    const fetchAudioTypes = async (speakerName: string) => {
+    const fetchData = async () => {
         try {
             setLoading(true);
-            const speakerId = speakers.find(s => s.name === speakerName)?.id;
-            if (!speakerId) return;
+            const [{ data: speakersData }, { data: typesData }] = await Promise.all([
+                getSpeakers(),
+                getAudioTypes()
+            ]);
 
-            const { data, error } = await supabase
-                .from('audio_types')
-                .select('*')
-                .eq('speaker_id', speakerId)
-                .order('name', { ascending: true });
-
-            if (error) throw error;
-            setAudioTypes((data as any) || []);
+            setSpeakers((speakersData as unknown as Speaker[]) || []);
+            
+            // Map the speaker name for frontend
+            const speakerMap = new Map((speakersData as unknown as Speaker[] || []).map(s => [s.id, s.name]));
+            const mappedTypes = ((typesData as unknown as AudioType[]) || []).map(t => ({
+                ...t,
+                speakers: { name: speakerMap.get(t.speaker_id) || 'نامعلوم' }
+            }));
+            
+            setAudioTypes(mappedTypes);
+            if (speakersData && speakersData.length > 0 && !selectedSpeakerId) {
+                setSelectedSpeakerId((speakersData[0] as unknown as Speaker).id);
+            }
         } catch (error: any) {
-            console.error('Error fetching audio types:', error);
+            console.error('Error fetching data:', error);
             toast.error("ایک غلطی واقع ہوئی ہے");
         } finally {
             setLoading(false);
@@ -90,31 +68,24 @@ export function AudioTypeManagement() {
 
     const handleAddAudioType = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!newName.trim() || !selectedSpeaker) return;
+        if (!newName.trim() || !selectedSpeakerId) return;
 
         setActionLoading('add');
         try {
-            const speakerId = speakers.find(s => s.name === selectedSpeaker)?.id;
-            if (!speakerId) throw new Error('Speaker not found');
-
-            const exists = audioTypes.some(a => a.name.toLowerCase() === newName.trim().toLowerCase());
+            const exists = audioTypes.some(t =>
+                t.name.toLowerCase() === newName.trim().toLowerCase() &&
+                t.speaker_id === selectedSpeakerId
+            );
             if (exists) {
-                throw new Error("یہ نام پہلے سے موجود ہے");
+                throw new Error("یہ نام اس مقرر کے لیے پہلے سے موجود ہے");
             }
 
-            // Insert into database attached to speaker (No Google Drive folder creation)
-            const { error } = await supabase
-                .from('audio_types')
-                .insert([{
-                    name: newName.trim(),
-                    speaker_id: speakerId
-                }]);
-
+            const { error } = await createAudioType(newName.trim(), selectedSpeakerId);
             if (error) throw error;
 
             toast.success("کامیاب");
             setNewName('');
-            fetchAudioTypes(selectedSpeaker);
+            fetchData();
         } catch (error: any) {
             console.error('Add error:', error);
             toast.error(error.message || "ایک غلطی واقع ہوئی ہے");
@@ -123,45 +94,30 @@ export function AudioTypeManagement() {
         }
     };
 
-    const handleEdit = async (id: string) => {
-        if (!editName.trim() || !selectedSpeaker) return;
+    const handleEdit = async (id: string, initialSpeakerId: string) => {
+        if (!editName.trim()) return;
 
         setActionLoading(id);
         try {
-            const speakerId = speakers.find(s => s.name === selectedSpeaker)?.id;
-            if (!speakerId) throw new Error('Speaker not found');
-
-            const itemToEdit = audioTypes.find(a => a.id === id);
-            const exists = audioTypes.some(a => a.id !== id && a.name.toLowerCase() === editName.trim().toLowerCase());
+            const exists = audioTypes.some(t =>
+                t.id !== id &&
+                t.name.toLowerCase() === editName.trim().toLowerCase() &&
+                t.speaker_id === initialSpeakerId
+            );
             if (exists) {
-                throw new Error("یہ نام پہلے سے موجود ہے");
+                throw new Error("یہ نام اس مقرر کے لیے پہلے سے موجود ہے");
             }
 
-            const { error } = await supabase
-                .from('audio_types')
-                .update({
-                    name: editName.trim()
-                })
-                .eq('id', id);
+            const at = audioTypes.find(a => a.id === id);
+            const speakerName = at?.speakers.name;
 
+            const { error } = await updateAudioType(id, editName.trim(), speakerName);
             if (error) throw error;
-
-            const oldName = itemToEdit?.name;
-            const updatedName = editName.trim();
-
-            if (oldName && oldName !== updatedName) {
-                // Cascade update to content table
-                await supabase
-                    .from('content')
-                    .update({ audio_type: updatedName })
-                    .eq('speaker', selectedSpeaker)
-                    .eq('audio_type', oldName);
-            }
 
             toast.success("کامیاب");
             setEditingId(null);
             setEditName('');
-            fetchAudioTypes(selectedSpeaker);
+            fetchData();
         } catch (error: any) {
             console.error('Edit error:', error);
             toast.error(error.message || "ایک غلطی واقع ہوئی ہے");
@@ -170,20 +126,16 @@ export function AudioTypeManagement() {
         }
     };
 
-    const handleDelete = async (id: string, name: string) => {
-        if (!window.confirm(`کیا آپ واقعی "{{name}}" کو حذف کرنا چاہتے ہیں؟`)) return;
+    const handleDelete = async (id: string, name: string, speakerName: string) => {
+        if (!window.confirm(`کیا آپ واقعی "${name}" (${speakerName}) کو حذف کرنا چاہتے ہیں؟`)) return;
 
         setActionLoading(id);
         try {
-            const { error } = await supabase
-                .from('audio_types')
-                .delete()
-                .eq('id', id);
-
+            const { error } = await deleteAudioType(id);
             if (error) throw error;
 
             toast.success("کامیاب");
-            setAudioTypes(prev => prev.filter(a => a.id !== id));
+            setAudioTypes(prev => prev.filter(t => t.id !== id));
         } catch (error: any) {
             console.error('Delete error:', error);
             toast.error("ایک غلطی واقع ہوئی ہے");
@@ -192,107 +144,111 @@ export function AudioTypeManagement() {
         }
     };
 
+    if (loading) {
+        return (
+            <div className="flex items-center justify-center py-12">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </div>
+        );
+    }
+
+    // Group audio types by speaker
+    const groupedTypes = audioTypes.reduce((acc, type) => {
+        const speakerName = type.speakers?.name || 'نامعلوم';
+        if (!acc[speakerName]) acc[speakerName] = [];
+        acc[speakerName].push(type);
+        return acc;
+    }, {} as Record<string, typeof audioTypes>);
+
     return (
         <Card>
-            <CardHeader className="flex flex-col gap-4">
-                <div className="flex flex-row items-center gap-4">
-                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                        <Music className="h-5 w-5 text-primary" />
-                    </div>
-                    <div>
-                        <CardTitle>{"آڈیو کی قسم"}</CardTitle>
-                        <CardDescription>{"آڈیو کی اقسام (مثلاً بیان، درس وغیرہ) کا نظم کریں۔"}</CardDescription>
-                    </div>
+            <CardHeader className="flex flex-row items-center gap-4">
+                <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                    <FileAudio className="h-5 w-5 text-primary" />
                 </div>
-
-                <div className="space-y-2 max-w-md pt-2">
-                    <Label>{"مقرر / بیان کنندہ"}</Label>
-                    <MetadataCombobox
-                        options={speakers.map(s => s.name)}
-                        value={selectedSpeaker}
-                        onChange={setSelectedSpeaker}
-                        allowCustom={false}
-                        placeholder={"منتخب کریں"}
-                    />
+                <div>
+                    <CardTitle>{"آڈیو کی اقسام"}</CardTitle>
+                    <CardDescription>{"مختلف مقررین کے لیے آڈیو کی اقسام (جیسے بیان، درس، تلاوت) کا نظم کریں۔"}</CardDescription>
                 </div>
             </CardHeader>
             <CardContent>
-                {loading ? (
-                    <div className="flex items-center justify-center py-12">
-                        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                <form onSubmit={handleAddAudioType} className="flex flex-col md:flex-row gap-4 items-end mb-8 border-b pb-6 border-border/50">
+                    <div className="space-y-2 flex-1 w-full relative z-[51]">
+                        <Label>{"مقرر"}</Label>
+                        <Select value={selectedSpeakerId} onValueChange={setSelectedSpeakerId}>
+                            <SelectTrigger>
+                                <SelectValue placeholder={"مقرر منتخب کریں"} />
+                            </SelectTrigger>
+                            <SelectContent position="popper" className="max-h-[300px] z-[100]">
+                                {speakers.map((speaker) => (
+                                    <SelectItem key={speaker.id} value={speaker.id}>
+                                        {speaker.name}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
                     </div>
-                ) : !selectedSpeaker ? (
-                    <p className="text-center py-8 text-muted-foreground italic">
-                        {"منتخب کریں"} {"مقرر"}
-                    </p>
-                ) : (
-                    <>
-                        <form onSubmit={handleAddAudioType} className="flex gap-4 items-end mb-8">
-                            <div className="space-y-2 flex-1">
-                                <Label>{"نام"}</Label>
-                                <Input
-                                    value={newName}
-                                    onChange={(e) => setNewName(e.target.value)}
-                                    placeholder={`نیا ${"آڈیو کی قسم"} کا نام درج کریں...`}
-                                    required
-                                />
-                            </div>
-                            <Button type="submit" disabled={actionLoading === 'add' || !selectedSpeaker}>
-                                {actionLoading === 'add' ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Plus className="h-4 w-4 mr-2" /> {"شامل کریں"}</>}
-                            </Button>
-                        </form>
+                    <div className="space-y-2 flex-1 w-full relative z-10">
+                        <Label>{"قسم کا نام"}</Label>
+                        <Input
+                            value={newName}
+                            onChange={(e) => setNewName(e.target.value)}
+                            placeholder={`نئی ${"آڈیو کی قسم"} درج کریں...`}
+                            required
+                        />
+                    </div>
+                    <Button type="submit" disabled={actionLoading === 'add' || !selectedSpeakerId} className="w-full md:w-auto mt-4 md:mt-0 relative z-10">
+                        {actionLoading === 'add' ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Plus className="h-4 w-4 mr-2" /> {"شامل کریں"}</>}
+                    </Button>
+                </form>
 
-                        <div className="grid gap-2">
-                            {audioTypes.map((item) => (
-                                <div key={item.id} className="flex items-center justify-between p-3 bg-muted/20 border rounded-md group">
-                                    {editingId === item.id ? (
-                                        <div className="flex-1 flex items-center">
-                                            <div className="flex-1">
-                                                <Input
-                                                    value={editName}
-                                                    onChange={(e) => setEditName(e.target.value)}
-                                                    className="h-8"
-                                                    placeholder="Name"
-                                                    autoFocus
-                                                />
-                                            </div>
-                                            <div className="flex gap-1 ml-2">
-                                                <Button size="icon" variant="ghost" className="h-8 w-8 text-green-600" onClick={() => handleEdit(item.id)}>
-                                                    <Check className="h-4 w-4" />
-                                                </Button>
-                                                <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => setEditingId(null)}>
-                                                    <X className="h-4 w-4" />
-                                                </Button>
-                                            </div>
+                <div className="space-y-6">
+                    {Object.entries(groupedTypes).length === 0 ? (
+                        <p className="text-center py-8 text-muted-foreground italic">
+                            {"کوئی قسم نہیں ملی۔"}
+                        </p>
+                    ) : (
+                        Object.entries(groupedTypes).map(([speakerName, types]) => (
+                            <div key={speakerName} className="space-y-2">
+                                <h3 className="font-semibold text-lg text-primary">{speakerName}</h3>
+                                <div className="grid gap-2 pl-4 border-l-2 border-primary/20">
+                                    {types.map((item) => (
+                                        <div key={item.id} className="flex items-center justify-between p-3 bg-muted/20 border rounded-md group">
+                                            {editingId === item.id ? (
+                                                <div className="flex-1 flex gap-2">
+                                                    <Input
+                                                        value={editName}
+                                                        onChange={(e) => setEditName(e.target.value)}
+                                                        className="h-8"
+                                                        autoFocus
+                                                    />
+                                                    <Button size="icon" variant="ghost" className="h-8 w-8 text-green-600" onClick={() => handleEdit(item.id, item.speaker_id)}>
+                                                        <Check className="h-4 w-4" />
+                                                    </Button>
+                                                    <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => setEditingId(null)}>
+                                                        <X className="h-4 w-4" />
+                                                    </Button>
+                                                </div>
+                                            ) : (
+                                                <>
+                                                    <span className="font-medium">{item.name}</span>
+                                                    <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                        <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => { setEditingId(item.id); setEditName(item.name); }}>
+                                                            <Pencil className="h-4 w-4" />
+                                                        </Button>
+                                                        <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive" onClick={() => handleDelete(item.id, item.name, speakerName)}>
+                                                            <Trash2 className="h-4 w-4" />
+                                                        </Button>
+                                                    </div>
+                                                </>
+                                            )}
                                         </div>
-                                    ) : (
-                                        <div className="flex-1 flex items-center justify-between">
-                                            <div className="flex flex-col">
-                                                <span className="font-medium">{item.name}</span>
-                                            </div>
-                                            <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => {
-                                                    setEditingId(item.id);
-                                                    setEditName(item.name);
-                                                }}>
-                                                    <Pencil className="h-4 w-4" />
-                                                </Button>
-                                                <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive" onClick={() => handleDelete(item.id, item.name)}>
-                                                    <Trash2 className="h-4 w-4" />
-                                                </Button>
-                                            </div>
-                                        </div>
-                                    )}
+                                    ))}
                                 </div>
-                            ))}
-                            {audioTypes.length === 0 && (
-                                <p className="text-center py-8 text-muted-foreground italic">
-                                    {`کوئی ${"آڈیو کی قسم"} نہیں ملا۔`}
-                                </p>
-                            )}
-                        </div>
-                    </>
-                )}
+                            </div>
+                        ))
+                    )}
+                </div>
             </CardContent>
         </Card>
     );

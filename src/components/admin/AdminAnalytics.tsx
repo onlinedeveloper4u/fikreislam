@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
   BarChart3, Eye, Download, Play, FileText, Music, Video,
-  Users, TrendingUp, Loader2, Calendar
+  TrendingUp, Loader2, Calendar
 } from 'lucide-react';
+
+import { getAnalytics } from '@/actions/analytics';
 
 interface AnalyticsSummary {
   totalViews: number;
@@ -26,7 +27,8 @@ export function AdminAnalytics() {
   const [analytics, setAnalytics] = useState<AnalyticsSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [timeRange, setTimeRange] = useState<TimeRange>('30d');
-useEffect(() => {
+
+  useEffect(() => {
     fetchAnalytics();
   }, [timeRange]);
 
@@ -40,7 +42,7 @@ useEffect(() => {
       case '90d':
         return new Date(now.setDate(now.getDate() - 90)).toISOString();
       default:
-        return null;
+        return undefined;
     }
   };
 
@@ -48,76 +50,10 @@ useEffect(() => {
     setLoading(true);
     try {
       const dateFilter = getDateFilter();
-
-      // Fetch analytics counts
-      let analyticsQuery = supabase.from('content_analytics').select('action_type');
-      if (dateFilter) {
-        analyticsQuery = analyticsQuery.gte('created_at', dateFilter);
+      const res = await getAnalytics(dateFilter);
+      if (res.data) {
+        setAnalytics(res.data);
       }
-      const { data: analyticsData } = await analyticsQuery;
-
-      const views = analyticsData?.filter(a => a.action_type === 'view').length || 0;
-      const downloads = analyticsData?.filter(a => a.action_type === 'download').length || 0;
-      const plays = analyticsData?.filter(a => a.action_type === 'play').length || 0;
-
-      // Fetch content counts
-      const { data: contentData } = await supabase
-        .from('content')
-        .select('type, status')
-        .eq('status', 'approved');
-
-      const totalContent = contentData?.length || 0;
-      const bookCount = contentData?.filter(c => c.type === 'book').length || 0;
-      const audioCount = contentData?.filter(c => c.type === 'audio').length || 0;
-      const videoCount = contentData?.filter(c => c.type === 'video').length || 0;
-
-
-      // Fetch top content by views
-      let topQuery = supabase
-        .from('content_analytics')
-        .select('content_id');
-      if (dateFilter) {
-        topQuery = topQuery.gte('created_at', dateFilter);
-      }
-      const { data: topData } = await topQuery;
-
-      // Count views per content
-      const viewCounts: Record<string, number> = {};
-      topData?.forEach(item => {
-        viewCounts[item.content_id] = (viewCounts[item.content_id] || 0) + 1;
-      });
-
-      const topContentIds = Object.entries(viewCounts)
-        .sort((a, b) => b[1] - a[1])
-        .slice(0, 5)
-        .map(([id]) => id);
-
-      let topContent: { id: string; title: string; type: string; views: number }[] = [];
-      if (topContentIds.length > 0) {
-        const { data: topContentData } = await supabase
-          .from('content')
-          .select('id, title, type')
-          .in('id', topContentIds);
-
-        topContent = (topContentData || []).map(c => ({
-          id: c.id,
-          title: c.title,
-          type: c.type,
-          views: viewCounts[c.id] || 0,
-        })).sort((a, b) => b.views - a.views);
-      }
-
-      setAnalytics({
-        totalViews: views,
-        totalDownloads: downloads,
-        totalPlays: plays,
-        totalContent,
-        bookCount,
-        audioCount,
-        videoCount,
-        recentActivity: [],
-        topContent,
-      });
     } catch (error) {
       console.error('Error fetching analytics:', error);
     } finally {
@@ -156,7 +92,6 @@ useEffect(() => {
 
   return (
     <div className="space-y-6">
-      {/* Time Range Selector */}
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-semibold flex items-center gap-2">
           <BarChart3 className="h-5 w-5" />
@@ -176,7 +111,6 @@ useEffect(() => {
         </Select>
       </div>
 
-      {/* Stat Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {statCards.map((stat) => {
           const Icon = stat.icon;
@@ -199,7 +133,6 @@ useEffect(() => {
       </div>
 
       <div className="grid md:grid-cols-2 gap-6">
-        {/* Content Breakdown */}
         <Card className="border-border/50 bg-card/50 backdrop-blur">
           <CardHeader>
             <CardTitle className="text-lg">{"مواد کی تفصیل"}</CardTitle>
@@ -232,7 +165,6 @@ useEffect(() => {
           </CardContent>
         </Card>
 
-        {/* Top Content */}
         <Card className="border-border/50 bg-card/50 backdrop-blur">
           <CardHeader>
             <CardTitle className="text-lg flex items-center gap-2">

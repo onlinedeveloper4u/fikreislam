@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
+
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -12,6 +12,7 @@ import { Upload, Loader2, Headphones } from 'lucide-react';
 import { useUpload } from '@/contexts/UploadContextTypes';
 import { Checkbox } from '@/components/ui/checkbox';
 import { MetadataCombobox } from './MetadataCombobox';
+import { getSpeakers, getLanguages, getCategories, getAudioTypes } from '@/actions/metadata';
 
 const ALLOWED_AUDIO_TYPES = ['audio/mpeg', 'audio/wav', 'audio/ogg', 'audio/mp4', 'audio/x-m4a'];
 const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
@@ -44,17 +45,17 @@ export function AudioUploadForm({ onSuccess }: AudioUploadFormProps) {
 
     useEffect(() => {
         const fetchData = async () => {
-            const [speakers, languages, categoriesData] = await Promise.all([
-                supabase.from('speakers').select('id, name').order('name'),
-                supabase.from('languages').select('name').order('name'),
-                supabase.from('categories').select('name').order('name'),
+            const [{ data: speakers }, { data: languages }, { data: categoriesData }] = await Promise.all([
+                getSpeakers(),
+                getLanguages(),
+                getCategories(),
             ]);
 
             setMetadata({
-                speaker: speakers.data?.map(s => s.name) || [],
-                language: languages.data?.map(l => l.name) || [],
+                speaker: speakers?.map(s => s.name) || [],
+                language: languages?.map(l => l.name) || [],
                 audio_type: [], // Loaded dynamically based on speaker
-                category: categoriesData.data?.map(c => c.name) || [],
+                category: categoriesData?.map(c => c.name) || [],
             });
         };
         fetchData();
@@ -71,20 +72,13 @@ export function AudioUploadForm({ onSuccess }: AudioUploadFormProps) {
 
             try {
                 // 1. Get Speaker ID
-                const { data: speakerData } = await supabase
-                    .from('speakers')
-                    .select('id')
-                    .eq('name', speaker)
-                    .maybeSingle();
+                const { data: speakerData } = await getSpeakers();
+                const matchedSpeaker = speakerData?.find(s => s.name === speaker);
 
-                if (!speakerData) return;
+                if (!matchedSpeaker) return;
 
                 // 2. Get Audio Types for that Speaker
-                const { data: typeData } = await supabase
-                    .from('audio_types')
-                    .select('name')
-                    .eq('speaker_id', speakerData.id)
-                    .order('name');
+                const { data: typeData } = await getAudioTypes(matchedSpeaker.id);
 
                 setMetadata(prev => ({
                     ...prev,

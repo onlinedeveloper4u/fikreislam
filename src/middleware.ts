@@ -1,56 +1,33 @@
-import { createServerClient, type CookieOptions } from '@supabase/ssr'
-import { NextResponse } from 'next/server'
-import type { NextRequest } from 'next/server'
+import { NextResponse } from 'next/server';
+import type { NextRequest } from 'next/server';
+import { jwtVerify } from 'jose';
 
+const JWT_SECRET = new TextEncoder().encode(
+  process.env.JWT_SECRET
+);
 
 export async function middleware(req: NextRequest) {
-  const { pathname } = req.nextUrl
+  const { pathname } = req.nextUrl;
 
   // Only protect admin routes
-  if (!pathname.startsWith('/admin')) return NextResponse.next()
+  if (!pathname.startsWith('/admin')) return NextResponse.next();
 
-  let res = NextResponse.next({
-    request: { headers: req.headers },
-  })
+  const token = req.cookies.get('session')?.value;
 
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        get(name: string) { return req.cookies.get(name)?.value },
-        set(name: string, value: string, options: CookieOptions) {
-          req.cookies.set({ name, value, ...options })
-          res = NextResponse.next({ request: { headers: req.headers } })
-          res.cookies.set({ name, value, ...options })
-        },
-        remove(name: string, options: CookieOptions) {
-          req.cookies.set({ name, value: '', ...options })
-          res = NextResponse.next({ request: { headers: req.headers } })
-          res.cookies.set({ name, value: '', ...options })
-        },
-      },
+  if (!token) {
+    return NextResponse.redirect(new URL('/', req.url));
+  }
+
+  try {
+    const { payload } = await jwtVerify(token, JWT_SECRET);
+
+    if (payload.role !== 'admin') {
+      return NextResponse.redirect(new URL('/', req.url));
     }
-  )
 
-  // Use getUser() for security as recommended by Supabase
-  const { data: { user } } = await supabase.auth.getUser()
-
-  // Redirect to home if not logged in
-  if (!user) {
-    return NextResponse.redirect(new URL('/', req.url))
+    return NextResponse.next();
+  } catch (error) {
+    // Invalid token
+    return NextResponse.redirect(new URL('/', req.url));
   }
-
-  // Admin role check
-  const { data: roleData } = await supabase
-    .from('user_roles')
-    .select('role')
-    .eq('user_id', user.id)
-    .single()
-
-  if (roleData?.role !== 'admin') {
-    return NextResponse.redirect(new URL('/', req.url))
-  }
-
-  return res
 }

@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+
 import { resolveExternalUrl } from '@/lib/storage';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -17,6 +17,7 @@ import { useUpload } from '@/contexts/UploadContextTypes';
 import { MetadataCombobox } from './MetadataCombobox';
 import { formatBytes } from '@/lib/utils';
 import { Checkbox } from '@/components/ui/checkbox';
+import { getSpeakers, getLanguages, getCategories, getAudioTypes } from '@/actions/metadata';
 
 interface AudioEditDialogProps {
     content: any;
@@ -56,17 +57,17 @@ const { editContent } = useUpload();
 
     useEffect(() => {
         const fetchData = async () => {
-            const [speakers, languages, categories] = await Promise.all([
-                supabase.from('speakers').select('id, name').order('name'),
-                supabase.from('languages').select('name').order('name'),
-                supabase.from('categories').select('name').order('name'),
+            const [{ data: speakers }, { data: languages }, { data: categories }] = await Promise.all([
+                getSpeakers(),
+                getLanguages(),
+                getCategories(),
             ]);
 
             setMetadata({
-                speaker: speakers.data?.map(s => s.name) || [],
-                language: languages.data?.map(l => l.name) || [],
+                speaker: speakers?.map(s => s.name) || [],
+                language: languages?.map(l => l.name) || [],
                 audio_type: [], // Loaded dynamically based on speaker
-                category: categories.data?.map(c => c.name) || [],
+                category: categories?.map(c => c.name) || [],
             });
         };
         fetchData();
@@ -82,20 +83,13 @@ const { editContent } = useUpload();
 
             try {
                 // 1. Get Speaker ID
-                const { data: speakerData } = await supabase
-                    .from('speakers')
-                    .select('id')
-                    .eq('name', speaker)
-                    .maybeSingle();
+                const { data: speakerData } = await getSpeakers();
+                const matchedSpeaker = speakerData?.find(s => s.name === speaker);
 
-                if (!speakerData) return;
+                if (!matchedSpeaker) return;
 
                 // 2. Get Audio Types for that Speaker
-                const { data: typeData } = await supabase
-                    .from('audio_types')
-                    .select('name')
-                    .eq('speaker_id', speakerData.id)
-                    .order('name');
+                const { data: typeData } = await getAudioTypes(matchedSpeaker.id);
 
                 setMetadata(prev => ({
                     ...prev,

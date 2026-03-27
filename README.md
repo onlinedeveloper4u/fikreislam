@@ -1,52 +1,26 @@
-# Fikr-e-Islam
+# FikreIslam v2
 
-Islamic Books, Audio & Video Library. Discover authentic Islamic content including books, Qur'an recitations, lectures, and educational videos for your spiritual journey.
+A modern web application built with Next.js and MongoDB.
 
-## Technologies Used
+## Features
 
-- **Framework**: Next.js (App Router), TypeScript
-- **Styling**: Tailwind CSS, shadcn/ui
-- **Backend / Database**: Supabase
-- **Icons**: Lucide React
-- **Charts**: Recharts
+- **Modern Stack:** Built with Next.js 16 (App Router) and React 18
+- **Database:** MongoDB connected via Mongoose
+- **Authentication:** Custom JWT-based authentication
+- **Styling:** Tailwind CSS with Shadcn UI components
+- **File Storage:** Configured for Internet Archive storage
 
 ## Getting Started
 
-### Prerequisites
-
-- Node.js (v18 or higher)
-- npm or bun
-
-### Installation
-
-1. Clone the repository:
-   ```sh
-   git clone <repository-url>
-   cd fikreislam
-   ```
-
-2. Install dependencies:
-   ```sh
-   npm install
-   ```
-
-3. Set up environment variables:
-   Create a `.env` file in the root directory and add your Supabase credentials:
+1. Clone the repository
+2. Run `npm install`
+3. Copy `.env.example` to `.env` and fill in your connection details:
    ```env
-   NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
-   NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+   MONGODB_URI="mongodb+srv://..."
+   JWT_SECRET="your-strong-secret"
    ```
+4. Start the development server with `npm run dev`
 
-4. Start the development server:
-   ```sh
-   npm run dev
-   ```
+## Deployment
 
-## Project Structure
-
-- `src/app`: Next.js App Router pages and layouts
-- `src/components`: Reusable UI components
-- `src/contexts`: React context providers (Auth, Language, Upload)
-- `src/integrations/supabase`: Supabase type definitions and client configuration
-- `src/hooks`: Custom React hooks for data fetching and state management
-- `supabase/migrations`: Database schema migrations
+The project is configured out-of-the-box for Cloudflare Pages/Workers deployment via OpenNext.

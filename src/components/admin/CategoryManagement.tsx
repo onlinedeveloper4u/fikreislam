@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
-import { Loader2, Plus, Trash2, Pencil, Check, X, LayoutGrid } from 'lucide-react';
+import { Loader2, Plus, Trash2, Pencil, Check, X, FolderTree } from 'lucide-react';
+import { getCategories, createCategory, updateCategory, deleteCategory } from '@/actions/metadata';
 
 interface Category {
     id: string;
@@ -14,12 +14,11 @@ interface Category {
 }
 
 export function CategoryManagement() {
-const [categories, setCategories] = useState<Category[]>([]);
+    const [categories, setCategories] = useState<Category[]>([]);
     const [loading, setLoading] = useState(true);
     const [actionLoading, setActionLoading] = useState<string | null>(null);
     const [newName, setNewName] = useState('');
 
-    // Edit state
     const [editingId, setEditingId] = useState<string | null>(null);
     const [editName, setEditName] = useState('');
 
@@ -30,13 +29,9 @@ const [categories, setCategories] = useState<Category[]>([]);
     const fetchCategories = async () => {
         try {
             setLoading(true);
-            const { data, error } = await supabase
-                .from('categories')
-                .select('*')
-                .order('name', { ascending: true });
-
+            const { data, error } = await getCategories();
             if (error) throw error;
-            setCategories(data || []);
+            setCategories((data as unknown as Category[]) || []);
         } catch (error: any) {
             console.error('Error fetching categories:', error);
             toast.error("ایک غلطی واقع ہوئی ہے");
@@ -56,10 +51,7 @@ const [categories, setCategories] = useState<Category[]>([]);
                 throw new Error("یہ نام پہلے سے موجود ہے");
             }
 
-            const { error } = await supabase
-                .from('categories')
-                .insert({ name: newName.trim() });
-
+            const { error } = await createCategory(newName.trim());
             if (error) throw error;
 
             toast.success("کامیاب");
@@ -78,40 +70,13 @@ const [categories, setCategories] = useState<Category[]>([]);
 
         setActionLoading(id);
         try {
-            const itemToEdit = categories.find(c => c.id === id);
             const exists = categories.some(c => c.id !== id && c.name.toLowerCase() === editName.trim().toLowerCase());
             if (exists) {
                 throw new Error("یہ نام پہلے سے موجود ہے");
             }
 
-            const { error } = await supabase
-                .from('categories')
-                .update({ name: editName.trim() })
-                .eq('id', id);
-
+            const { error } = await updateCategory(id, editName.trim());
             if (error) throw error;
-
-            const oldName = itemToEdit?.name;
-            const updatedName = editName.trim();
-
-            if (oldName && oldName !== updatedName) {
-                // Cascade update to content table (array update)
-                const { data: rowsToUpdate, error: fetchError } = await supabase
-                    .from('content')
-                    .select('id, categories')
-                    .contains('categories', [oldName]);
-
-                if (fetchError) {
-                    console.error('Error fetching categories for cascade:', fetchError);
-                } else if (rowsToUpdate && rowsToUpdate.length > 0) {
-                    console.log(`Updating categories for ${rowsToUpdate.length} rows`);
-                    for (const row of rowsToUpdate) {
-                        if (!row.categories) continue;
-                        const updatedCategories = row.categories.map((c: string) => c === oldName ? updatedName : c);
-                        await supabase.from('content').update({ categories: updatedCategories }).eq('id', row.id);
-                    }
-                }
-            }
 
             toast.success("کامیاب");
             setEditingId(null);
@@ -126,15 +91,11 @@ const [categories, setCategories] = useState<Category[]>([]);
     };
 
     const handleDelete = async (id: string, name: string) => {
-        if (!window.confirm(`کیا آپ واقعی "{{name}}" کو حذف کرنا چاہتے ہیں؟`)) return;
+        if (!window.confirm(`کیا آپ واقعی "${name}" کو حذف کرنا چاہتے ہیں؟`)) return;
 
         setActionLoading(id);
         try {
-            const { error } = await supabase
-                .from('categories')
-                .delete()
-                .eq('id', id);
-
+            const { error } = await deleteCategory(id);
             if (error) throw error;
 
             toast.success("کامیاب");
@@ -159,11 +120,11 @@ const [categories, setCategories] = useState<Category[]>([]);
         <Card>
             <CardHeader className="flex flex-row items-center gap-4">
                 <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                    <LayoutGrid className="h-5 w-5 text-primary" />
+                    <FolderTree className="h-5 w-5 text-primary" />
                 </div>
                 <div>
-                    <CardTitle>{"زمرہ"}</CardTitle>
-                    <CardDescription>{"مواد کے زمرہ جات کا نظم کریں۔"}</CardDescription>
+                    <CardTitle>{"زمرہ جات"}</CardTitle>
+                    <CardDescription>{"مواد کی درجہ بندی کے لیے استعمال ہونے والے زمرہ جات کا نظم کریں۔"}</CardDescription>
                 </div>
             </CardHeader>
             <CardContent>

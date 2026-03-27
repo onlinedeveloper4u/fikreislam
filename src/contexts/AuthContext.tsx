@@ -1,18 +1,21 @@
 'use client';
 
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
-import { User, Session } from "@supabase/supabase-js";
-import { supabase } from "@/integrations/supabase/client";
-import type { Database } from "@/integrations/supabase/types";
+import { getUserSession, signUp as serverSignUp, signIn as serverSignIn, signOut as serverSignOut } from "@/actions/auth";
 
-type AppRole = Database["public"]["Enums"]["app_role"];
+type AppRole = 'admin' | 'user';
+
+interface User {
+  id: string;
+  email?: string;
+}
 
 interface AuthContextType {
   user: User | null;
-  session: Session | null;
+  session: any | null;
   role: AppRole | null;
   loading: boolean;
-  signUp: (email: string, password: string, fullName: string) => Promise<{ session: Session | null, error: Error | null }>;
+  signUp: (email: string, password: string, fullName: string) => Promise<{ session: any | null, error: Error | null }>;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
 }
@@ -21,97 +24,58 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
-  const [session, setSession] = useState<Session | null>(null);
+  const [session, setSession] = useState<any | null>(null);
   const [role, setRole] = useState<AppRole | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const fetchUserRole = async (userId: string) => {
-    const { data, error } = await supabase
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", userId)
-      .order("created_at", { ascending: true })
-      .limit(1)
-      .single();
-
-    if (!error && data) {
-      setRole(data.role);
-    }
-  };
-
   useEffect(() => {
-    // Set up auth state listener FIRST
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        setSession(session);
-        setUser(session?.user ?? null);
-
-        // Defer role fetch to avoid deadlock
-        if (session?.user) {
-          setTimeout(() => {
-            fetchUserRole(session.user.id);
-          }, 0);
-        } else {
-          setRole(null);
-        }
-      }
-    );
-
-    // THEN verify existing user
-    supabase.auth.getUser().then(async ({ data: { user } }) => {
-      setUser(user);
-
-      if (user) {
-        await fetchUserRole(user.id);
-        // Also get the session if we need it for something else
-        const { data: { session } } = await supabase.auth.getSession();
-        setSession(session);
+    async function loadSession() {
+      const payload = await getUserSession();
+      if (payload) {
+        setUser({ id: payload.userId as string, email: payload.email as string });
+        setRole(payload.role as AppRole);
+        setSession(payload);
       } else {
+        setUser(null);
+        setRole(null);
         setSession(null);
       }
       setLoading(false);
-    });
-
-    return () => subscription.unsubscribe();
+    }
+    loadSession();
   }, []);
 
   const signUp = async (email: string, password: string, fullName: string) => {
-    const redirectUrl = `${window.location.origin}/`;
-
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        emailRedirectTo: redirectUrl,
-        data: {
-          full_name: fullName,
-        },
-      },
-    });
-
-    if (!error && data.user) {
-      // Safety net: manually create profile if trigger fails
-      await supabase.from('profiles').insert({
-        user_id: data.user.id,
-        full_name: fullName
-      }).select().single();
+    const res = await serverSignUp(email, password, fullName);
+    if (!res.error) {
+      const payload = await getUserSession();
+      if (payload) {
+        setUser({ id: payload.userId as string, email: payload.email as string });
+        setRole(payload.role as AppRole);
+        setSession(payload);
+      }
     }
-
-    return { session: data.session, error: error as Error | null };
+    return res;
   };
 
   const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-
-    return { error: error as Error | null };
+    const res = await serverSignIn(email, password);
+    if (!res.error) {
+      const payload = await getUserSession();
+      if (payload) {
+        setUser({ id: payload.userId as string, email: payload.email as string });
+        setRole(payload.role as AppRole);
+        setSession(payload);
+      }
+    }
+    return res;
   };
 
   const signOut = async () => {
-    await supabase.auth.signOut();
+    await serverSignOut();
+    setUser(null);
     setRole(null);
+    setSession(null);
   };
 
   return (

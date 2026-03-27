@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+
 import { resolveExternalUrl } from '@/lib/storage';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -16,6 +16,7 @@ import { FileText, Upload, Loader2, Save } from 'lucide-react';
 import { useUpload } from '@/contexts/UploadContextTypes';
 import { MetadataCombobox } from './MetadataCombobox';
 import { formatBytes } from '@/lib/utils';
+import { getLanguages } from '@/actions/metadata';
 
 interface BookEditDialogProps {
     content: any;
@@ -37,7 +38,7 @@ export function BookEditDialog({ content, open, onOpenChange, onSuccess }: BookE
     const [metadata, setMetadata] = useState<{ language: string[]; }>({ language: [] });
 
     useEffect(() => {
-        supabase.from('languages').select('name').order('name').then(({ data }) => {
+        getLanguages().then(({ data }) => {
             if (data) setMetadata({ language: data.map(l => l.name) });
         });
     }, []);

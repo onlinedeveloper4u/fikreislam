@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
+
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -11,6 +11,7 @@ import { formatBytes } from '@/lib/utils';
 import { Upload, Video as VideoIcon, Loader2 } from 'lucide-react';
 import { useUpload } from '@/contexts/UploadContextTypes';
 import { MetadataCombobox } from './MetadataCombobox';
+import { getLanguages } from '@/actions/metadata';
 
 const ALLOWED_VIDEO_TYPES = ['video/mp4', 'video/webm', 'video/quicktime'];
 const MAX_FILE_SIZE = 500 * 1024 * 1024; // 500MB
@@ -34,7 +35,7 @@ export function VideoUploadForm({ onSuccess }: VideoUploadFormProps) {
     const [metadata, setMetadata] = useState<{ language: string[]; }>({ language: [] });
 
     useEffect(() => {
-        supabase.from('languages').select('name').order('name').then(({ data }) => {
+        getLanguages().then(({ data }) => {
             if (data) setMetadata({ language: data.map(l => l.name) });
         });
     }, []);
