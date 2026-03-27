@@ -6,18 +6,8 @@ import type { NextRequest } from 'next/server'
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl
 
-  const shouldProxy = [
-    '/admin',
-    '/settings',
-    '/library',
-    '/qa',
-    '/login',
-    '/register',
-    '/forgot-password',
-    '/reset-password'
-  ].some(path => pathname.startsWith(path))
-
-  if (!shouldProxy) return NextResponse.next()
+  // Only protect admin routes
+  if (!pathname.startsWith('/admin')) return NextResponse.next()
 
   let res = NextResponse.next({
     request: { headers: req.headers },
@@ -46,31 +36,19 @@ export async function middleware(req: NextRequest) {
   // Use getUser() for security as recommended by Supabase
   const { data: { user } } = await supabase.auth.getUser()
 
-  const isAdminRoute = pathname.startsWith('/admin')
-  const isUserProtectedRoute = ['/settings', '/library', '/qa'].some(p => pathname.startsWith(p))
-  const isAuthRoute = ['/login', '/register', '/forgot-password', '/reset-password'].some(p => pathname.startsWith(p))
-
-  if ((isAdminRoute || isUserProtectedRoute) && !user) {
-    const redirectUrl = req.nextUrl.clone()
-    redirectUrl.pathname = '/login'
-    redirectUrl.searchParams.set('redirectedFrom', pathname)
-    return NextResponse.redirect(redirectUrl)
+  // Redirect to home if not logged in
+  if (!user) {
+    return NextResponse.redirect(new URL('/', req.url))
   }
 
-  // Admin Check
-  if (isAdminRoute && user) {
-    const { data: roleData } = await supabase
-      .from('user_roles')
-      .select('role')
-      .eq('user_id', user.id)
-      .single()
+  // Admin role check
+  const { data: roleData } = await supabase
+    .from('user_roles')
+    .select('role')
+    .eq('user_id', user.id)
+    .single()
 
-    if (roleData?.role !== 'admin') {
-      return NextResponse.redirect(new URL('/', req.url))
-    }
-  }
-
-  if (isAuthRoute && user) {
+  if (roleData?.role !== 'admin') {
     return NextResponse.redirect(new URL('/', req.url))
   }
 

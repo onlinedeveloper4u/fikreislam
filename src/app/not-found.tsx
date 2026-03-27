@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { Home, ArrowRight } from 'lucide-react';
+import { Home } from 'lucide-react';
 
 export default function NotFound() {
   return (
@@ -11,17 +11,11 @@ export default function NotFound() {
         <p className="text-muted-foreground font-urdu">
           معذرت، آپ جس صفحے کو تلاش کر رہے ہیں وہ موجود نہیں ہے یا اسے منتقل کر دیا گیا ہے۔
         </p>
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">
+        <div className="flex items-center justify-center gap-4 pt-4">
           <Button asChild variant="default" size="lg" className="rounded-xl px-8">
             <Link href="/">
               <Home className="w-5 h-5 mr-2" />
               <span>واپس ہوم پیج</span>
-            </Link>
-          </Button>
-          <Button asChild variant="outline" size="lg" className="rounded-xl px-8">
-            <Link href="/library">
-              <span>لائبریری دیکھیں</span>
-              <ArrowRight className="w-5 h-5 ml-2" />
             </Link>
           </Button>
         </div>

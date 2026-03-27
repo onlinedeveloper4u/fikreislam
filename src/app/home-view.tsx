@@ -1,20 +1,8 @@
 'use client';
 
 import { motion, Variants } from "framer-motion";
-import Link from "next/link";
 import Image from "next/image";
-import { ArrowRight, Book, Headphones, Video, Sparkles, Search, Download, Heart, Users, Shield, Globe, BookOpen, MessageCircle } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
-import { useHomeLogic } from "./logic";
-
-interface HomeViewProps {
-  stats?: {
-    books: number;
-    audio: number;
-    video: number;
-  };
-}
+import { Book, Headphones, Video, Sparkles, Search, Heart, Globe, BookOpen } from "lucide-react";
 
 const containerVariants: Variants = {
   hidden: { opacity: 0 },
@@ -39,9 +27,7 @@ const itemVariants: Variants = {
   },
 };
 
-export const HomeView = ({ stats }: HomeViewProps) => {
-  const { dir, language } = useHomeLogic();
-
+export const HomeView = () => {
   return (
     <div className="home-container">
       {/* Hero Section */}
@@ -79,10 +65,7 @@ export const HomeView = ({ stats }: HomeViewProps) => {
 
             <motion.h1
               variants={itemVariants}
-              className={`font-display font-bold text-foreground mb-6 ${language === 'ur'
-                ? 'text-4xl sm:text-5xl md:text-6xl lg:text-7xl leading-[2.5] py-4'
-                : 'text-5xl sm:text-6xl md:text-7xl lg:text-8xl tracking-tight'
-                }`}
+              className="font-display font-bold text-foreground mb-6 text-4xl sm:text-5xl md:text-6xl lg:text-7xl leading-[2.5] py-4"
             >
               {"فکر"}{" "}
               <span className="text-gradient drop-shadow-sm">{"اسلام"}</span>
@@ -99,15 +82,10 @@ export const HomeView = ({ stats }: HomeViewProps) => {
               variants={itemVariants}
               className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-20"
             >
-              <Button asChild variant="default" size="lg" className="h-14 px-8 text-lg rounded-2xl bg-primary hover:bg-primary/90 shadow-xl shadow-primary/20">
-                <Link href="/register" className="flex items-center gap-2">
-                  {"سفر شروع کریں"}
-                  <ArrowRight className={`w-5 h-5 transition-transform ${dir === 'rtl' ? 'rotate-180' : ''}`} />
-                </Link>
-              </Button>
-              <Button asChild variant="outline" size="lg" className="h-14 px-8 text-lg rounded-2xl glass hover:bg-primary/5 border-primary/20">
-                <Link href="/books">{"کتب دیکھیں"}</Link>
-              </Button>
+              <div className="h-14 px-8 text-lg rounded-2xl bg-primary/80 text-primary-foreground shadow-xl shadow-primary/20 flex items-center gap-2 font-medium">
+                {"جلد آ رہا ہے"}
+                <Sparkles className="w-5 h-5" />
+              </div>
             </motion.div>
 
             <motion.div
@@ -115,13 +93,12 @@ export const HomeView = ({ stats }: HomeViewProps) => {
               className="grid grid-cols-1 md:grid-cols-3 gap-6"
             >
               {[
-                { href: "/books", icon: Book, title: "اسلامی کتب", desc: "مستند اسلامی کتب اور علمی متون کا ہمارا مجموعہ دیکھیں۔" },
-                { href: "/audio", icon: Headphones, title: "آڈیو خطبات", desc: "مختلف علماء کے بصیرت افروز خطبات، سلسلے اور قرآنی تلاوت سنیں۔" },
-                { href: "/video", icon: Video, title: "ویڈیو ذخیرہ", desc: "اسلامی تعلیمات پر مبنی تعلیمی ویڈیوز، دستاویزی فلمیں اور لائیو نشستیں دیکھیں۔" },
+                { icon: Book, title: "اسلامی کتب", desc: "مستند اسلامی کتب اور علمی متون کا ہمارا مجموعہ دیکھیں۔" },
+                { icon: Headphones, title: "آڈیو خطبات", desc: "مختلف علماء کے بصیرت افروز خطبات، سلسلے اور قرآنی تلاوت سنیں۔" },
+                { icon: Video, title: "ویڈیو ذخیرہ", desc: "اسلامی تعلیمات پر مبنی تعلیمی ویڈیوز، دستاویزی فلمیں اور لائیو نشستیں دیکھیں۔" },
               ].map((card, idx) => (
                 <motion.div key={idx} variants={itemVariants}>
-                  <Link
-                    href={card.href}
+                  <div
                     className="group relative block p-8 rounded-2xl glass-dark hover-lift shadow-card border border-border/50 hover:border-primary/40 transition-all duration-500 overflow-hidden"
                   >
                     <div className="absolute inset-0 bg-gradient-to-br from-primary/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
@@ -134,7 +111,7 @@ export const HomeView = ({ stats }: HomeViewProps) => {
                         {card.desc}
                       </p>
                     </div>
-                  </Link>
+                  </div>
                 </motion.div>
               ))}
             </motion.div>
@@ -169,7 +146,7 @@ export const HomeView = ({ stats }: HomeViewProps) => {
               { icon: Search, title: "ذہین تلاش", description: "طاقتور تلاش اور فلٹرنگ کے اختیارات کے ساتھ وہی تلاش کریں جس کی آپ کو ضرورت ہے" },
               { icon: Heart, title: "ذاتی کتب خانہ", description: "اپنے سیکھنے کے سفر کو منظم کرنے کے لیے پسندیدہ کو محفوظ کریں اور مرضی کی فہرستیں بنائیں" },
               { icon: Globe, title: "کثیر لسانی", description: "عربی، اردو اور بہت سی زبانوں میں دستیاب مواد" },
-            ].map((feature, index) => (
+            ].map((feature) => (
               <motion.div
                 key={feature.title}
                 variants={itemVariants}
@@ -200,28 +177,9 @@ export const HomeView = ({ stats }: HomeViewProps) => {
             <div className="gradient-primary text-primary-foreground p-12 rounded-[3rem] shadow-2xl relative overflow-hidden">
               <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent" />
               <div className="relative z-10">
-                <h3 className="font-display text-3xl md:text-5xl font-bold mb-6">{"اپنا سفر شروع کریں"}</h3>
-                <p className="opacity-90 mb-10 text-lg lg:text-xl">{"ہزاروں مستند اسلامی وسائل تک رسائی حاصل کرنے کے لیے ایک مفت اکاؤنٹ بنائیں۔"}</p>
-                <Button asChild variant="secondary" size="lg" className="h-14 px-12 text-lg rounded-2xl bg-white text-primary hover:bg-white/90">
-                  <Link href="/register">{"مفت شروع کریں"}</Link>
-                </Button>
+                <h3 className="font-display text-3xl md:text-5xl font-bold mb-6">{"جلد آ رہا ہے"}</h3>
+                <p className="opacity-90 mb-6 text-lg lg:text-xl">{"ہم مستند اسلامی وسائل کا ایک جامع ذخیرہ تیار کر رہے ہیں۔ جلد ہی آپ کے لیے دستیاب ہوگا۔"}</p>
               </div>
-            </div>
-
-            {/* Stats */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-24">
-              {[
-                { label: "اسلامی کتب", key: "books" },
-                { label: "آڈیو خطبات", key: "audio" },
-                { label: "ویڈیو مواد", key: "video" },
-              ].map((stat, idx) => (
-                <div key={idx} className="bg-card/50 glass border border-border/50 rounded-2xl p-6">
-                  <div className="font-display text-4xl md:text-5xl font-bold text-primary mb-3">
-                    {stats?.[stat.key as keyof typeof stats] || 0}
-                  </div>
-                  <div className="text-muted-foreground text-sm font-medium uppercase">{stat.label}</div>
-                </div>
-              ))}
             </div>
           </motion.div>
         </div>
