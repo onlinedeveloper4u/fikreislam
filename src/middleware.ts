@@ -12,22 +12,26 @@ export async function middleware(req: NextRequest) {
   // Only protect admin routes
   if (!pathname.startsWith('/admin')) return NextResponse.next();
 
+  // Publicly accessible auth routes (now moved out of /admin)
+  // However, if the user is ALREADY logic as admin and tries to go to /login, handled?
+  // User wanting to move them out of /admin prefix
+
   const token = req.cookies.get('session')?.value;
 
   if (!token) {
-    return NextResponse.redirect(new URL('/', req.url));
+    return NextResponse.redirect(new URL('/login', req.url));
   }
 
   try {
     const { payload } = await jwtVerify(token, JWT_SECRET);
 
     if (payload.role !== 'admin') {
-      return NextResponse.redirect(new URL('/', req.url));
+      return NextResponse.redirect(new URL('/login', req.url));
     }
 
     return NextResponse.next();
   } catch (error) {
     // Invalid token
-    return NextResponse.redirect(new URL('/', req.url));
+    return NextResponse.redirect(new URL('/login', req.url));
   }
 }

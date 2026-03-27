@@ -5,6 +5,7 @@ import bcrypt from 'bcryptjs';
 import { cookies } from 'next/headers';
 import dbConnect from '@/lib/mongodb';
 import { User } from '@/models/User';
+import { sendEmail } from '@/lib/brevo';
 
 const JWT_SECRET = new TextEncoder().encode(
   process.env.JWT_SECRET
@@ -132,6 +133,68 @@ export async function updateUserRole(userId: string, newRole: 'admin' | 'user') 
   try {
     const user = await User.findByIdAndUpdate(userId, { role: newRole }, { new: true });
     return { data: user, error: null };
+  } catch (error: any) {
+    return { error };
+  }
+}
+
+export async function sendPasswordResetEmail(email: string) {
+  await dbConnect();
+  try {
+    const user = await User.findOne({ email: { $regex: new RegExp(`^${email}$`, 'i') } });
+    if (!user) {
+      // Don't reveal if user exists for security, just return success
+      return { success: true };
+    }
+
+    // Generate a temporary reset token (in a real app, save this to DB)
+    const resetToken = Buffer.from(`${user._id}-${Date.now()}`).toString('base64');
+    const resetLink = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/reset-password?token=${resetToken}`;
+
+    const htmlContent = `
+      <div style="direction: rtl; font-family: sans-serif; text-align: right; padding: 20px;">
+        <h1 style="color: #065f46;">فکرِ اسلام - پاس ورڈ ری سیٹ</h1>
+        <p>السلام علیکم محترم ${user.fullName}،</p>
+        <p>آپ کے اکاؤنٹ کا پاس ورڈ لنک موصول ہوا ہے۔ پاس ورڈ تبدیل کرنے کے لیے نیچے دیے گئے بٹن پر کلک کریں:</p>
+        <a href="${resetLink}" style="display: inline-block; background: #065f46; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; margin: 20px 0;">پاس ورڈ تبدیل کریں</a>
+        <p>اگر آپ نے یہ درخواست نہیں کی تو اس ای میل کو نظر انداز کریں۔</p>
+      </div>
+    `;
+
+    const result = await sendEmail({
+      to: [{ email: user.email, name: user.fullName }],
+      subject: 'فکرِ اسلام - پاس ورڈ ری سیٹ کی درخواست',
+      htmlContent
+    });
+
+    return result;
+  } catch (error: any) {
+    return { error };
+  }
+}
+
+export async function resetPassword(token: string, newPasswordHash: string) {
+  await dbConnect();
+  try {
+    // Decode the token (Base64) to get userId
+    const decoded = Buffer.from(token, 'base64').toString();
+    const [userId, timestamp] = decoded.split('-');
+
+    // Check if token is too old (e.g., 1 hour)
+    const tokenTime = parseInt(timestamp);
+    if (Date.now() - tokenTime > 3600000) {
+      return { error: new Error('Token expired') };
+    }
+
+    const salt = await bcrypt.genSalt(10);
+    const hashed = await bcrypt.hash(newPasswordHash, salt);
+
+    const user = await User.findByIdAndUpdate(userId, { passwordHash: hashed }, { new: true });
+    if (!user) {
+      return { error: new Error('User not found') };
+    }
+
+    return { success: true };
   } catch (error: any) {
     return { error };
   }
