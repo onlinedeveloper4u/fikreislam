@@ -3,8 +3,8 @@ import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { UploadContext, ActiveUpload } from './UploadContextTypes';
-import { uploadToInternetArchive, deleteFromInternetArchive, extractIAIdentifier } from '@/lib/internetArchive';
-import { updateIAMetadata, renameIAFile, triggerIADerive } from '@/actions/internetArchive';
+import { uploadToInternetArchive, extractIAIdentifier } from '@/lib/internetArchive';
+import { updateIAMetadata, renameIAFile, triggerIADerive, deleteIAItem } from '@/actions/internetArchive';
 
 import { 
     createSpeaker, createLanguage, createCategory, createAudioType, 
@@ -251,7 +251,8 @@ export const UploadProvider: React.FC<{ children: React.ReactNode }> = ({ childr
                     // If we created a NEW item (no existingIdentifier) and were replacing an old one, delete old one
                     // But if we used existingIdentifier, we just uploaded a new file to the same bucket.
                     if (!existingIdentifier && currentFileUrl?.startsWith('ia://')) {
-                        await deleteFromInternetArchive(currentFileUrl);
+                        const oldId = extractIAIdentifier(currentFileUrl);
+                        if (oldId) await deleteIAItem(oldId);
                     }
                 }
                 if (newCoverFile) coverUrlPath = iaResult.coverIaUrl;
@@ -324,7 +325,10 @@ export const UploadProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         try {
             if (fileUrl && fileUrl.startsWith('ia://')) {
                 updateUpload(uploadId, { progress: 30 });
-                await deleteFromInternetArchive(fileUrl);
+                const identifier = extractIAIdentifier(fileUrl);
+                if (identifier) {
+                    await deleteIAItem(identifier);
+                }
             }
 
             updateUpload(uploadId, { progress: 60 });

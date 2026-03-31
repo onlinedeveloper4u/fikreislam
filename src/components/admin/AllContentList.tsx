@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react';
 import { useUpload } from '@/contexts/UploadContextTypes';
 import { getContent, updateContentStatus } from '@/actions/content';
 import { resolveItemPageUrl } from '@/lib/storage';
-import { deleteFromInternetArchive } from '@/lib/internetArchive';
+import { extractIAIdentifier } from '@/lib/internetArchive';
+import { deleteIAItem } from '@/actions/internetArchive';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -117,6 +118,13 @@ export function AllContentList() {
   const handleStatusChange = async (id: string, newStatus: ContentStatus) => {
     setActionLoading(id);
     try {
+      // If rejected, remove from Internet Archive first as requested
+      const item = content.find(c => c.id === id);
+      if (newStatus === 'rejected' && item?.file_url?.startsWith('ia://')) {
+        const identifier = extractIAIdentifier(item.file_url);
+        if (identifier) await deleteIAItem(identifier);
+      }
+
       const publishedAt = newStatus === 'approved' ? new Date().toISOString() : undefined;
       const { error } = await updateContentStatus(id, newStatus, publishedAt);
 
@@ -125,14 +133,6 @@ export function AllContentList() {
       setContent(prev => prev.map(c =>
         c.id === id ? { ...c, status: newStatus } : c
       ));
-
-      // If rejected, trash from Google Drive if applicable
-      if (newStatus === 'rejected') {
-        const item = content.find(c => c.id === id);
-        if (item?.file_url?.startsWith('ia://')) {
-          await deleteFromInternetArchive(item.file_url);
-        }
-      }
 
       toast.success("کامیاب");
     } catch (error: any) {

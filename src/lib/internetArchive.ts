@@ -188,6 +188,7 @@ export async function uploadToInternetArchive(
         'x-archive-meta-collection': collection,
         'x-archive-meta-title': encMeta(title),
         'x-archive-meta-description': encMeta(`Content from Fikr-e-Islam: ${title}`),
+        'x-archive-keep-old-version': '0',
     };
 
     if (metadata.speaker) {
@@ -233,6 +234,7 @@ export async function uploadToInternetArchive(
             'Authorization': `LOW ${accessKey}:${secretKey}`,
             'Content-Type': coverFile.type || 'image/jpeg',
             'x-amz-auto-make-bucket': '1',
+            'x-archive-keep-old-version': '0',
         };
 
         const coverResponse = await fetch(coverUploadUrl, {
@@ -288,6 +290,7 @@ export async function renameInternetArchiveFile(
                 'Authorization': `LOW ${accessKey}:${secretKey}`,
                 'X-Amz-Copy-Source': `/${identifier}/${encodedOldFileName}`,
                 'x-archive-auto-make-bucket': '1',
+                'x-archive-keep-old-version': '0',
             }
         });
 
@@ -297,7 +300,7 @@ export async function renameInternetArchiveFile(
         }
 
         // 2. Delete the old file
-        await deleteFromInternetArchive(iaUrl);
+        await deleteIAFile(iaUrl);
 
         return {
             iaUrl: `ia://${identifier}/${newFileName}`,
@@ -336,10 +339,9 @@ export async function triggerIADerive(identifier: string): Promise<boolean> {
 }
 
 /**
- * Delete a file from Internet Archive.
- * Note: IA doesn't truly delete immediately; it marks for removal.
+ * Delete a specific file from an Internet Archive item.
  */
-export async function deleteFromInternetArchive(iaUrl: string): Promise<boolean> {
+export async function deleteIAFile(iaUrl: string): Promise<boolean> {
     if (!iaUrl || !iaUrl.startsWith('ia://')) return false;
 
     const path = iaUrl.replace('ia://', '');
@@ -361,17 +363,50 @@ export async function deleteFromInternetArchive(iaUrl: string): Promise<boolean>
                 headers: {
                     'Authorization': `LOW ${accessKey}:${secretKey}`,
                     'x-archive-cascade-delete': '1',
+                    'x-archive-keep-old-version': '0',
+                },
+            }
+        );
+
+        return response.ok;
+    } catch (error) {
+        console.error('Error deleting IA file:', error);
+        return false;
+    }
+}
+
+/**
+ * Delete an entire item from Internet Archive.
+ * This is the official and correct way to remove an item via the S3 API.
+ */
+export async function deleteIAItem(identifier: string): Promise<boolean> {
+    if (!identifier) return false;
+
+    try {
+        const { accessKey, secretKey } = getIACredentials();
+        console.log(`IA: Sending official S3 DELETE request for bucket: ${identifier}`);
+
+        const response = await fetch(
+            `${IA_S3_ENDPOINT}/${identifier}`,
+            {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': `LOW ${accessKey}:${secretKey}`,
+                    'x-archive-cascade-delete': '1',
                 },
             }
         );
 
         if (!response.ok) {
-            console.error('IA delete failed:', response.status, await response.text().catch(() => ''));
+            const body = await response.text().catch(() => 'no body');
+            console.error(`IA: Delete failed for ${identifier}. Code: ${response.status}, Response: ${body}`);
+            return false;
         }
 
-        return response.ok;
+        console.log(`IA: S3 DELETE success for ${identifier}`);
+        return true;
     } catch (error) {
-        console.error('Error deleting from Internet Archive:', error);
+        console.error('Error deleting IA item:', error);
         return false;
     }
 }

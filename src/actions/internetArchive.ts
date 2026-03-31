@@ -2,7 +2,8 @@
 import { 
     updateInternetArchiveMetadata as updateIAMetaLib,
     triggerIADerive as triggerIADeriveLib,
-    renameInternetArchiveFile as renameIAFileLib
+    renameInternetArchiveFile as renameIAFileLib,
+    deleteIAItem as deleteIAItemLib
 } from '@/lib/internetArchive';
 
 export async function updateIAMetadata(iaUrl: string, metadata: any) {
@@ -25,6 +26,14 @@ export async function renameIAFile(iaUrl: string, newTitle: string) {
 export async function triggerIADerive(identifier: string) {
     try {
         return { data: await triggerIADeriveLib(identifier), error: null };
+    } catch (e: any) {
+        return { error: e.message || e };
+    }
+}
+
+export async function deleteIAItem(identifier: string) {
+    try {
+        return { data: await deleteIAItemLib(identifier), error: null };
     } catch (e: any) {
         return { error: e.message || e };
     }
