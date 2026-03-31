@@ -58,6 +58,97 @@ export interface IAUploadResult {
 }
 
 /**
+ * Extract the Internet Archive identifier from a URL (supports ia:// and web URLs)
+ */
+export function extractIAIdentifier(url: string | null): string | undefined {
+    if (!url) return undefined;
+    if (url.startsWith('ia://')) {
+        return url.replace('ia://', '').split('/')[0];
+    }
+    // Handle https://archive.org/download/identifier/filename
+    if (url.includes('archive.org/download/')) {
+        const parts = url.split('archive.org/download/')[1].split('/');
+        return parts[0];
+    }
+    // Handle https://archive.org/details/identifier
+    if (url.includes('archive.org/details/')) {
+        const parts = url.split('archive.org/details/')[1].split('/');
+        return parts[0];
+    }
+    return undefined;
+}
+
+/**
+ * Update metadata of an existing Internet Archive item.
+ */
+export async function updateInternetArchiveMetadata(
+    iaUrl: string,
+    metadata: {
+        speaker?: string;
+        audioType?: string;
+        title?: string;
+        contentType?: 'audio' | 'video' | 'book';
+    }
+): Promise<boolean> {
+    const identifier = extractIAIdentifier(iaUrl);
+    if (!identifier) return false;
+
+    const { accessKey, secretKey } = getIACredentials();
+
+    // Helper: Format metadata for Metadata API (JSON Patch style)
+    const mediaType = metadata.contentType === 'video' ? 'movies' : 
+                      (metadata.contentType === 'book' ? 'texts' : 'audio');
+
+    // Build patches
+    const patches: any[] = [
+        { op: 'add', path: '/mediatype', value: mediaType },
+    ];
+
+    if (metadata.title) {
+        patches.push({ op: 'add', path: '/title', value: metadata.title });
+        patches.push({ op: 'add', path: '/description', value: `Content from Fikr-e-Islam: ${metadata.title}` });
+    }
+    if (metadata.speaker) {
+        patches.push({ op: 'add', path: '/creator', value: metadata.speaker });
+    }
+    if (metadata.audioType) {
+        patches.push({ op: 'add', path: '/subject', value: metadata.audioType });
+    }
+
+    try {
+        // Use IA Metadata API instead of S3 for updates
+        // Docs: https://archive.org/services/docs/api/metadata.html
+        const response = await fetch(`https://archive.org/metadata/${identifier}`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `LOW ${accessKey}:${secretKey}`,
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: new URLSearchParams({
+                '-target': 'metadata',
+                '-patch': JSON.stringify(patches),
+            }),
+        });
+
+        const result = await response.json();
+
+        if (!response.ok || result.error) {
+            // "no changes to _meta.xml" is not an actual error, it just means the metadata is already correct.
+            const errorStr = JSON.stringify(result.error || result);
+            if (response.status === 400 && errorStr.includes('no changes to _meta.xml')) {
+                return true;
+            }
+            console.error('IA metadata update failed:', response.status, result.error || result);
+            return false;
+        }
+        return true;
+    } catch (error) {
+        console.error('Error updating IA metadata:', error);
+        return false;
+    }
+}
+
+/**
  * Upload a file to Internet Archive using their S3-like API
  */
 export async function uploadToInternetArchive(
@@ -69,11 +160,12 @@ export async function uploadToInternetArchive(
         contentType?: 'audio' | 'video' | 'book';
     },
     coverFile?: File | null,
-    signal?: AbortSignal
+    signal?: AbortSignal,
+    existingIdentifier?: string // Optional identifier to upload to an existing item
 ): Promise<IAUploadResult> {
     const { accessKey, secretKey } = getIACredentials();
-    const identifier = generateItemIdentifier(metadata.speaker);
-    const fileName = sanitizeFileName(file.name);
+    const identifier = existingIdentifier || generateItemIdentifier(metadata.speaker);
+    const fileName = file.size > 0 ? sanitizeFileName(file.name) : null;
 
     // Helper: IA supports URI-encoded metadata values via uri() wrapper
     const encMeta = (value: string): string => {
@@ -83,7 +175,7 @@ export async function uploadToInternetArchive(
         return value;
     };
 
-    const title = metadata.title || fileName;
+    const title = metadata.title || (fileName || identifier);
     const mediaType = metadata.contentType === 'video' ? 'movies' : 
                       (metadata.contentType === 'book' ? 'texts' : 'audio');
     
@@ -91,7 +183,6 @@ export async function uploadToInternetArchive(
 
     const headers: Record<string, string> = {
         'Authorization': `LOW ${accessKey}:${secretKey}`,
-        'Content-Type': file.type || 'application/octet-stream',
         'x-amz-auto-make-bucket': '1',
         'x-archive-meta-mediatype': mediaType,
         'x-archive-meta-collection': collection,
@@ -106,31 +197,42 @@ export async function uploadToInternetArchive(
         headers['x-archive-meta-subject'] = encMeta(metadata.audioType);
     }
 
-    // 1. Upload main file
-    const uploadUrl = `${IA_S3_ENDPOINT}/${identifier}/${encodeURIComponent(fileName)}`;
+    // 1. Upload main file if provided
+    let iaUrl = '';
+    let downloadUrl = '';
 
-    const response = await fetch(uploadUrl, {
-        method: 'PUT',
-        headers,
-        body: file,
-        signal,
-    });
+    if (fileName && file.size > 0) {
+        const uploadUrl = `${IA_S3_ENDPOINT}/${identifier}/${encodeURIComponent(fileName)}`;
+        headers['Content-Type'] = file.type || 'application/octet-stream';
 
-    if (!response.ok) {
-        let errorDetail = '';
-        try { errorDetail = await response.text(); } catch { /* ignore */ }
-        throw new Error(`Internet Archive upload failed (${response.status}): ${errorDetail || response.statusText}`);
+        const response = await fetch(uploadUrl, {
+            method: 'PUT',
+            headers,
+            body: file,
+            signal,
+        });
+
+        if (!response.ok) {
+            let errorDetail = '';
+            try { errorDetail = await response.text(); } catch { /* ignore */ }
+            throw new Error(`Internet Archive upload failed (${response.status}): ${errorDetail || response.statusText}`);
+        }
+        iaUrl = `ia://${identifier}/${fileName}`;
+        downloadUrl = `https://archive.org/download/${identifier}/${encodeURIComponent(fileName)}`;
     }
 
     // 2. Upload cover if provided (to the SAME identifier)
     let coverIaUrl = null;
     if (coverFile) {
-        const coverFileName = `cover_${sanitizeFileName(coverFile.name)}`;
+        // Use a consistent name for cover image to ensure overwriting and proper thumbnail generation
+        const coverExt = coverFile.name.split('.').pop() || 'jpg';
+        const coverFileName = `cover.${coverExt}`;
         const coverUploadUrl = `${IA_S3_ENDPOINT}/${identifier}/${encodeURIComponent(coverFileName)}`;
         
         const coverHeaders = {
             'Authorization': `LOW ${accessKey}:${secretKey}`,
             'Content-Type': coverFile.type || 'image/jpeg',
+            'x-amz-auto-make-bucket': '1',
         };
 
         const coverResponse = await fetch(coverUploadUrl, {
@@ -147,10 +249,90 @@ export async function uploadToInternetArchive(
         }
     }
 
-    const iaUrl = `ia://${identifier}/${fileName}`;
-    const downloadUrl = `https://archive.org/download/${identifier}/${encodeURIComponent(fileName)}`;
+    return { identifier, fileName: fileName || '', iaUrl, downloadUrl, coverIaUrl };
+}
 
-    return { identifier, fileName, iaUrl, downloadUrl, coverIaUrl };
+/**
+ * Rename a file within an Internet Archive item.
+ */
+export async function renameInternetArchiveFile(
+    iaUrl: string,
+    newTitle: string
+): Promise<{ iaUrl: string; downloadUrl: string } | null> {
+    if (!iaUrl || !iaUrl.startsWith('ia://')) return null;
+
+    const path = iaUrl.replace('ia://', '');
+    const parts = path.split('/');
+    if (parts.length < 2) return null;
+
+    const identifier = parts[0];
+    const oldFileName = parts[1];
+    
+    const ext = oldFileName.split('.').pop() || '';
+    const newFileName = `${sanitizeFileName(newTitle)}.${ext}`;
+
+    if (oldFileName === newFileName) return { 
+        iaUrl: `ia://${identifier}/${oldFileName}`,
+        downloadUrl: `https://archive.org/download/${identifier}/${encodeURIComponent(oldFileName)}`
+    };
+
+    try {
+        const { accessKey, secretKey } = getIACredentials();
+
+        // 1. Copy file to a new name
+        // IA S3 API supports X-Amz-Copy-Source - Must be encoded for headers
+        const encodedOldFileName = oldFileName.split('/').map(p => encodeURIComponent(p)).join('/');
+        const response = await fetch(`${IA_S3_ENDPOINT}/${identifier}/${encodeURIComponent(newFileName)}`, {
+            method: 'PUT',
+            headers: {
+                'Authorization': `LOW ${accessKey}:${secretKey}`,
+                'X-Amz-Copy-Source': `/${identifier}/${encodedOldFileName}`,
+                'x-archive-auto-make-bucket': '1',
+            }
+        });
+
+        if (!response.ok) {
+            console.error('IA rename (copy) failed:', response.status, await response.text().catch(() => ''));
+            return null;
+        }
+
+        // 2. Delete the old file
+        await deleteFromInternetArchive(iaUrl);
+
+        return {
+            iaUrl: `ia://${identifier}/${newFileName}`,
+            downloadUrl: `https://archive.org/download/${identifier}/${encodeURIComponent(newFileName)}`
+        };
+    } catch (error) {
+        console.error('Error renaming IA file:', error);
+        return null;
+    }
+}
+
+/**
+ * Trigger a "derive" task on Internet Archive.
+ * This forces IA to regenerate thumbnails and technical metadata.
+ */
+export async function triggerIADerive(identifier: string): Promise<boolean> {
+    if (!identifier) return false;
+    try {
+        const { accessKey, secretKey } = getIACredentials();
+        const response = await fetch(`https://archive.org/metadata/${identifier}/tasks`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `LOW ${accessKey}:${secretKey}`,
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: new URLSearchParams({
+                '-target': 'derive',
+                '-force': '1',
+            })
+        });
+        return response.ok;
+    } catch (error) {
+        console.error('Error triggering IA derive:', error);
+        return false;
+    }
 }
 
 /**

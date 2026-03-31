@@ -3,7 +3,8 @@ import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { UploadContext, ActiveUpload } from './UploadContextTypes';
-import { uploadToInternetArchive, deleteFromInternetArchive } from '@/lib/internetArchive';
+import { uploadToInternetArchive, deleteFromInternetArchive, extractIAIdentifier } from '@/lib/internetArchive';
+import { updateIAMetadata, renameIAFile, triggerIADerive } from '@/actions/internetArchive';
 
 import { 
     createSpeaker, createLanguage, createCategory, createAudioType, 
@@ -206,7 +207,29 @@ export const UploadProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         try {
             let fileUrlPath = currentFileUrl;
             let coverUrlPath = updatePayload.cover_image_url;
+            
+            // Extract identifier if it's an IA item
+            const existingIdentifier = extractIAIdentifier(currentFileUrl);
 
+            // 1. Sync metadata with Internet Archive if it's an IA item
+            if (existingIdentifier) {
+                await updateIAMetadata(currentFileUrl!, {
+                    speaker: updatePayload.speaker,
+                    audioType: updatePayload.audio_type,
+                    title: updatePayload.title,
+                    contentType: contentType as any,
+                });
+
+                // Rename existing file if title changed and no new file is being uploaded
+                if (!newMainFile && updatePayload.title !== contentTitle && currentFileUrl) {
+                    const { data: renameResult } = await renameIAFile(currentFileUrl, updatePayload.title);
+                    if (renameResult) {
+                        fileUrlPath = renameResult.iaUrl;
+                    }
+                }
+            }
+
+            // 2. Handle new file uploads
             if (newMainFile || newCoverFile) {
                 updateUpload(uploadId, { status: 'uploading', progress: 10 });
                 const iaResult = await uploadToInternetArchive(
@@ -218,15 +241,26 @@ export const UploadProvider: React.FC<{ children: React.ReactNode }> = ({ childr
                         contentType: contentType as any,
                     },
                     newCoverFile,
-                    controller.signal
+                    controller.signal,
+                    existingIdentifier // Use existing item if available
                 );
 
                 if (newMainFile) {
                     fileUrlPath = iaResult.iaUrl;
                     updatePayload.file_size = newMainFile.size;
-                    if (currentFileUrl?.startsWith('ia://')) await deleteFromInternetArchive(currentFileUrl);
+                    // If we created a NEW item (no existingIdentifier) and were replacing an old one, delete old one
+                    // But if we used existingIdentifier, we just uploaded a new file to the same bucket.
+                    if (!existingIdentifier && currentFileUrl?.startsWith('ia://')) {
+                        await deleteFromInternetArchive(currentFileUrl);
+                    }
                 }
                 if (newCoverFile) coverUrlPath = iaResult.coverIaUrl;
+            }
+
+            if (existingIdentifier) {
+                // Trigger a derive task to refresh thumbnails/metadata on IA
+                // Managed via server action to avoid CORS and ensure execution
+                triggerIADerive(existingIdentifier);
             }
 
             if (controller.signal.aborted) throw new Error('Aborted');
