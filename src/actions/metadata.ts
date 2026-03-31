@@ -8,7 +8,16 @@ import { Content } from '@/models/Content';
 export async function getSpeakers() {
   await dbConnect();
   const speakers = await Speaker.find().sort({ name: 1 }).lean();
-  return { data: speakers.map(s => ({ ...s, id: s._id.toString(), _id: s._id.toString() })), error: null };
+  return { 
+    data: speakers.map(s => {
+        const { _id, createdAt, updatedAt, __v, ...rest }: any = s;
+        return { 
+            ...rest, 
+            id: _id.toString() 
+        };
+    }), 
+    error: null 
+  };
 }
 
 export async function createSpeaker(name: string) {
@@ -18,7 +27,7 @@ export async function createSpeaker(name: string) {
     return { data: { id: speaker._id.toString() }, error: null };
   } catch (e: any) {
     if (e.code === 11000) return { data: null, error: { code: '23505', message: 'یہ نام پہلے سے موجود ہے' } };
-    return { data: null, error: e };
+    return { data: null, error: e.message || e };
   }
 }
 
@@ -33,11 +42,10 @@ export async function updateSpeaker(id: string, name: string) {
     
     // Cascade update
     await Content.updateMany({ speaker: oldName }, { speaker: name });
-    await AudioType.updateMany({ speaker_id: id }, {});
     
     return { data: true, error: null };
   } catch (e: any) {
-    return { error: e };
+    return { error: e.message || e };
   }
 }
 
@@ -55,17 +63,27 @@ export async function deleteSpeaker(id: string) {
 export async function getLanguages() {
   await dbConnect();
   const res = await Language.find().sort({ name: 1 }).lean();
-  return { data: res.map(s => ({ ...s, id: s._id.toString(), _id: s._id.toString() })), error: null };
+  return { 
+    data: res.map(s => {
+        const { _id, createdAt, updatedAt, __v, ...rest }: any = s;
+        return { 
+            ...rest, 
+            id: _id.toString() 
+        };
+    }), 
+    error: null 
+  };
 }
 
 export async function createLanguage(name: string) {
   await dbConnect();
   try {
     const lng = await Language.create({ name });
-    return { data: { id: lng._id.toString() }, error: null };
+    const plain = lng.toObject();
+    return { data: { id: plain._id.toString() }, error: null };
   } catch (e: any) {
     if (e.code === 11000) return { data: null, error: { code: '23505', message: 'یہ نام پہلے سے موجود ہے' } };
-    return { data: null, error: e };
+    return { data: null, error: e.message || e };
   }
 }
 
@@ -101,17 +119,27 @@ export async function deleteLanguage(id: string) {
 export async function getCategories() {
   await dbConnect();
   const res = await Category.find().sort({ name: 1 }).lean();
-  return { data: res.map(s => ({ ...s, id: s._id.toString(), _id: s._id.toString() })), error: null };
+  return { 
+    data: res.map(s => {
+        const { _id, createdAt, updatedAt, __v, ...rest }: any = s;
+        return { 
+            ...rest, 
+            id: _id.toString() 
+        };
+    }), 
+    error: null 
+  };
 }
 
 export async function createCategory(name: string) {
   await dbConnect();
   try {
     const cat = await Category.create({ name });
-    return { data: { id: cat._id.toString() }, error: null };
+    const plain = cat.toObject();
+    return { data: { id: plain._id.toString() }, error: null };
   } catch (e: any) {
     if (e.code === 11000) return { data: null, error: { code: '23505', message: 'یہ نام پہلے سے موجود ہے' } };
-    return { data: null, error: e };
+    return { data: null, error: e.message || e };
   }
 }
 
@@ -147,21 +175,30 @@ export async function deleteCategory(id: string) {
 }
 
 // AUDIO TYPE ACTIONS
-export async function getAudioTypes(speaker_id?: string) {
+export async function getAudioTypes() {
   await dbConnect();
-  const query = speaker_id ? { speaker_id } : {};
-  const res = await AudioType.find(query).sort({ name: 1 }).lean();
-  return { data: res.map(s => ({ ...s, id: s._id.toString(), _id: s._id.toString() })), error: null };
+  const res = await AudioType.find().sort({ name: 1 }).lean();
+  return { 
+    data: res.map(s => {
+        const { _id, createdAt, updatedAt, __v, ...rest }: any = s;
+        return { 
+            ...rest, 
+            id: _id.toString() 
+        };
+    }), 
+    error: null 
+  };
 }
 
-export async function createAudioType(name: string, speaker_id: string) {
+export async function createAudioType(name: string) {
   await dbConnect();
   try {
-    const at = await AudioType.create({ name, speaker_id });
-    return { data: { id: at._id.toString() }, error: null };
+    const at = await AudioType.create({ name });
+    const plain = at.toObject();
+    return { data: { id: plain._id.toString() }, error: null };
   } catch (e: any) {
     if (e.code === 11000) return { data: null, error: { code: '23505', message: 'یہ نام پہلے سے موجود ہے' } };
-    return { data: null, error: e };
+    return { data: null, error: e.message || e };
   }
 }
 
@@ -199,10 +236,8 @@ export async function deleteAudioType(id: string) {
 }
 
 export async function getAudioTypesBySpeakerName(speakerName: string) {
+  // speakerName is currently ignored as AudioType is global
   await dbConnect();
-  const speaker = await Speaker.findOne({ name: speakerName }).lean();
-  if (!speaker) return { data: [], error: null };
-  
-  const types = await AudioType.find({ speaker_id: speaker._id.toString() }).sort({ name: 1 }).lean();
+  const types = await AudioType.find().sort({ name: 1 }).lean();
   return { data: types.map(t => ({ name: t.name })), error: null };
 }

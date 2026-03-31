@@ -97,30 +97,27 @@ export const UploadProvider: React.FC<{ children: React.ReactNode }> = ({ childr
             if (controller.signal.aborted) throw new Error('Aborted');
             updateUpload(uploadId, { progress: 80, status: 'database' });
 
-            const ensureMetadata = async (type: string, name: string, parentSpeakerId?: string) => {
+            const ensureMetadata = async (type: string, name: string) => {
                 if (!name) return null;
                 try {
-                    if (type === 'speaker') {
-                        const { data } = await createSpeaker(name);
-                        return data?.id || null;
-                    }
-                    if (type === 'language') return (await createLanguage(name)).data?.id;
-                    if (type === 'category') return (await createCategory(name)).data?.id;
-                    if (type === 'audio_type' && parentSpeakerId) {
-                        return (await createAudioType(name, parentSpeakerId)).data?.id;
-                    }
+                    let result: any = null;
+                    if (type === 'speaker') result = await createSpeaker(name);
+                    else if (type === 'language') result = await createLanguage(name);
+                    else if (type === 'category') result = await createCategory(name);
+                    else if (type === 'audio_type') result = await createAudioType(name);
+                    
+                    // Return true if created or if already exists (error code 23505)
+                    return !!(result?.data || result?.error?.code === '23505');
                 } catch (e) {
                     console.log("Upsert ignored error", e);
+                    return false;
                 }
-                return null;
             };
 
             let currentSpeakerId = null;
             if (formData.contentType === 'audio') {
-                currentSpeakerId = await ensureMetadata('speaker', formData.speaker);
-                if (currentSpeakerId) {
-                    await ensureMetadata('audio_type', formData.audioType, currentSpeakerId);
-                }
+                await ensureMetadata('speaker', formData.speaker);
+                await ensureMetadata('audio_type', formData.audioType);
                 const catsRaw = formData.categoriesValue || [];
                 const cats = Array.isArray(catsRaw) ? catsRaw : (typeof catsRaw === 'string' ? catsRaw.split(',').map((c: string) => c.trim()).filter(Boolean) : []);
                 for (const c of cats) await ensureMetadata('category', c);
@@ -164,8 +161,10 @@ export const UploadProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
         } catch (err: any) {
             if (err.name === 'AbortError' || err.message === 'Aborted') return;
-            console.error('Background upload error:', err);
-            updateUpload(uploadId, { status: 'error', error: err.message || 'Unknown error' });
+            // Safer logging to avoid RangeError with circular objects
+            const errorMsg = err instanceof Error ? err.message : (typeof err === 'string' ? err : JSON.stringify(err).substring(0, 200));
+            console.error('Background upload error:', errorMsg);
+            updateUpload(uploadId, { status: 'error', error: errorMsg });
             toast.error(`شامل کرنے میں ناکامی: ${formData.title}`);
         } finally {
             delete abortControllers.current[uploadId];
@@ -233,22 +232,22 @@ export const UploadProvider: React.FC<{ children: React.ReactNode }> = ({ childr
             if (controller.signal.aborted) throw new Error('Aborted');
             updateUpload(uploadId, { progress: 80, status: 'database' });
 
-            const ensureMetadata = async (type: string, name: string, parentSpeakerId?: string) => {
+            const ensureMetadata = async (type: string, name: string) => {
                 if (!name) return null;
                 try {
-                    if (type === 'speaker') return (await createSpeaker(name)).data?.id;
-                    if (type === 'language') return (await createLanguage(name)).data?.id;
-                    if (type === 'category') return (await createCategory(name)).data?.id;
-                    if (type === 'audio_type' && parentSpeakerId) {
-                        return (await createAudioType(name, parentSpeakerId)).data?.id;
-                    }
-                } catch (e) { console.log(e); }
-                return null;
+                    let result: any = null;
+                    if (type === 'speaker') result = await createSpeaker(name);
+                    else if (type === 'language') result = await createLanguage(name);
+                    else if (type === 'category') result = await createCategory(name);
+                    else if (type === 'audio_type') result = await createAudioType(name);
+                    
+                    return !!(result?.data || result?.error?.code === '23505');
+                } catch (e) { console.log(e); return false; }
             };
 
             if (contentType === 'audio') {
-                const currentSpeakerId = await ensureMetadata('speaker', updatePayload.speaker);
-                if (currentSpeakerId) await ensureMetadata('audio_type', updatePayload.audio_type, currentSpeakerId);
+                await ensureMetadata('speaker', updatePayload.speaker);
+                await ensureMetadata('audio_type', updatePayload.audio_type);
                 const catsRaw = updatePayload.categories || [];
                 const cats = Array.isArray(catsRaw) ? catsRaw : (typeof catsRaw === 'string' ? catsRaw.split(',').map((c: string) => c.trim()).filter(Boolean) : []);
                 for (const c of cats) await ensureMetadata('category', c);

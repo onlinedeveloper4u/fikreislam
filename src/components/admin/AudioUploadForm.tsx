@@ -28,7 +28,7 @@ export function AudioUploadForm({ onSuccess }: AudioUploadFormProps) {
     const { uploadContent } = useUpload();
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [title, setTitle] = useState('');
-    const [language, setLanguage] = useState('اردو');
+    const [language, setLanguage] = useState('');
     const [file, setFile] = useState<File | null>(null);
     const [coverImage, setCoverImage] = useState<File | null>(null);
 
@@ -45,53 +45,22 @@ export function AudioUploadForm({ onSuccess }: AudioUploadFormProps) {
 
     useEffect(() => {
         const fetchData = async () => {
-            const [{ data: speakers }, { data: languages }, { data: categoriesData }] = await Promise.all([
+            const [{ data: speakers }, { data: languages }, { data: categoriesData }, { data: audioTypes }] = await Promise.all([
                 getSpeakers(),
                 getLanguages(),
                 getCategories(),
+                getAudioTypes(),
             ]);
 
             setMetadata({
                 speaker: speakers?.map(s => s.name) || [],
                 language: languages?.map(l => l.name) || [],
-                audio_type: [], // Loaded dynamically based on speaker
+                audio_type: audioTypes?.map(t => t.name) || [],
                 category: categoriesData?.map(c => c.name) || [],
             });
         };
         fetchData();
     }, []);
-
-    // Dynamically load audio types when speaker changes
-    useEffect(() => {
-        const fetchAudioTypesForSpeaker = async () => {
-            if (!speaker) {
-                setMetadata(prev => ({ ...prev, audio_type: [] }));
-                setAudioType('');
-                return;
-            }
-
-            try {
-                // 1. Get Speaker ID
-                const { data: speakerData } = await getSpeakers();
-                const matchedSpeaker = speakerData?.find(s => s.name === speaker);
-
-                if (!matchedSpeaker) return;
-
-                // 2. Get Audio Types for that Speaker
-                const { data: typeData } = await getAudioTypes(matchedSpeaker.id);
-
-                setMetadata(prev => ({
-                    ...prev,
-                    audio_type: typeData?.map(t => t.name) || []
-                }));
-                setAudioType(''); // Reset selected type when speaker changes
-            } catch (err) {
-                console.error("Failed to load audio types for speaker", err);
-            }
-        };
-
-        fetchAudioTypesForSpeaker();
-    }, [speaker]);
 
     // Set a default speaker if list not empty to help user
     useEffect(() => {
