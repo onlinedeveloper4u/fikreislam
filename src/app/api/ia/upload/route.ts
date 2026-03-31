@@ -8,7 +8,7 @@ import { uploadToInternetArchive } from "@/lib/internetArchive";
 export async function POST(req: NextRequest) {
     try {
         const formData = await req.formData();
-        const file = formData.get("file") as File;
+        const file = (formData.get("file") as File) || new File([], "empty");
         const coverFile = formData.get("coverFile") as File | null;
         
         // Metadata passed as JSON
@@ -17,8 +17,14 @@ export async function POST(req: NextRequest) {
         
         const existingIdentifier = formData.get("existingIdentifier") as string || undefined;
 
-        if (!file || !metadata.title) {
-            return NextResponse.json({ error: "Missing file or metadata" }, { status: 400 });
+        // If it's a NEW item (no existingIdentifier), we MUST have a main file.
+        // For existing items, we just need the metadata title and at least one change.
+        if (!existingIdentifier && file.size === 0) {
+            return NextResponse.json({ error: "Missing file for new upload" }, { status: 400 });
+        }
+
+        if (!metadata.title) {
+            return NextResponse.json({ error: "Missing metadata title" }, { status: 400 });
         }
 
         // Call our library (which will now correctly see the server-side IA_ACCESS_KEY)
