@@ -3,7 +3,7 @@ import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { UploadContext, ActiveUpload } from './UploadContextTypes';
-import { uploadToInternetArchive, extractIAIdentifier } from '@/lib/internetArchive';
+import { extractIAIdentifier, resolveIADownloadUrl, resolveIAItemUrl } from '@/lib/ia-utils';
 import { updateIAMetadata, renameIAFile, triggerIADerive, deleteIAItem } from '@/actions/internetArchive';
 
 import { 
@@ -83,17 +83,29 @@ export const UploadProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         try {
             updateUpload(uploadId, { status: 'uploading', progress: 10 });
 
-            const iaResult = await uploadToInternetArchive(
-                mainFile,
-                {
-                    speaker: formData.speaker,
-                    audioType: formData.audioType,
-                    title: formData.title,
-                    contentType: formData.contentType,
-                },
-                coverFile,
-                controller.signal
-            );
+            // Call our new API route instead of direct library call to keep credentials secure
+            const uploadFormData = new FormData();
+            uploadFormData.append("file", mainFile);
+            if (coverFile) uploadFormData.append("coverFile", coverFile);
+            uploadFormData.append("metadata", JSON.stringify({
+                speaker: formData.speaker,
+                audioType: formData.audioType,
+                title: formData.title,
+                contentType: formData.contentType,
+            }));
+
+            const iaResponse = await fetch("/api/ia/upload", {
+                method: "POST",
+                body: uploadFormData,
+                signal: controller.signal
+            });
+
+            if (!iaResponse.ok) {
+                const err = await iaResponse.json();
+                throw new Error(err.error || "IA Upload Failed");
+            }
+
+            const iaResult = await iaResponse.json();
 
             if (controller.signal.aborted) throw new Error('Aborted');
             updateUpload(uploadId, { progress: 80, status: 'database' });
@@ -232,18 +244,30 @@ export const UploadProvider: React.FC<{ children: React.ReactNode }> = ({ childr
             // 2. Handle new file uploads
             if (newMainFile || newCoverFile) {
                 updateUpload(uploadId, { status: 'uploading', progress: 10 });
-                const iaResult = await uploadToInternetArchive(
-                    newMainFile || new File([], "empty"),
-                    {
-                        speaker: updatePayload.speaker,
-                        audioType: updatePayload.audio_type,
-                        title: updatePayload.title,
-                        contentType: contentType as any,
-                    },
-                    newCoverFile,
-                    controller.signal,
-                    existingIdentifier // Use existing item if available
-                );
+                // Call our secure API route for editing/overwriting
+                const uploadFormData = new FormData();
+                if (newMainFile) uploadFormData.append("file", newMainFile);
+                if (newCoverFile) uploadFormData.append("coverFile", newCoverFile);
+                uploadFormData.append("metadata", JSON.stringify({
+                    speaker: updatePayload.speaker,
+                    audioType: updatePayload.audio_type,
+                    title: updatePayload.title,
+                    contentType: contentType as any,
+                }));
+                if (existingIdentifier) uploadFormData.append("existingIdentifier", existingIdentifier);
+
+                const iaResponse = await fetch("/api/ia/upload", {
+                    method: "POST",
+                    body: uploadFormData,
+                    signal: controller.signal
+                });
+
+                if (!iaResponse.ok) {
+                    const err = await iaResponse.json();
+                    throw new Error(err.error || "IA Update Failed");
+                }
+
+                const iaResult = await iaResponse.json();
 
                 if (newMainFile) {
                     fileUrlPath = iaResult.iaUrl;

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useUpload } from '@/contexts/UploadContextTypes';
 import { getContent, updateContentStatus } from '@/actions/content';
 import { resolveItemPageUrl } from '@/lib/storage';
-import { extractIAIdentifier } from '@/lib/internetArchive';
+import { extractIAIdentifier } from '@/lib/ia-utils';
 import { deleteIAItem } from '@/actions/internetArchive';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';

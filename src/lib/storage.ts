@@ -1,4 +1,4 @@
-import { resolveIADownloadUrl, resolveIAItemUrl } from '@/lib/internetArchive';
+import { resolveIADownloadUrl, resolveIAItemUrl } from '@/lib/ia-utils';
 
 /**
  * Resolves an internal URL (like ia://) to an external accessible URL.
