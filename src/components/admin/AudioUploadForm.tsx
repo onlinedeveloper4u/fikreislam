@@ -110,7 +110,7 @@ export function AudioUploadForm({ onSuccess }: AudioUploadFormProps) {
 
         return (
             <Select value={value} onValueChange={onChange}>
-                <SelectTrigger className="flex-1 h-14 [&>span]:line-clamp-none [&>span]:overflow-visible pt-1">
+                <SelectTrigger className="flex-1 h-12 [&>span]:line-clamp-none [&>span]:overflow-visible pt-1">
                     <SelectValue placeholder={placeholder} />
                 </SelectTrigger>
                 <SelectContent>
@@ -239,65 +239,59 @@ export function AudioUploadForm({ onSuccess }: AudioUploadFormProps) {
                 </div>
             </div>
 
-            <div className="space-y-2">
-                <Label htmlFor="audio-title">{"عنوان"} <span className="text-destructive">*</span></Label>
-                <Input id="audio-title" value={title} onChange={(e) => setTitle(e.target.value)} required />
-            </div>
-
-            <div className="space-y-2">
-                <Label>{"زبان"} <span className="text-destructive">*</span></Label>
-                <MetadataCombobox options={metadata.language} value={language} onChange={setLanguage} />
-            </div>
-
-            {/* Removed Google Drive storage provider selection */}
-
-            <div className="space-y-6 pt-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="space-y-2">
-                        <Label>{"دورانیہ"} <span className="text-destructive">*</span></Label>
-                        <div className="flex gap-2" dir="ltr">
-                            <Input type="number" placeholder={"گھنٹہ"} value={durHours} onChange={(e) => setDurHours(e.target.value)} className="text-center bg-background/50 border-border/40 hover:bg-background/80 transition-all h-12" />
-                            <Input type="number" placeholder={"منٹ"} value={durMinutes} onChange={(e) => setDurMinutes(e.target.value)} className="text-center bg-background/50 border-border/40 hover:bg-background/80 transition-all h-12" />
-                            <Input type="number" placeholder={"سیکنڈ"} value={durSeconds} onChange={(e) => setDurSeconds(e.target.value)} className="text-center bg-background/50 border-border/40 hover:bg-background/80 transition-all h-12" />
-                        </div>
-                    </div>
-                    <div className="space-y-2">
-                        <div className="flex items-center justify-between mb-1">
-                            <Label>{"مقام / جگہ"}</Label>
-                            <div className="flex items-center gap-2">
-                                <Checkbox id="v-manual" checked={venueManual} onCheckedChange={(v) => setVenueManual(!!v)} />
-                                <Label htmlFor="v-manual" className="text-xs cursor-pointer">{"جگہ دستی طور پر درج کریں"}</Label>
-                            </div>
-                        </div>
-                        {venueManual ? <Input value={venueText} onChange={(e) => setVenueText(e.target.value)} placeholder={"مثلاً اسلام آباد، پاکستان"} className="bg-background/50 border-border/40 hover:bg-background/80 transition-all h-12" /> :
-                            <div className="grid grid-cols-2 gap-2">
-                                <Input placeholder={"ضلع"} value={venueDistrict} onChange={(e) => setVenueDistrict(e.target.value)} className="bg-background/50 border-border/40 hover:bg-background/80 transition-all h-12" />
-                                <Input placeholder={"تحصیل"} value={venueTehsil} onChange={(e) => setVenueTehsil(e.target.value)} className="bg-background/50 border-border/40 hover:bg-background/80 transition-all h-12" />
-                                <Input placeholder={"شہر"} value={venueCity} onChange={(e) => setVenueCity(e.target.value)} className="bg-background/50 border-border/40 hover:bg-background/80 transition-all h-12" />
-                                <Input placeholder={"علاقہ"} value={venueArea} onChange={(e) => setVenueArea(e.target.value)} className="bg-background/50 border-border/40 hover:bg-background/80 transition-all h-12" />
-                            </div>
-                        }
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div className="space-y-2 md:col-span-3">
+                    <Label htmlFor="audio-title">{"عنوان"} <span className="text-destructive">*</span></Label>
+                    <Input id="audio-title" value={title} onChange={(e) => setTitle(e.target.value)} placeholder={"عنوان درج کریں"} required className="h-12 bg-background/50 border-border/40 hover:bg-background/80 transition-all px-4" />
+                </div>
+                <div className="space-y-2">
+                    <Label>{"دورانیہ"} <span className="text-destructive">*</span></Label>
+                    <div className="flex gap-1" dir="ltr">
+                        <Input type="number" placeholder={"گھنٹہ"} value={durHours} onChange={(e) => setDurHours(e.target.value)} className="text-center bg-background/50 border-border/40 hover:bg-background/80 transition-all h-12 px-1" />
+                        <Input type="number" placeholder={"منٹ"} value={durMinutes} onChange={(e) => setDurMinutes(e.target.value)} className="text-center bg-background/50 border-border/40 hover:bg-background/80 transition-all h-12 px-1" />
+                        <Input type="number" placeholder={"سیکنڈ"} value={durSeconds} onChange={(e) => setDurSeconds(e.target.value)} className="text-center bg-background/50 border-border/40 hover:bg-background/80 transition-all h-12 px-1" />
                     </div>
                 </div>
+            </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                        <Label>{"مقرر / بیان کنندہ"} <span className="text-destructive">*</span></Label>
-                        <MetadataCombobox options={metadata.speaker} value={speaker} onChange={setSpeaker} />
-                    </div>
-                    <div className="space-y-2">
-                        <Label>{"آڈیو کی قسم"} <span className="text-destructive">*</span></Label>
-                        <MetadataCombobox options={metadata.audio_type} value={audioType} onChange={setAudioType} />
-                    </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                    <Label>{"مقرر / بیان کنندہ"} <span className="text-destructive">*</span></Label>
+                    <MetadataCombobox options={metadata.speaker} value={speaker} onChange={setSpeaker} />
                 </div>
-
+                <div className="space-y-2">
+                    <Label>{"آڈیو کی قسم"} <span className="text-destructive">*</span></Label>
+                    <MetadataCombobox options={metadata.audio_type} value={audioType} onChange={setAudioType} />
+                </div>
+                <div className="space-y-2">
+                    <Label>{"زبان"} <span className="text-destructive">*</span></Label>
+                    <MetadataCombobox options={metadata.language} value={language} onChange={setLanguage} />
+                </div>
                 <div className="space-y-2">
                     <Label>{"زمرہ جات"}</Label>
                     <MetadataCombobox options={metadata.category} value={categories} onChange={setCategories} />
                 </div>
             </div>
 
-            <div className="pt-4 grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div className="space-y-2">
+                <div className="flex items-center justify-between mb-1">
+                    <Label>{"مقام / جگہ"}</Label>
+                    <div className="flex items-center gap-2">
+                        <Checkbox id="v-manual" checked={venueManual} onCheckedChange={(v) => setVenueManual(!!v)} />
+                        <Label htmlFor="v-manual" className="text-xs cursor-pointer">{"جگہ دستی طور پر درج کریں"}</Label>
+                    </div>
+                </div>
+                {venueManual ? <Input value={venueText} onChange={(e) => setVenueText(e.target.value)} placeholder={"مثلاً اسلام آباد، پاکستان"} className="bg-background/50 border-border/40 hover:bg-background/80 transition-all h-12" /> :
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                        <Input placeholder={"ضلع"} value={venueDistrict} onChange={(e) => setVenueDistrict(e.target.value)} className="bg-background/50 border-border/40 hover:bg-background/80 transition-all h-12 flex-1" />
+                        <Input placeholder={"تحصیل"} value={venueTehsil} onChange={(e) => setVenueTehsil(e.target.value)} className="bg-background/50 border-border/40 hover:bg-background/80 transition-all h-12 flex-1" />
+                        <Input placeholder={"شہر"} value={venueCity} onChange={(e) => setVenueCity(e.target.value)} className="bg-background/50 border-border/40 hover:bg-background/80 transition-all h-12 flex-1" />
+                        <Input placeholder={"علاقہ"} value={venueArea} onChange={(e) => setVenueArea(e.target.value)} className="bg-background/50 border-border/40 hover:bg-background/80 transition-all h-12 flex-1" />
+                    </div>
+                }
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                     <Label>{"عیسوی تاریخ"}</Label>
                     <div className="flex gap-2">
