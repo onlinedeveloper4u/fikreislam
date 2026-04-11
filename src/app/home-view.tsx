@@ -29,11 +29,11 @@ const itemVariants: Variants = {
 
 export const HomeView = () => {
   return (
-    <div className="home-container">
+    <div className="home-container" suppressHydrationWarning>
       {/* Hero Section */}
       <section className="relative min-h-[90vh] lg:min-h-screen flex items-center overflow-hidden pt-20">
         <div className="absolute inset-0 bg-gradient-to-br from-background via-secondary/30 to-background" />
-        <div className="absolute inset-0 islamic-pattern opacity-[0.03]" />
+        <div className="absolute inset-0 islamic-pattern opacity-[0.03]" suppressHydrationWarning />
 
         <div className="container mx-auto px-4 relative z-10">
           <motion.div
@@ -51,6 +51,7 @@ export const HomeView = () => {
                   priority
                   sizes="(max-width: 768px) 160px, 224px"
                   className="object-contain drop-shadow-2xl"
+                  suppressHydrationWarning
                 />
               </div>
             </motion.div>
@@ -122,7 +123,7 @@ export const HomeView = () => {
 
       {/* Features Section */}
       <section className="py-24 bg-background relative overflow-hidden">
-        <div className="absolute inset-0 islamic-pattern opacity-[0.03]" />
+        <div className="absolute inset-0 islamic-pattern opacity-[0.03]" suppressHydrationWarning />
         <div className="container mx-auto px-4 relative z-10">
           <div className="text-center mb-16">
             <motion.h2
@@ -165,7 +166,7 @@ export const HomeView = () => {
 
       {/* Call to Action Section */}
       <section className="py-24 bg-background relative overflow-hidden">
-        <div className="absolute inset-0 islamic-pattern opacity-[0.03]" />
+        <div className="absolute inset-0 islamic-pattern opacity-[0.03]" suppressHydrationWarning />
         <div className="container mx-auto px-4 relative z-10">
           <motion.div
             variants={containerVariants}
