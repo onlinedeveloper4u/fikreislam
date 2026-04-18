@@ -11,7 +11,7 @@ const ContentAnalyticsSchema = new Schema<IContentAnalytics>({
   content_id: { type: String, required: true },
   user_id: { type: String },
   action_type: { type: String, enum: ['view', 'download', 'play'], required: true },
-}, { timestamps: { createdAt: true, updatedAt: false } });
+}, { timestamps: { createdAt: true, updatedAt: false }, collection: 'content_analytics' });
 
 export const ContentAnalytics = mongoose.models.ContentAnalytics || mongoose.model<IContentAnalytics>('ContentAnalytics', ContentAnalyticsSchema);
 
@@ -24,7 +24,7 @@ export interface IFavorite extends Document {
 const FavoriteSchema = new Schema<IFavorite>({
   content_id: { type: String, required: true },
   user_id: { type: String, required: true },
-}, { timestamps: { createdAt: true, updatedAt: false } });
+}, { timestamps: { createdAt: true, updatedAt: false }, collection: 'favorites' });
 
 FavoriteSchema.index({ content_id: 1, user_id: 1 }, { unique: true });
 
@@ -41,6 +41,6 @@ const PlaylistItemSchema = new Schema<IPlaylistItem>({
   content_id: { type: String, required: true },
   playlist_id: { type: String },
   user_id: { type: String, required: true },
-}, { timestamps: { createdAt: true, updatedAt: false } });
+}, { timestamps: { createdAt: true, updatedAt: false }, collection: 'playlist_items' });
 
 export const PlaylistItem = mongoose.models.PlaylistItem || mongoose.model<IPlaylistItem>('PlaylistItem', PlaylistItemSchema);

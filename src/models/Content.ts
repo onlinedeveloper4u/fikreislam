@@ -55,6 +55,6 @@ const ContentSchema = new Schema<IContent>({
   hijri_date_year: { type: Number },
   
   tags: { type: [String], default: [] }
-}, { timestamps: true });
+}, { timestamps: true, collection: 'contents' });
 
 export const Content = mongoose.models.Content || mongoose.model<IContent>('Content', ContentSchema);

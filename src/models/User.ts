@@ -16,7 +16,7 @@ const UserSchema = new Schema<IUser>(
     fullName: { type: String, required: true },
     role: { type: String, enum: ['admin', 'user'], default: 'user' },
   },
-  { timestamps: true }
+  { timestamps: true, collection: 'users' }
 );
 
 // We define models with a check to prevent recompilation issue in development.
