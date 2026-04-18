@@ -174,10 +174,18 @@ export const UploadProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
         } catch (err: any) {
             if (err.name === 'AbortError' || err.message === 'Aborted') return;
-            // Safer logging to avoid RangeError with circular objects
+            
+            // Log full error for debugging
+            console.error('Background upload full error:', err);
+            
             const errorMsg = err instanceof Error ? err.message : (typeof err === 'string' ? err : JSON.stringify(err).substring(0, 200));
-            console.error('Background upload error:', errorMsg);
-            updateUpload(uploadId, { status: 'error', error: errorMsg });
+            
+            // If it's a "Failed to fetch" on a large upload, it's often a timeout or server restart
+            const finalMsg = errorMsg === 'Failed to fetch' 
+                ? 'نیٹ ورک کا مسئلہ یا سرور کا وقت ختم ہو گیا (Failed to fetch). براہ کرم انٹرنیٹ اور فائل کا سائز چیک کریں۔'
+                : errorMsg;
+
+            updateUpload(uploadId, { status: 'error', error: finalMsg });
             toast.error(`شامل کرنے میں ناکامی: ${formData.title}`);
         } finally {
             delete abortControllers.current[uploadId];

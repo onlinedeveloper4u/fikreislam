@@ -7,6 +7,7 @@ import { uploadToInternetArchive } from "@/lib/internetArchive";
  */
 export async function POST(req: NextRequest) {
     try {
+        console.log("IA API Route: Starting upload processing...");
         const formData = await req.formData();
         const file = (formData.get("file") as File) || new File([], "empty");
         const coverFile = formData.get("coverFile") as File | null;
@@ -17,8 +18,9 @@ export async function POST(req: NextRequest) {
         
         const existingIdentifier = formData.get("existingIdentifier") as string || undefined;
 
+        console.log(`IA API Route: Processing file: ${file.name} (${file.size} bytes). Item: ${existingIdentifier || 'NEW'}`);
+
         // If it's a NEW item (no existingIdentifier), we MUST have a main file.
-        // For existing items, we just need the metadata title and at least one change.
         if (!existingIdentifier && file.size === 0) {
             return NextResponse.json({ error: "Missing file for new upload" }, { status: 400 });
         }
@@ -36,9 +38,14 @@ export async function POST(req: NextRequest) {
             existingIdentifier
         );
 
+        console.log(`IA API Route: Upload successful for identifier: ${result.identifier}`);
         return NextResponse.json(result);
     } catch (error: any) {
-        console.error("IA API Route Error:", error);
+        console.error("IA API Route Error details:", {
+            name: error.name,
+            message: error.message,
+            stack: error.stack?.substring(0, 200)
+        });
         return NextResponse.json({ error: error.message || "Internal server error" }, { status: 500 });
     }
 }

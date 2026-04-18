@@ -80,7 +80,7 @@ export function AudioTypeManagement() {
                 throw new Error("یہ نام اس مقرر کے لیے پہلے سے موجود ہے");
             }
 
-            const { error } = await createAudioType(newName.trim(), selectedSpeakerId);
+            const { error } = await createAudioType(newName.trim());
             if (error) throw error;
 
             toast.success("کامیاب");

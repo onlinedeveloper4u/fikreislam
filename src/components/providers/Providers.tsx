@@ -5,7 +5,6 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { LanguageProvider } from "@/contexts/LanguageContext";
 import { UploadProvider } from "@/contexts/UploadContext";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { useState } from "react";
 
@@ -25,7 +24,6 @@ export function Providers({ children }: { children: React.ReactNode }) {
           <LanguageProvider>
             <UploadProvider>
               {children}
-              <Toaster />
               <Sonner />
             </UploadProvider>
           </LanguageProvider>
@@ -34,3 +32,4 @@ export function Providers({ children }: { children: React.ReactNode }) {
     </QueryClientProvider>
   );
 }
+

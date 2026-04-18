@@ -32,19 +32,36 @@ async function fetchWithRetry(url: string, options: RequestInit, retries = 3): P
         }
 
         try {
+            // IA S3 can be slow, so we use a relatively long timeout if possible
+            // but fetch in Node doesn't have a direct timeout option (must use AbortSignal)
             const res = await fetch(url, options);
-            if (res.status !== 503) return res;
             
-            const waitMs = 1000 * (i + 1);
-            console.warn(`IA: 503 SlowDown for ${url}. Retrying in ${waitMs}ms...`);
-            await new Promise(r => setTimeout(r, waitMs));
+            // 503 SlowDown is common with IA S3
+            if (res.status === 503) {
+                const waitMs = 1000 * (i + 1);
+                console.warn(`IA: 503 SlowDown at ${url}. Retrying in ${waitMs}ms... (Attempt ${i + 1}/${retries})`);
+                await new Promise(r => setTimeout(r, waitMs));
+                continue;
+            }
+
+            // Other errors (4xx, 5xx) should be handled by the caller, 
+            // but we at least got a response.
+            return res;
         } catch (e: any) {
-            if (e?.name === 'AbortError') throw e; 
+            if (e?.name === 'AbortError') throw e;
             lastError = e;
-            await new Promise(r => setTimeout(r, 1000));
+            const waitMs = 1000 * (i + 1);
+            console.warn(`IA: Fetch error at ${url}: ${e.message}. Retrying in ${waitMs}ms... (Attempt ${i + 1}/${retries})`);
+            
+            // If the body is a stream and it's already used, we can't retry effectively
+            // unless the fetch body is a Blob/File/Buffer that can be re-read.
+            // Node fetch usually handles Blob/File retries if they haven't been "locked".
+            await new Promise(r => setTimeout(r, waitMs));
         }
     }
-    throw lastError || new Error(`Internet Archive repeatedly returned 503 SlowDown at ${url}`);
+    const finalError = lastError || new Error(`Internet Archive repeatedly failed at ${url}`);
+    console.error(`IA: All retries failed for ${url}. Final error: ${finalError.message}`);
+    throw finalError;
 }
 
 /**
@@ -192,20 +209,34 @@ export async function uploadToInternetArchive(
     }
 
     let coverIaUrl = null;
-    if (coverFile) {
-        const coverFileName = `cover.${coverFile.name.split('.').pop() || 'jpg'}`;
-        const coverRes = await fetchWithRetry(`${IA_S3_ENDPOINT}/${identifier}/${encodeURIComponent(coverFileName)}`, {
-            method: 'PUT',
-            headers: {
-                'Authorization': `LOW ${accessKey}:${secretKey}`,
-                'Content-Type': coverFile.type || 'image/jpeg',
-                'x-amz-auto-make-bucket': '1',
-                'x-archive-keep-old-version': '0',
-            },
-            body: coverFile,
-            signal,
-        });
-        if (coverRes.ok) coverIaUrl = `ia://${identifier}/${coverFileName}`;
+    if (coverFile && coverFile.size > 0) {
+        try {
+            const coverFileName = `cover.${coverFile.name.split('.').pop() || 'jpg'}`;
+            console.log(`IA: Uploading cover image ${coverFileName} to ${identifier}...`);
+            const coverRes = await fetchWithRetry(`${IA_S3_ENDPOINT}/${identifier}/${encodeURIComponent(coverFileName)}`, {
+                method: 'PUT',
+                headers: {
+                    'Authorization': `LOW ${accessKey}:${secretKey}`,
+                    'Content-Type': coverFile.type || 'image/jpeg',
+                    'x-amz-auto-make-bucket': '1',
+                    'x-archive-keep-old-version': '0',
+                },
+                body: coverFile,
+                signal,
+            });
+            if (coverRes.ok) {
+                // Consume body to free up connection
+                await coverRes.text().catch(() => '');
+                coverIaUrl = `ia://${identifier}/${coverFileName}`;
+                console.log(`IA: Cover upload successful: ${coverIaUrl}`);
+            } else {
+                const errText = await coverRes.text().catch(() => '');
+                console.warn(`IA: Cover upload failed with status ${coverRes.status}. Continuing without cover. Error: ${errText}`);
+            }
+        } catch (coverErr: any) {
+            console.error('IA cover upload non-fatal error:', coverErr);
+            // We don't throw here because the main file succeeded
+        }
     }
 
     return { identifier, fileName: fileName || '', iaUrl, downloadUrl, coverIaUrl };
