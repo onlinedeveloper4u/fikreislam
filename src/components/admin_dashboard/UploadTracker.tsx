@@ -19,7 +19,7 @@ import {
 import { cn } from '@/lib/utils';
 
 export function UploadTracker() {
-    const { activeUploads, clearCompleted } = useUpload();
+    const { activeUploads, clearCompleted, clearAll, clearSuccess, removeUpload } = useUpload();
 
     if (activeUploads.length === 0) {
         return (
@@ -56,15 +56,27 @@ export function UploadTracker() {
                         اپنے پس منظر میں شامل ہونے والے مواد کی نگرانی کریں
                     </p>
                 </div>
-                <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={clearCompleted}
-                    disabled={!activeUploads.some(u => u.status === 'completed' || u.status === 'error')}
-                >
-                    <Trash2 className="h-4 w-4 mr-2" />
-                    مکمل شدہ صاف کریں
-                </Button>
+                <div className="flex items-center gap-2">
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={clearSuccess}
+                        disabled={!activeUploads.some(u => u.status === 'completed')}
+                    >
+                        <CheckCircle2 className="h-4 w-4 mr-2" />
+                        صرف کامیاب صاف کریں
+                    </Button>
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={clearAll}
+                        disabled={activeUploads.length === 0}
+                        className="text-red-500 hover:text-red-600 hover:bg-red-50"
+                    >
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        تمام اشیاء صاف کریں
+                    </Button>
+                </div>
             </div>
 
             <div className="grid gap-4">
@@ -74,7 +86,16 @@ export function UploadTracker() {
                         upload.status === 'error' && "border-red-500/20 bg-red-500/5",
                         upload.status === 'completed' && "border-green-500/20 bg-green-500/5"
                     )}>
-                        <CardContent className="p-4">
+                        <CardContent className="p-4 relative group">
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                className="absolute top-2 left-2 opacity-0 group-hover:opacity-100 transition-opacity h-8 w-8 text-muted-foreground hover:text-red-500 hover:bg-red-50"
+                                onClick={() => removeUpload(upload.id)}
+                                title="حذف کریں"
+                            >
+                                <XCircle className="h-4 w-4" />
+                            </Button>
                             <div className="flex items-start justify-between gap-4">
                                 <div className="flex-1 min-w-0">
                                     <div className="flex items-center gap-2 mb-1">

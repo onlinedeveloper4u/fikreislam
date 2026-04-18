@@ -379,8 +379,26 @@ export const UploadProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         setActiveUploads(prev => prev.filter(u => u.status !== 'completed' && u.status !== 'error'));
     }, []);
 
+    const clearSuccess = useCallback(() => {
+        setActiveUploads(prev => prev.filter(u => u.status !== 'completed'));
+    }, []);
+
+    const clearAll = useCallback(() => {
+        Object.values(abortControllers.current).forEach(controller => controller.abort());
+        abortControllers.current = {};
+        setActiveUploads([]);
+    }, []);
+
+    const removeUpload = useCallback((id: string) => {
+        if (abortControllers.current[id]) {
+            abortControllers.current[id].abort();
+            delete abortControllers.current[id];
+        }
+        setActiveUploads(prev => prev.filter(u => u.id !== id));
+    }, []);
+
     return (
-        <UploadContext.Provider value={{ activeUploads, uploadContent, editContent, deleteContent: deleteContentWrapper, cancelUpload, clearCompleted }}>
+        <UploadContext.Provider value={{ activeUploads, uploadContent, editContent, deleteContent: deleteContentWrapper, cancelUpload, clearCompleted, clearAll, clearSuccess, removeUpload }}>
             {children}
         </UploadContext.Provider>
     );

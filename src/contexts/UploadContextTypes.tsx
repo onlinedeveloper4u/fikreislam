@@ -22,6 +22,9 @@ export interface UploadContextType {
     deleteContent: (id: string, title: string, fileUrl: string | null, coverImageUrl: string | null) => Promise<void>;
     cancelUpload: (id: string) => void;
     clearCompleted: () => void;
+    clearAll: () => void;
+    clearSuccess: () => void;
+    removeUpload: (id: string) => void;
 }
 
 export const UploadContext = createContext<UploadContextType | undefined>(undefined);
