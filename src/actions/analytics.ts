@@ -1,14 +1,14 @@
 'use server'
 
 import dbConnect from '@/lib/mongodb';
-import { ContentAnalytics, Favorite, PlaylistItem } from '@/models/Interactions';
-import { Content } from '@/models/Content';
+import { MediaAnalytics, Favorite, PlaylistItem } from '@/models/Interactions';
+import { Media } from '@/models/Media';
 
-export async function trackAction(contentId: string, userId: string | null, actionType: 'view' | 'download' | 'play') {
+export async function trackAction(mediaId: string, userId: string | null, actionType: 'view' | 'download' | 'play') {
   await dbConnect();
   try {
-    const analytics = await ContentAnalytics.create({
-      content_id: contentId,
+    const analytics = await MediaAnalytics.create({
+      media_id: mediaId,
       user_id: userId,
       action_type: actionType
     });
@@ -24,41 +24,40 @@ export async function getAnalytics(dateFilter?: string) {
     const query = dateFilter ? { createdAt: { $gte: new Date(dateFilter) } } : {};
     
     // Fetch analytics counts
-    const analyticsData = await ContentAnalytics.find(query).select('action_type content_id').lean();
+    const analyticsData = await MediaAnalytics.find(query).select('action_type media_id').lean();
     
     const views = analyticsData.filter(a => a.action_type === 'view').length;
     const downloads = analyticsData.filter(a => a.action_type === 'download').length;
     const plays = analyticsData.filter(a => a.action_type === 'play').length;
     
-    // Fetch content counts
-    const contentData = await Content.find({ status: 'approved' }).select('type').lean();
+    // Fetch media counts
+    const mediaData = await Media.find({ status: 'شائع شدہ' }).select('type').lean();
     
-    const totalContent = contentData.length;
-    const bookCount = contentData.filter(c => c.type === 'book').length;
-    const audioCount = contentData.filter(c => c.type === 'audio').length;
-    const videoCount = contentData.filter(c => c.type === 'video').length;
+    const totalMedia = mediaData.length;
+    const audioCount = mediaData.filter(m => m.type === 'آڈیو').length;
+    const videoCount = mediaData.filter(m => m.type === 'ویڈیو').length;
     
-    // Calculate top content
+    // Calculate top media
     const viewCounts: Record<string, number> = {};
     const viewsData = analyticsData.filter(a => a.action_type === 'view');
     viewsData.forEach(item => {
-      viewCounts[item.content_id] = (viewCounts[item.content_id] || 0) + 1;
+      viewCounts[item.media_id] = (viewCounts[item.media_id] || 0) + 1;
     });
     
-    const topContentIds = Object.entries(viewCounts)
+    const topMediaIds = Object.entries(viewCounts)
       .sort((a, b) => b[1] - a[1])
       .slice(0, 5)
       .map(([id]) => id);
       
-    let topContent: any[] = [];
-    if (topContentIds.length > 0) {
-      const topContentData = await Content.find({ _id: { $in: topContentIds } }).select('title type').lean();
+    let topMedia: any[] = [];
+    if (topMediaIds.length > 0) {
+      const topMediaData = await Media.find({ _id: { $in: topMediaIds } }).select('title type').lean();
       
-      topContent = topContentData.map(c => ({
-        id: c._id.toString(),
-        title: c.title,
-        type: c.type,
-        views: viewCounts[c._id.toString()] || 0
+      topMedia = topMediaData.map(m => ({
+        id: m._id.toString(),
+        title: m.title,
+        type: m.type,
+        views: viewCounts[m._id.toString()] || 0
       })).sort((a, b) => b.views - a.views);
     }
 
@@ -67,12 +66,11 @@ export async function getAnalytics(dateFilter?: string) {
         totalViews: views,
         totalDownloads: downloads,
         totalPlays: plays,
-        totalContent,
-        bookCount,
+        totalMedia,
         audioCount,
         videoCount,
         recentActivity: [],
-        topContent
+        topMedia
       },
       error: null
     };

@@ -25,10 +25,10 @@ const CategorySchema = new Schema<ICategory>({
 }, { timestamps: true, collection: 'categories' });
 export const Category = mongoose.models.Category || mongoose.model<ICategory>('Category', CategorySchema);
 
-export interface IAudioType extends Document {
+export interface IMediaType extends Document {
   name: string;
 }
-const AudioTypeSchema = new Schema<IAudioType>({
+const MediaTypeSchema = new Schema<IMediaType>({
   name: { type: String, required: true, unique: true },
-}, { timestamps: true, collection: 'audio_types' });
-export const AudioType = mongoose.models.AudioType || mongoose.model<IAudioType>('AudioType', AudioTypeSchema);
+}, { timestamps: true, collection: 'media_types' });
+export const MediaType = mongoose.models.MediaType || mongoose.model<IMediaType>('MediaType', MediaTypeSchema);

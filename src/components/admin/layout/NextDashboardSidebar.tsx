@@ -25,6 +25,8 @@ import {
   BarChart3,
   Home,
   LogOut,
+  BookOpen,
+  Building2,
   Mic2,
   Globe,
   Music,
@@ -48,13 +50,16 @@ export function NextDashboardSidebar({ activeTab }: DashboardSidebarProps) {
 
   const taxonomyItems = [
     { id: 'speakers', title: "مقرر", icon: Mic2, path: '/admin/speakers' },
+    { id: 'authors', title: "مصنفین", icon: BookOpen, path: '/admin/authors' },
+    { id: 'publishers', title: "ناشرین", icon: Building2, path: '/admin/publishers' },
     { id: 'languages', title: "زبان", icon: Globe, path: '/admin/languages' },
-    { id: 'audio-types', title: "آڈیو کی قسم", icon: Music, path: '/admin/audio-types' },
+    { id: 'media-types', title: "میڈیا کی قسم", icon: Music, path: '/admin/media-types' },
     { id: 'categories', title: "زمرہ", icon: LayoutGrid, path: '/admin/categories' },
   ];
 
   const contentItems = [
-    { id: 'content', title: "تمام مواد", icon: FileText, path: '/admin/content' },
+    { id: 'media', title: "تمام میڈیا", icon: FileText, path: '/admin/media' },
+    { id: 'books', title: "کتب کا انتظام", icon: BookOpen, path: '/admin/books' },
     { id: 'uploads', title: "شامل کرنے کی صورتحال", icon: Clock, path: '/admin/uploads' },
   ];
 
@@ -131,7 +136,7 @@ export function NextDashboardSidebar({ activeTab }: DashboardSidebarProps) {
         </SidebarGroup>
 
         <SidebarGroup>
-          <SidebarGroupLabel>{"مواد کا انتظام"}</SidebarGroupLabel>
+          <SidebarGroupLabel>{"میڈیا کا انتظام"}</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {contentItems.map((item) => (

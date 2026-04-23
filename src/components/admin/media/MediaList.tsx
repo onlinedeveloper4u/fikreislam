@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useUpload } from '@/contexts/UploadContextTypes';
-import { getContent, updateContentStatus } from '@/actions/content';
+import { getMedia, updateMediaStatus } from '@/actions/media';
 import { resolveItemPageUrl } from '@/lib/storage';
 import { extractIAIdentifier } from '@/lib/ia-utils';
 import { deleteIAItem } from '@/actions/internetArchive';
@@ -28,12 +28,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { AudioUploadForm } from './AudioUploadForm';
-import { BookUploadForm } from './BookUploadForm';
-import { VideoUploadForm } from './VideoUploadForm';
-import { AudioEditDialog } from './AudioEditDialog';
-import { BookEditDialog } from './BookEditDialog';
-import { VideoEditDialog } from './VideoEditDialog';
+import { MediaUploadForm } from './MediaUploadForm';
+import { MediaEditDialog } from './MediaEditDialog';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -46,25 +42,24 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 
-type ContentStatus = 'pending' | 'approved' | 'rejected';
-type ContentType = 'book' | 'audio' | 'video';
+type MediaStatus = 'شائع شدہ' | 'غیر شائع شدہ';
+type MediaType = 'آڈیو' | 'ویڈیو';
 
-interface Content {
+interface Media {
   id: string;
   title: string;
-  author: string | null;
-  type: ContentType;
-  status: ContentStatus;
+  type: MediaType;
+  status: MediaStatus;
   language: string | null;
   file_url: string | null;
   cover_image_url: string | null;
   created_at: string;
   signed_file_url?: string | null;
-  // Audio specialized metadata
+  // Specialized metadata
   duration?: string | null;
   venue?: string | null;
   speaker?: string | null;
-  audio_type?: string | null;
+  media_type?: string | null;
   categories?: string[] | null;
   lecture_date_gregorian?: string | null;
   hijri_date_day?: number | null;
@@ -72,66 +67,62 @@ interface Content {
   hijri_date_year?: number | null;
 }
 
-export function AllContentList() {
-  const [content, setContent] = useState<Content[]>([]);
+export function MediaList() {
+  const [media, setMedia] = useState<Media[]>([]);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState<ContentStatus | 'all'>('all');
-  const [typeFilter, setTypeFilter] = useState<ContentType | 'all'>('all');
+  const [statusFilter, setStatusFilter] = useState<MediaStatus | 'تمام'>('تمام');
+  const [typeFilter, setTypeFilter] = useState<MediaType | 'تمام'>('تمام');
   const [isUploadOpen, setIsUploadOpen] = useState(false);
-  const [uploadType, setUploadType] = useState<ContentType>('audio');
-  const [editingItem, setEditingItem] = useState<Content | null>(null);
-  const { activeUploads, uploadContent, editContent, deleteContent, cancelUpload } = useUpload();
+  const [uploadType, setUploadType] = useState<MediaType>('آڈیو');
+  const [editingItem, setEditingItem] = useState<Media | null>(null);
+  const { activeUploads, uploadMedia, editMedia, deleteMedia, cancelUpload } = useUpload();
 
-  const statusConfig: Record<ContentStatus, { icon: React.ElementType; color: string; label: string }> = {
-    pending: { icon: Clock, color: 'bg-amber-500/10 text-amber-600', label: "غیر شائع شدہ" },
-    approved: { icon: CheckCircle, color: 'bg-green-500/10 text-green-600', label: "شائع شدہ" },
-    rejected: { icon: XCircle, color: 'bg-red-500/10 text-red-600', label: "غیر شائع شدہ" },
+  const statusConfig: Record<MediaStatus, { icon: React.ElementType; color: string; label: string }> = {
+    'غیر شائع شدہ': { icon: Clock, color: 'bg-amber-500/10 text-amber-600', label: "غیر شائع شدہ" },
+    'شائع شدہ': { icon: CheckCircle, color: 'bg-green-500/10 text-green-600', label: "شائع شدہ" },
   };
 
-  const typeIcons: Record<ContentType, React.ElementType> = {
-    book: FileText,
-    audio: Music,
-    video: Video,
+  const typeIcons: Record<MediaType, React.ElementType> = {
+    'آڈیو': Music,
+    'ویڈیو': Video,
   };
 
   useEffect(() => {
-    fetchContent();
+    fetchMedia();
   }, []);
 
-  const fetchContent = async () => {
+  const fetchMedia = async () => {
     try {
-      const { data, error } = await getContent();
+      const { data, error } = await getMedia();
 
       if (error) throw error;
 
-      setContent(data as unknown as Content[] || []);
+      setMedia(data as unknown as Media[] || []);
     } catch (error: any) {
-      console.error('Error fetching content:', error);
-      toast.error("آپ کا مواد لوڈ کرنے میں ناکامی");
+      console.error('Error fetching media:', error);
+      toast.error("آپ کا میڈیا لوڈ کرنے میں ناکامی");
     } finally {
       setLoading(false);
     }
   };
 
-  const handleStatusChange = async (id: string, newStatus: ContentStatus) => {
+  const handleStatusChange = async (id: string, newStatus: MediaStatus) => {
     setActionLoading(id);
     try {
-      // If rejected, remove from Internet Archive first as requested
-      const item = content.find(c => c.id === id);
-      if (newStatus === 'rejected' && item?.file_url?.startsWith('ia://')) {
+      const item = media.find(m => m.id === id);
+      if (newStatus === 'غیر شائع شدہ' && item?.file_url?.startsWith('ia://')) {
         const identifier = extractIAIdentifier(item.file_url);
         if (identifier) await deleteIAItem(identifier);
       }
 
-      const publishedAt = newStatus === 'approved' ? new Date().toISOString() : undefined;
-      const { error } = await updateContentStatus(id, newStatus, publishedAt);
+      const { error } = await updateMediaStatus(id, newStatus);
 
       if (error) throw error;
 
-      setContent(prev => prev.map(c =>
-        c.id === id ? { ...c, status: newStatus } : c
+      setMedia(prev => prev.map(m =>
+        m.id === id ? { ...m, status: newStatus } : m
       ));
 
       toast.success("کامیاب");
@@ -144,19 +135,18 @@ export function AllContentList() {
   };
 
   const handleDelete = async (id: string) => {
-    const item = content.find(c => c.id === id);
+    const item = media.find(m => m.id === id);
     if (!item) return;
 
-    await deleteContent(item.id, item.title, item.file_url, item.cover_image_url);
-    setContent(prev => prev.filter(c => c.id !== id));
+    await deleteMedia(item.id, item.title, item.file_url, item.cover_image_url);
+    setMedia(prev => prev.filter(m => m.id !== id));
   };
 
-  const filteredContent = content.filter(item => {
+  const filteredMedia = media.filter(item => {
     const matchesSearch = !searchQuery ||
-      item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.author?.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesStatus = statusFilter === 'all' || item.status === statusFilter;
-    const matchesType = typeFilter === 'all' || item.type === typeFilter;
+      item.title.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesStatus = statusFilter === 'تمام' || item.status === statusFilter;
+    const matchesType = typeFilter === 'تمام' || item.type === typeFilter;
     return matchesSearch && matchesStatus && matchesType;
   });
 
@@ -171,53 +161,29 @@ export function AllContentList() {
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <h2 className="text-lg font-semibold">{"تمام مواد"}</h2>
+        <h2 className="text-lg font-semibold">{"تمام میڈیا"}</h2>
         <div className="flex gap-2">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button className="gradient-primary">
-                <Plus className="mr-2 h-4 w-4" />
-                {"نیا مواد شامل کریں"}
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => { setUploadType('audio'); setIsUploadOpen(true); }}>
-                {"آڈیو"}
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => { setUploadType('book'); setIsUploadOpen(true); }}>
-                {"کتب"}
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => { setUploadType('video'); setIsUploadOpen(true); }}>
-                {"ویڈیو"}
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <Button className="gradient-primary" onClick={() => { setUploadType('آڈیو'); setIsUploadOpen(true); }}>
+            <Plus className="ml-2 h-4 w-4" />
+            {"نیا میڈیا شامل کریں"}
+          </Button>
 
           <Dialog open={isUploadOpen} onOpenChange={setIsUploadOpen}>
             <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>
-                  {"نیا مواد شامل کریں"} - {(uploadType === "book" ? "کتب" : uploadType === "audio" ? "آڈیو" : "ویڈیو")}
+                  {"نیا میڈیا شامل کریں"}
                 </DialogTitle>
               </DialogHeader>
 
-              {uploadType === 'audio' && (
-                <AudioUploadForm onSuccess={() => {
-                  setIsUploadOpen(false);
-                  fetchContent();
-                }} />
-              )}
-              {uploadType === 'book' && (
-                <BookUploadForm onSuccess={() => {
-                  setIsUploadOpen(false);
-                  fetchContent();
-                }} />
-              )}
-              {uploadType === 'video' && (
-                <VideoUploadForm onSuccess={() => {
-                  setIsUploadOpen(false);
-                  fetchContent();
-                }} />
+              {(uploadType === 'آڈیو' || uploadType === 'ویڈیو') && (
+                <MediaUploadForm
+                  initialType={uploadType}
+                  onSuccess={() => {
+                    setIsUploadOpen(false);
+                    fetchMedia();
+                  }}
+                />
               )}
             </DialogContent>
           </Dialog>
@@ -240,9 +206,9 @@ export function AllContentList() {
             <SelectValue placeholder={"فلٹر"} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">{"تمام حالات"}</SelectItem>
-            <SelectItem value="approved">{"شائع شدہ"}</SelectItem>
-            <SelectItem value="rejected">{"غیر شائع شدہ"}</SelectItem>
+            <SelectItem value="تمام">{"تمام حالات"}</SelectItem>
+            <SelectItem value="شائع شدہ">{"شائع شدہ"}</SelectItem>
+            <SelectItem value="غیر شائع شدہ">{"غیر شائع شدہ"}</SelectItem>
           </SelectContent>
         </Select>
         <Select value={typeFilter} onValueChange={(v) => setTypeFilter(v as any)}>
@@ -250,21 +216,20 @@ export function AllContentList() {
             <SelectValue placeholder={"قسم"} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">{"تمام"}</SelectItem>
-            <SelectItem value="book">{"کتب"}</SelectItem>
-            <SelectItem value="audio">{"آڈیو"}</SelectItem>
-            <SelectItem value="video">{"ویڈیو"}</SelectItem>
+            <SelectItem value="تمام">{"تمام"}</SelectItem>
+            <SelectItem value="آڈیو">{"آڈیو"}</SelectItem>
+            <SelectItem value="ویڈیو">{"ویڈیو"}</SelectItem>
           </SelectContent>
         </Select>
       </div>
 
       <p className="text-sm text-muted-foreground">
-        {`${content.length} میں سے ${filteredContent.length} اشیاء دکھائی جا رہی ہیں`}
+        {`${media.length} میں سے ${filteredMedia.length} اشیاء دکھائی جا رہی ہیں`}
       </p>
 
-      {/* Content List */}
+      {/* Media List */}
       <div className="space-y-3">
-        {filteredContent.map((item) => {
+        {filteredMedia.map((item) => {
           const statusCfg = statusConfig[item.status];
           const StatusIcon = statusCfg.icon;
           const TypeIcon = typeIcons[item.type];
@@ -279,9 +244,9 @@ export function AllContentList() {
                   <div className="min-w-0">
                     <p className="font-medium text-foreground truncate">{item.title}</p>
                     <p className="text-xs text-muted-foreground">
-                      {item.type === 'audio'
+                      {item.type === 'آڈیو'
                         ? (item.speaker || "مقرر")
-                        : (item.author || "نامعلوم مصنف")}
+                        : "ویڈیو"}
                       • {item.language}
                     </p>
                   </div>
@@ -312,7 +277,7 @@ export function AllContentList() {
 
                   <Select
                     value={item.status}
-                    onValueChange={(v: ContentStatus) => handleStatusChange(item.id, v)}
+                    onValueChange={(v: MediaStatus) => handleStatusChange(item.id, v)}
                     disabled={actionLoading === item.id}
                   >
                     <SelectTrigger className="w-28">
@@ -323,8 +288,8 @@ export function AllContentList() {
                       )}
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="approved">{"شائع شدہ"}</SelectItem>
-                      <SelectItem value="rejected">{"غیر شائع شدہ"}</SelectItem>
+                      <SelectItem value="شائع شدہ">{"شائع شدہ"}</SelectItem>
+                      <SelectItem value="غیر شائع شدہ">{"غیر شائع شدہ"}</SelectItem>
                     </SelectContent>
                   </Select>
 
@@ -358,36 +323,20 @@ export function AllContentList() {
           );
         })}
 
-        {filteredContent.length === 0 && (
+        {filteredMedia.length === 0 && (
           <div className="text-center py-12 text-muted-foreground">
             <p>{"کوئی ڈیٹا دستیاب نہیں ہے"}</p>
           </div>
         )}
       </div>
 
-      {/* Specialized Edit Dialogs */}
-      {editingItem?.type === 'audio' && (
-        <AudioEditDialog
-          content={editingItem}
+      {/* Media Edit Dialog */}
+      {(editingItem?.type === 'آڈیو' || editingItem?.type === 'ویڈیو') && (
+        <MediaEditDialog
+          media={editingItem}
           open={!!editingItem}
           onOpenChange={(open) => !open && setEditingItem(null)}
-          onSuccess={fetchContent}
-        />
-      )}
-      {editingItem?.type === 'book' && (
-        <BookEditDialog
-          content={editingItem}
-          open={!!editingItem}
-          onOpenChange={(open) => !open && setEditingItem(null)}
-          onSuccess={fetchContent}
-        />
-      )}
-      {editingItem?.type === 'video' && (
-        <VideoEditDialog
-          content={editingItem}
-          open={!!editingItem}
-          onOpenChange={(open) => !open && setEditingItem(null)}
-          onSuccess={fetchContent}
+          onSuccess={fetchMedia}
         />
       )}
     </div>

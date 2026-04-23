@@ -17,9 +17,9 @@ export interface ActiveUpload {
 
 export interface UploadContextType {
     activeUploads: ActiveUpload[];
-    uploadContent: (formData: any, mainFile: File, coverFile: File | null) => Promise<void>;
-    editContent: (contentId: string, currentStatus: string, updatePayload: any, newMainFile: File | null, newCoverFile: File | null, contentTitle: string, currentFileUrl: string | null, contentType: string) => Promise<void>;
-    deleteContent: (id: string, title: string, fileUrl: string | null, coverImageUrl: string | null) => Promise<void>;
+    uploadMedia: (formData: any, mainFile: File, coverFile: File | null) => Promise<void>;
+    editMedia: (mediaId: string, currentStatus: string, updatePayload: any, newMainFile: File | null, newCoverFile: File | null, mediaTitle: string, currentFileUrl: string | null, contentType: string) => Promise<void>;
+    deleteMedia: (id: string, title: string, fileUrl: string | null, coverImageUrl: string | null) => Promise<void>;
     cancelUpload: (id: string) => void;
     clearCompleted: () => void;
     clearAll: () => void;

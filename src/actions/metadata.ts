@@ -1,8 +1,8 @@
 'use server'
 
 import dbConnect from '@/lib/mongodb';
-import { Speaker, Language, Category, AudioType } from '@/models/Metadata';
-import { Content } from '@/models/Content';
+import { Speaker, Language, Category, MediaType } from '@/models/Metadata';
+import { Media } from '@/models/Media';
 
 // SPEAKER ACTIONS
 export async function getSpeakers() {
@@ -41,7 +41,7 @@ export async function updateSpeaker(id: string, name: string) {
     await speaker.save();
     
     // Cascade update
-    await Content.updateMany({ speaker: oldName }, { speaker: name });
+    await Media.updateMany({ speaker: oldName }, { speaker: name });
     
     return { data: true, error: null };
   } catch (e: any) {
@@ -97,7 +97,7 @@ export async function updateLanguage(id: string, name: string) {
     await lng.save();
     
     // Cascade Update
-    await Content.updateMany({ language: oldName }, { language: name });
+    await Media.updateMany({ language: oldName }, { language: name });
     
     return { data: true, error: null };
   } catch (e: any) {
@@ -153,7 +153,7 @@ export async function updateCategory(id: string, name: string) {
     await cat.save();
     
     // Cascade update in arrays
-    await Content.updateMany(
+    await Media.updateMany(
       { categories: oldName },
       { $set: { "categories.$": name } }
     );
@@ -174,10 +174,10 @@ export async function deleteCategory(id: string) {
   }
 }
 
-// AUDIO TYPE ACTIONS
-export async function getAudioTypes() {
+// MEDIA TYPE ACTIONS
+export async function getMediaTypes() {
   await dbConnect();
-  const res = await AudioType.find().sort({ name: 1 }).lean();
+  const res = await MediaType.find().sort({ name: 1 }).lean();
   return { 
     data: res.map(s => {
         const { _id, createdAt, updatedAt, __v, ...rest }: any = s;
@@ -190,11 +190,11 @@ export async function getAudioTypes() {
   };
 }
 
-export async function createAudioType(name: string) {
+export async function createMediaType(name: string) {
   await dbConnect();
   try {
-    const at = await AudioType.create({ name });
-    const plain = at.toObject();
+    const mt = await MediaType.create({ name });
+    const plain = mt.toObject();
     return { data: { id: plain._id.toString() }, error: null };
   } catch (e: any) {
     if (e.code === 11000) return { data: null, error: { code: '23505', message: 'یہ نام پہلے سے موجود ہے' } };
@@ -202,20 +202,20 @@ export async function createAudioType(name: string) {
   }
 }
 
-export async function updateAudioType(id: string, name: string, speakerName?: string) {
+export async function updateMediaType(id: string, name: string, speakerName?: string) {
   await dbConnect();
   try {
-    const at = await AudioType.findById(id);
-    if (!at) throw new Error("Not found");
-    const oldName = at.name;
-    at.name = name;
-    await at.save();
+    const mt = await MediaType.findById(id);
+    if (!mt) throw new Error("Not found");
+    const oldName = mt.name;
+    mt.name = name;
+    await mt.save();
     
     if (speakerName) {
       // Cascade update
-      await Content.updateMany(
-        { speaker: speakerName, audio_type: oldName },
-        { audio_type: name }
+      await Media.updateMany(
+        { speaker: speakerName, media_type: oldName },
+        { media_type: name }
       );
     }
     
@@ -225,19 +225,19 @@ export async function updateAudioType(id: string, name: string, speakerName?: st
   }
 }
 
-export async function deleteAudioType(id: string) {
+export async function deleteMediaType(id: string) {
   await dbConnect();
   try {
-    await AudioType.findByIdAndDelete(id);
+    await MediaType.findByIdAndDelete(id);
     return { data: true, error: null };
   } catch (e: any) {
     return { error: e };
   }
 }
 
-export async function getAudioTypesBySpeakerName(speakerName: string) {
-  // speakerName is currently ignored as AudioType is global
+export async function getMediaTypesBySpeakerName(speakerName: string) {
+  // speakerName is currently ignored as MediaType is global
   await dbConnect();
-  const types = await AudioType.find().sort({ name: 1 }).lean();
+  const types = await MediaType.find().sort({ name: 1 }).lean();
   return { data: types.map(t => ({ name: t.name })), error: null };
 }

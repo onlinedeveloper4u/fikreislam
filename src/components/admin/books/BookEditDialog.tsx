@@ -14,7 +14,7 @@ import {
 import { toast } from 'sonner';
 import { FileText, Upload, Loader2, Save } from 'lucide-react';
 import { useUpload } from '@/contexts/UploadContextTypes';
-import { MetadataCombobox } from './MetadataCombobox';
+import { MetadataCombobox } from '../shared/MetadataCombobox';
 import { formatBytes } from '@/lib/utils';
 import { getLanguages } from '@/actions/metadata';
 

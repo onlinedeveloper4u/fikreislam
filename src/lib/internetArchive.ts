@@ -32,11 +32,8 @@ async function fetchWithRetry(url: string, options: RequestInit, retries = 3): P
         }
 
         try {
-            // IA S3 can be slow, so we use a relatively long timeout if possible
-            // but fetch in Node doesn't have a direct timeout option (must use AbortSignal)
             const res = await fetch(url, options);
             
-            // 503 SlowDown is common with IA S3
             if (res.status === 503) {
                 const waitMs = 1000 * (i + 1);
                 console.warn(`IA: 503 SlowDown at ${url}. Retrying in ${waitMs}ms... (Attempt ${i + 1}/${retries})`);
@@ -44,18 +41,12 @@ async function fetchWithRetry(url: string, options: RequestInit, retries = 3): P
                 continue;
             }
 
-            // Other errors (4xx, 5xx) should be handled by the caller, 
-            // but we at least got a response.
             return res;
         } catch (e: any) {
             if (e?.name === 'AbortError') throw e;
             lastError = e;
             const waitMs = 1000 * (i + 1);
             console.warn(`IA: Fetch error at ${url}: ${e.message}. Retrying in ${waitMs}ms... (Attempt ${i + 1}/${retries})`);
-            
-            // If the body is a stream and it's already used, we can't retry effectively
-            // unless the fetch body is a Blob/File/Buffer that can be re-read.
-            // Node fetch usually handles Blob/File retries if they haven't been "locked".
             await new Promise(r => setTimeout(r, waitMs));
         }
     }
@@ -80,7 +71,7 @@ function generateItemIdentifier(speakerSlug?: string): string {
             return `fikreislam-${slug}-${shortId}`;
         }
     }
-    return `fikreislam-audio-${shortId}`;
+    return `fikreislam-media-${shortId}`;
 }
 
 export interface IAUploadResult {
@@ -91,9 +82,6 @@ export interface IAUploadResult {
     coverIaUrl?: string | null;
 }
 
-/**
- * Re-exporting these from utils for better dependency management
- */
 export { extractIAIdentifier };
 
 /**
@@ -103,16 +91,16 @@ export async function updateInternetArchiveMetadata(
     iaUrl: string,
     metadata: {
         speaker?: string;
-        audioType?: string;
+        media_type?: string;
         title?: string;
-        contentType?: 'audio' | 'video' | 'book';
+        contentType?: 'آڈیو' | 'ویڈیو' | 'book';
     }
 ): Promise<boolean> {
     const identifier = extractIAIdentifier(iaUrl);
     if (!identifier) return false;
 
     const { accessKey, secretKey } = getIACredentials();
-    const mediaType = metadata.contentType === 'video' ? 'movies' : 
+    const mediaType = metadata.contentType === 'ویڈیو' ? 'movies' : 
                       (metadata.contentType === 'book' ? 'texts' : 'audio');
 
     const patches: any[] = [{ op: 'add', path: '/mediatype', value: mediaType }];
@@ -122,7 +110,7 @@ export async function updateInternetArchiveMetadata(
         patches.push({ op: 'add', path: '/description', value: `Content from Fikr-e-Islam: ${metadata.title}` });
     }
     if (metadata.speaker) patches.push({ op: 'add', path: '/creator', value: metadata.speaker });
-    if (metadata.audioType) patches.push({ op: 'add', path: '/subject', value: metadata.audioType });
+    if (metadata.media_type) patches.push({ op: 'add', path: '/subject', value: metadata.media_type });
 
     try {
         const response = await fetchWithRetry(`https://archive.org/metadata/${identifier}`, {
@@ -155,9 +143,9 @@ export async function uploadToInternetArchive(
     file: File,
     metadata: {
         speaker?: string;
-        audioType?: string;
+        media_type?: string;
         title?: string;
-        contentType?: 'audio' | 'video' | 'book';
+        contentType?: 'آڈیو' | 'ویڈیو' | 'book';
     },
     coverFile?: File | null,
     signal?: AbortSignal,
@@ -173,7 +161,7 @@ export async function uploadToInternetArchive(
     };
 
     const title = metadata.title || (fileName || identifier);
-    const mediaType = metadata.contentType === 'video' ? 'movies' : 
+    const mediaType = metadata.contentType === 'ویڈیو' ? 'movies' : 
                       (metadata.contentType === 'book' ? 'texts' : 'audio');
     
     const headers: Record<string, string> = {
@@ -187,7 +175,7 @@ export async function uploadToInternetArchive(
     };
 
     if (metadata.speaker) headers['x-archive-meta-creator'] = encMeta(metadata.speaker);
-    if (metadata.audioType) headers['x-archive-meta-subject'] = encMeta(metadata.audioType);
+    if (metadata.media_type) headers['x-archive-meta-subject'] = encMeta(metadata.media_type);
 
     let iaUrl = '';
     let downloadUrl = '';
@@ -212,7 +200,6 @@ export async function uploadToInternetArchive(
     if (coverFile && coverFile.size > 0) {
         try {
             const coverFileName = `cover.${coverFile.name.split('.').pop() || 'jpg'}`;
-            console.log(`IA: Uploading cover image ${coverFileName} to ${identifier}...`);
             const coverRes = await fetchWithRetry(`${IA_S3_ENDPOINT}/${identifier}/${encodeURIComponent(coverFileName)}`, {
                 method: 'PUT',
                 headers: {
@@ -225,26 +212,17 @@ export async function uploadToInternetArchive(
                 signal,
             });
             if (coverRes.ok) {
-                // Consume body to free up connection
                 await coverRes.text().catch(() => '');
                 coverIaUrl = `ia://${identifier}/${coverFileName}`;
-                console.log(`IA: Cover upload successful: ${coverIaUrl}`);
-            } else {
-                const errText = await coverRes.text().catch(() => '');
-                console.warn(`IA: Cover upload failed with status ${coverRes.status}. Continuing without cover. Error: ${errText}`);
             }
         } catch (coverErr: any) {
             console.error('IA cover upload non-fatal error:', coverErr);
-            // We don't throw here because the main file succeeded
         }
     }
 
     return { identifier, fileName: fileName || '', iaUrl, downloadUrl, coverIaUrl };
 }
 
-/**
- * Rename a file within an item using the Copy-Source + Delete pattern.
- */
 export async function renameInternetArchiveFile(
     iaUrl: string,
     newTitle: string
@@ -280,11 +258,7 @@ export async function renameInternetArchiveFile(
 
         if (!response.ok) return null;
 
-        // Cleanup: remove old file. Partial failure doesn't invalidate the rename.
-        const deleted = await deleteIAFile(iaUrl);
-        if (!deleted) {
-            console.warn(`IA rename: copy succeeded but old file not deleted: ${iaUrl}`);
-        }
+        await deleteIAFile(iaUrl);
 
         return {
             iaUrl: `ia://${identifier}/${newFileName}`,
@@ -296,9 +270,6 @@ export async function renameInternetArchiveFile(
     }
 }
 
-/**
- * Trigger a "derive" task on Internet Archive for thumbnail/metadata refresh.
- */
 export async function triggerIADerive(identifier: string): Promise<boolean> {
     if (!identifier) return false;
     try {
@@ -322,9 +293,6 @@ export async function triggerIADerive(identifier: string): Promise<boolean> {
     }
 }
 
-/**
- * Delete a specific file using official S3 DELETE.
- */
 export async function deleteIAFile(iaUrl: string): Promise<boolean> {
     if (!iaUrl || !iaUrl.startsWith('ia://')) return false;
     const path = iaUrl.replace('ia://', '');
@@ -351,23 +319,16 @@ export async function deleteIAFile(iaUrl: string): Promise<boolean> {
     }
 }
 
-/**
- * Delete an entire item. IA S3 does not support bucket DELETE, so we must delete all files.
- */
 export async function deleteIAItem(identifier: string): Promise<boolean> {
     if (!identifier) return false;
     try {
         const { accessKey, secretKey } = getIACredentials();
-        console.log(`IA: Deleting all files in item ${identifier}`);
-
-        // 1. Fetch file list from IA Metadata API
         const metaRes = await fetch(`https://archive.org/metadata/${identifier}`);
         const meta = await metaRes.json();
         const files: { name: string }[] = meta.files ?? [];
 
-        if (files.length === 0) return true; // Already empty or gone
+        if (files.length === 0) return true;
 
-        // 2. Delete each file via S3
         const results = await Promise.all(
             files.map(f =>
                 fetch(`${IA_S3_ENDPOINT}/${identifier}/${encodeURIComponent(f.name)}`, {
@@ -377,10 +338,7 @@ export async function deleteIAItem(identifier: string): Promise<boolean> {
                         'x-archive-keep-old-version': '0',
                         'x-archive-cascade-delete': '1',
                     },
-                }).then(r => {
-                    if (!r.ok) console.warn(`IA: Failed to delete file ${f.name} in item ${identifier}`);
-                    return r.ok;
-                })
+                }).then(r => r.ok)
             )
         );
 

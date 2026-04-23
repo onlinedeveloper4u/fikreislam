@@ -10,13 +10,16 @@ export async function generateMetadata({
   
   const tabTitles: Record<string, string> = {
     'analytics': "تجزیات",
-    'content': "تمام مواد",
+    'media': "تمام میڈیا",
     'users': "صارفین",
     'uploads': "شامل کرنے کی صورتحال",
     'speakers': "مقرر",
+    'authors': "مصنفین",
+    'publishers': "ناشرین",
     'languages': "زبان",
-    'audio-types': "آڈیو کی قسم",
+    'media-types': "میڈیا کی قسم",
     'categories': "زمرہ",
+    'books': "کتب کا انتظام",
   };
   
   return {
@@ -32,4 +35,3 @@ export default async function AdminTabPage({
   const { tab } = await params;
   return <DashboardView activeTab={tab} />;
 }
-

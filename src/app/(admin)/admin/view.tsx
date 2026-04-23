@@ -1,17 +1,20 @@
 'use client';
 
 import { Suspense, lazy } from 'react';
-import { NextDashboardLayout } from '@/components/admin_dashboard/NextDashboardLayout';
+import { NextDashboardLayout } from '@/components/admin/layout/NextDashboardLayout';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
 
-const AdminAnalytics = lazy(() => import("@/components/admin/AdminAnalytics").then(m => ({ default: m.AdminAnalytics })));
-const AllContentList = lazy(() => import("@/components/admin/AllContentList").then(m => ({ default: m.AllContentList })));
-const UserManagement = lazy(() => import("@/components/admin/UserManagement").then(m => ({ default: m.UserManagement })));
-const SpeakerManagement = lazy(() => import("@/components/admin/SpeakerManagement").then(m => ({ default: m.SpeakerManagement })));
-const LanguageManagement = lazy(() => import("@/components/admin/LanguageManagement").then(m => ({ default: m.LanguageManagement })));
-const AudioTypeManagement = lazy(() => import("@/components/admin/AudioTypeManagement").then(m => ({ default: m.AudioTypeManagement })));
-const CategoryManagement = lazy(() => import("@/components/admin/CategoryManagement").then(m => ({ default: m.CategoryManagement })));
-const UploadTracker = lazy(() => import("@/components/admin_dashboard/UploadTracker").then(m => ({ default: m.UploadTracker })));
+const AdminAnalytics = lazy(() => import("@/components/admin/analytics/AdminAnalytics").then(m => ({ default: m.AdminAnalytics })));
+const MediaList = lazy(() => import("@/components/admin/media/MediaList").then(m => ({ default: m.MediaList })));
+const UserManagement = lazy(() => import("@/components/admin/users/UserManagement").then(m => ({ default: m.UserManagement })));
+const SpeakerManagement = lazy(() => import("@/components/admin/metadata/SpeakerManagement").then(m => ({ default: m.SpeakerManagement })));
+const AuthorManagement = lazy(() => import("@/components/admin/metadata/AuthorManagement").then(m => ({ default: m.AuthorManagement })));
+const PublisherManagement = lazy(() => import("@/components/admin/metadata/PublisherManagement").then(m => ({ default: m.PublisherManagement })));
+const LanguageManagement = lazy(() => import("@/components/admin/metadata/LanguageManagement").then(m => ({ default: m.LanguageManagement })));
+const MediaTypeManagement = lazy(() => import("@/components/admin/media/MediaTypeManagement").then(m => ({ default: m.MediaTypeManagement })));
+const CategoryManagement = lazy(() => import("@/components/admin/metadata/CategoryManagement").then(m => ({ default: m.CategoryManagement })));
+const BookManagement = lazy(() => import("@/components/admin/books/BookManagement").then(m => ({ default: m.BookManagement })));
+const UploadTracker = lazy(() => import("@/components/admin/layout/UploadTracker").then(m => ({ default: m.UploadTracker })));
 
 interface DashboardViewProps {
   activeTab: string;
@@ -19,26 +22,32 @@ interface DashboardViewProps {
 
 const tabTitles: Record<string, string> = {
   'analytics': "تجزیات",
-  'content': "تمام مواد",
+  'media': "تمام میڈیا",
   'users': "صارفین",
   'uploads': "شامل کرنے کی صورتحال",
   'speakers': "مقرر",
+  'authors': "مصنفین",
+  'publishers': "ناشرین",
   'languages': "زبان",
-  'audio-types': "آڈیو کی قسم",
+  'media-types': "میڈیا کی قسم",
   'categories': "زمرہ",
+  'books': "کتب کا انتظام",
 };
 
 export function DashboardView({ activeTab }: DashboardViewProps) {
   const TabContent = () => {
     switch (activeTab) {
       case 'analytics': return <AdminAnalytics />;
-      case 'content': return <AllContentList />;
+      case 'media': return <MediaList />;
       case 'users': return <UserManagement />;
       case 'uploads': return <UploadTracker />;
       case 'speakers': return <SpeakerManagement />;
+      case 'authors': return <AuthorManagement />;
+      case 'publishers': return <PublisherManagement />;
       case 'languages': return <LanguageManagement />;
-      case 'audio-types': return <AudioTypeManagement />;
+      case 'media-types': return <MediaTypeManagement />;
       case 'categories': return <CategoryManagement />;
+      case 'books': return <BookManagement />;
       default: return <AdminAnalytics />;
     }
   };

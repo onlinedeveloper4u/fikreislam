@@ -7,10 +7,10 @@ import { extractIAIdentifier, resolveIADownloadUrl, resolveIAItemUrl } from '@/l
 import { updateIAMetadata, renameIAFile, triggerIADerive, deleteIAItem } from '@/actions/internetArchive';
 
 import { 
-    createSpeaker, createLanguage, createCategory, createAudioType, 
-    getSpeakers, getAudioTypes, getCategories, getLanguages 
+    createSpeaker, createLanguage, createCategory, createMediaType, 
+    getSpeakers, getMediaTypes, getCategories, getLanguages 
 } from '@/actions/metadata';
-import { insertContent, updateContentById, deleteContentById } from '@/actions/content';
+import { insertMedia, updateMediaById, deleteMediaById } from '@/actions/media';
 
 const STORAGE_KEY = 'fikreislam_active_uploads';
 
@@ -57,9 +57,9 @@ export const UploadProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         toast.info("Action cancelled");
     }, []);
 
-    const uploadContent = useCallback(async (formData: any, mainFile: File, coverFile: File | null) => {
+    const uploadMedia = useCallback(async (formData: any, mainFile: File, coverFile: File | null) => {
         if (!user) {
-            toast.error("You must be logged in to upload content");
+            toast.error("You must be logged in to upload media");
             return;
         }
 
@@ -89,7 +89,7 @@ export const UploadProvider: React.FC<{ children: React.ReactNode }> = ({ childr
             if (coverFile) uploadFormData.append("coverFile", coverFile);
             uploadFormData.append("metadata", JSON.stringify({
                 speaker: formData.speaker,
-                audioType: formData.audioType,
+                media_type: formData.mediaType,
                 title: formData.title,
                 contentType: formData.contentType,
             }));
@@ -117,7 +117,7 @@ export const UploadProvider: React.FC<{ children: React.ReactNode }> = ({ childr
                     if (type === 'speaker') result = await createSpeaker(name);
                     else if (type === 'language') result = await createLanguage(name);
                     else if (type === 'category') result = await createCategory(name);
-                    else if (type === 'audio_type') result = await createAudioType(name);
+                    else if (type === 'media_type') result = await createMediaType(name);
                     
                     // Return true if created or if already exists (error code 23505)
                     return !!(result?.data || result?.error?.code === '23505');
@@ -127,37 +127,31 @@ export const UploadProvider: React.FC<{ children: React.ReactNode }> = ({ childr
                 }
             };
 
-            let currentSpeakerId = null;
-            if (formData.contentType === 'audio') {
+            if (formData.contentType === 'آڈیو' || formData.contentType === 'ویڈیو') {
                 await ensureMetadata('speaker', formData.speaker);
-                await ensureMetadata('audio_type', formData.audioType);
+                await ensureMetadata('media_type', formData.mediaType);
                 const catsRaw = formData.categoriesValue || [];
                 const cats = Array.isArray(catsRaw) ? catsRaw : (typeof catsRaw === 'string' ? catsRaw.split(',').map((c: string) => c.trim()).filter(Boolean) : []);
                 for (const c of cats) await ensureMetadata('category', c);
             }
             await ensureMetadata('language', formData.language);
 
-            const contentPayload: any = {
+            const mediaPayload: any = {
                 title: formData.title,
-                description: formData.description,
-                author: formData.author,
                 type: formData.contentType,
                 language: formData.language,
-                tags: Array.isArray(formData.tags) ? formData.tags : (formData.tags?.split(',').map((t: string) => t.trim()).filter(Boolean) || []),
                 file_url: iaResult.iaUrl,
                 file_size: mainFile.size,
                 cover_image_url: iaResult.coverIaUrl || null,
-                status: 'approved',
-                published_at: new Date().toISOString(),
-                contributor_id: user.id,
+                status: 'شائع شدہ',
             };
 
-            if (formData.contentType === 'audio') {
-                Object.assign(contentPayload, {
+            if (formData.contentType === 'آڈیو' || formData.contentType === 'ویڈیو') {
+                Object.assign(mediaPayload, {
                     duration: formData.duration || null,
                     venue: formData.venue || null,
                     speaker: formData.speaker || null,
-                    audio_type: formData.audioType || null,
+                    media_type: formData.mediaType || null,
                     categories: Array.isArray(formData.categoriesValue) ? formData.categoriesValue : (formData.categoriesValue?.split(',').map((c: string) => c.trim()).filter(Boolean) || []),
                     lecture_date_gregorian: formData.gDate ? new Date(formData.gDate) : null,
                     hijri_date_day: formData.hDay ? parseInt(formData.hDay) : null,
@@ -166,7 +160,7 @@ export const UploadProvider: React.FC<{ children: React.ReactNode }> = ({ childr
                 });
             }
 
-            const { error: dbError } = await insertContent(contentPayload);
+            const { error: dbError } = await insertMedia(mediaPayload);
             if (dbError) throw dbError;
 
             updateUpload(uploadId, { progress: 100, status: 'completed' });
@@ -192,13 +186,13 @@ export const UploadProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         }
     }, [user, updateUpload]);
 
-    const editContent = useCallback(async (
-        contentId: string,
+    const editMedia = useCallback(async (
+        mediaId: string,
         currentStatus: string,
         updatePayload: any,
         newMainFile: File | null,
         newCoverFile: File | null,
-        contentTitle: string,
+        mediaTitle: string,
         currentFileUrl: string | null,
         contentType: string
     ) => {
@@ -214,7 +208,7 @@ export const UploadProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
         const newUpload: ActiveUpload = {
             id: uploadId,
-            fileName: newMainFile ? newMainFile.name : contentTitle,
+            fileName: newMainFile ? newMainFile.name : mediaTitle,
             title: updatePayload.title,
             progress: 0,
             status: 'preparing',
@@ -235,13 +229,13 @@ export const UploadProvider: React.FC<{ children: React.ReactNode }> = ({ childr
             if (existingIdentifier) {
                 await updateIAMetadata(currentFileUrl!, {
                     speaker: updatePayload.speaker,
-                    audioType: updatePayload.audio_type,
+                    media_type: updatePayload.media_type,
                     title: updatePayload.title,
                     contentType: contentType as any,
                 });
 
                 // Rename existing file if title changed and no new file is being uploaded
-                if (!newMainFile && updatePayload.title !== contentTitle && currentFileUrl) {
+                if (!newMainFile && updatePayload.title !== mediaTitle && currentFileUrl) {
                     const { data: renameResult } = await renameIAFile(currentFileUrl, updatePayload.title);
                     if (renameResult) {
                         fileUrlPath = renameResult.iaUrl;
@@ -258,7 +252,7 @@ export const UploadProvider: React.FC<{ children: React.ReactNode }> = ({ childr
                 if (newCoverFile) uploadFormData.append("coverFile", newCoverFile);
                 uploadFormData.append("metadata", JSON.stringify({
                     speaker: updatePayload.speaker,
-                    audioType: updatePayload.audio_type,
+                    media_type: updatePayload.media_type,
                     title: updatePayload.title,
                     contentType: contentType as any,
                 }));
@@ -306,15 +300,15 @@ export const UploadProvider: React.FC<{ children: React.ReactNode }> = ({ childr
                     if (type === 'speaker') result = await createSpeaker(name);
                     else if (type === 'language') result = await createLanguage(name);
                     else if (type === 'category') result = await createCategory(name);
-                    else if (type === 'audio_type') result = await createAudioType(name);
+                    else if (type === 'media_type') result = await createMediaType(name);
                     
                     return !!(result?.data || result?.error?.code === '23505');
                 } catch (e) { console.log(e); return false; }
             };
 
-            if (contentType === 'audio') {
+            if (contentType === 'آڈیو' || contentType === 'ویڈیو') {
                 await ensureMetadata('speaker', updatePayload.speaker);
-                await ensureMetadata('audio_type', updatePayload.audio_type);
+                await ensureMetadata('media_type', updatePayload.media_type);
                 const catsRaw = updatePayload.categories || [];
                 const cats = Array.isArray(catsRaw) ? catsRaw : (typeof catsRaw === 'string' ? catsRaw.split(',').map((c: string) => c.trim()).filter(Boolean) : []);
                 for (const c of cats) await ensureMetadata('category', c);
@@ -323,11 +317,11 @@ export const UploadProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
             const { _storageProvider, ...dbPayload } = updatePayload;
 
-            const { error: dbError } = await updateContentById(contentId, { ...dbPayload, file_url: fileUrlPath, cover_image_url: coverUrlPath });
+            const { error: dbError } = await updateMediaById(mediaId, { ...dbPayload, file_url: fileUrlPath, cover_image_url: coverUrlPath });
             if (dbError) throw dbError;
 
             updateUpload(uploadId, { progress: 100, status: 'completed' });
-            toast.success("مواد کامیابی سے تبدیل ہو گیا!");
+            toast.success("میڈیا کامیابی سے تبدیل ہو گیا!");
 
         } catch (err: any) {
             if (err.name === 'AbortError' || err.message === 'Aborted') return;
@@ -338,7 +332,7 @@ export const UploadProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         }
     }, [user, updateUpload]);
 
-    const deleteContentWrapper = useCallback(async (id: string, title: string, fileUrl: string | null, coverImageUrl: string | null) => {
+    const deleteMediaWrapper = useCallback(async (id: string, title: string, fileUrl: string | null, coverImageUrl: string | null) => {
         const uploadId = crypto.randomUUID();
         const startTime = Date.now();
 
@@ -364,10 +358,10 @@ export const UploadProvider: React.FC<{ children: React.ReactNode }> = ({ childr
             }
 
             updateUpload(uploadId, { progress: 60 });
-            await deleteContentById(id);
+            await deleteMediaById(id);
 
             updateUpload(uploadId, { progress: 100, status: 'completed' });
-            toast.success(`مواد کامیابی سے حذف کر دیا گیا: ${title}`);
+            toast.success(`میڈیا کامیابی سے حذف کر دیا گیا: ${title}`);
 
         } catch (err: any) {
             console.error('Delete error:', err);
@@ -398,7 +392,7 @@ export const UploadProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }, []);
 
     return (
-        <UploadContext.Provider value={{ activeUploads, uploadContent, editContent, deleteContent: deleteContentWrapper, cancelUpload, clearCompleted, clearAll, clearSuccess, removeUpload }}>
+        <UploadContext.Provider value={{ activeUploads, uploadMedia, editMedia, deleteMedia: deleteMediaWrapper, cancelUpload, clearCompleted, clearAll, clearSuccess, removeUpload }}>
             {children}
         </UploadContext.Provider>
     );

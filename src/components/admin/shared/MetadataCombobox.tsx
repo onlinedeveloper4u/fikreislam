@@ -36,11 +36,11 @@ export function MetadataCombobox({
 }: MetadataComboboxProps) {
     const [open, setOpen] = React.useState(false);
     const [search, setSearch] = React.useState("");
-const filteredOptions = options.filter((option) =>
-        option.toLowerCase().includes(search.toLowerCase())
+    const filteredOptions = options.filter((option) =>
+        typeof option === 'string' && option.toLowerCase().includes(search.toLowerCase())
     );
 
-    const showCustom = allowCustom && search.trim() !== "" && !options.some(opt => opt.toLowerCase() === search.toLowerCase().trim());
+    const showCustom = allowCustom && search.trim() !== "" && !options.some(opt => typeof opt === 'string' && opt.toLowerCase() === search.toLowerCase().trim());
 
     return (
         <Popover open={open} onOpenChange={setOpen}>

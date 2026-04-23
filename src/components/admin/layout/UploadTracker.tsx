@@ -26,7 +26,7 @@ export function UploadTracker() {
             <Card className="border-dashed border-2 bg-muted/30">
                 <CardContent className="flex flex-col items-center justify-center py-12 text-muted-foreground">
                     <UploadCloud className="h-12 w-12 mb-4 opacity-20" />
-                    <p>کوئی فعال یا حالیہ مواد شامل نہیں ہو رہا</p>
+                    <p>کوئی فعال یا حالیہ میڈیا شامل نہیں ہو رہا</p>
                 </CardContent>
             </Card>
         );
@@ -53,7 +53,7 @@ export function UploadTracker() {
                 <div>
                     <h3 className="text-lg font-medium">شامل کرنے کی صورتحال</h3>
                     <p className="text-sm text-muted-foreground">
-                        اپنے پس منظر میں شامل ہونے والے مواد کی نگرانی کریں
+                        اپنے پس منظر میں شامل ہونے والے میڈیا کی نگرانی کریں
                     </p>
                 </div>
                 <div className="flex items-center gap-2">

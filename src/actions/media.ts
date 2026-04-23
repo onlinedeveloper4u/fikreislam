@@ -1,14 +1,14 @@
 'use server'
 
 import dbConnect from '@/lib/mongodb';
-import { Content } from '@/models/Content';
-import { ContentAnalytics, Favorite, PlaylistItem } from '@/models/Interactions';
+import { Media } from '@/models/Media';
+import { MediaAnalytics, Favorite, PlaylistItem } from '@/models/Interactions';
 
-// CONTENT ACTIONS
-export async function getContent(limit: number = 1000) {
+// MEDIA ACTIONS
+export async function getMedia(limit: number = 1000) {
   await dbConnect();
   try {
-    const data = await Content.find().sort({ createdAt: -1 }).limit(limit).lean();
+    const data = await Media.find().sort({ createdAt: -1 }).limit(limit).lean();
     return { 
       data: data.map(d => {
             const { _id, createdAt, updatedAt, __v, ...rest }: any = d;
@@ -26,10 +26,10 @@ export async function getContent(limit: number = 1000) {
   }
 }
 
-export async function getApprovedContent(limit: number = 100) {
+export async function getApprovedMedia(limit: number = 100) {
   await dbConnect();
   try {
-    const data = await Content.find({ status: 'approved' }).sort({ createdAt: -1 }).limit(limit).lean();
+    const data = await Media.find({ status: 'شائع شدہ' }).sort({ createdAt: -1 }).limit(limit).lean();
     return { 
       data: data.map(d => {
             const { _id, createdAt, updatedAt, __v, ...rest }: any = d;
@@ -47,50 +47,49 @@ export async function getApprovedContent(limit: number = 100) {
   }
 }
 
-export async function updateContentStatus(id: string, status: string, published_at?: string) {
+export async function updateMediaStatus(id: string, status: string) {
   await dbConnect();
   try {
     const updatePayload: any = { status };
-    if (published_at) updatePayload.published_at = new Date(published_at);
     
-    const res = await Content.findByIdAndUpdate(id, updatePayload, { new: true }).lean();
-    if (!res) return { error: 'Content not found' };
+    const res = await Media.findByIdAndUpdate(id, updatePayload, { new: true }).lean();
+    if (!res) return { error: 'Media not found' };
     return { data: JSON.parse(JSON.stringify({ ...res, id: res._id.toString() })), error: null };
   } catch (error: any) {
     return { error: error.message || error };
   }
 }
 
-export async function deleteContentById(id: string) {
+export async function deleteMediaById(id: string) {
   await dbConnect();
   try {
-    await ContentAnalytics.deleteMany({ content_id: id });
-    await Favorite.deleteMany({ content_id: id });
-    await PlaylistItem.deleteMany({ content_id: id });
-    await Content.findByIdAndDelete(id);
+    await MediaAnalytics.deleteMany({ media_id: id });
+    await Favorite.deleteMany({ media_id: id });
+    await PlaylistItem.deleteMany({ media_id: id });
+    await Media.findByIdAndDelete(id);
     return { data: true, error: null };
   } catch (error) {
     return { error };
   }
 }
 
-export async function insertContent(payload: any) {
+export async function insertMedia(payload: any) {
   await dbConnect();
   try {
-    const content = await Content.create(payload);
-    const plain = JSON.parse(JSON.stringify(content.toObject()));
+    const media = await Media.create(payload);
+    const plain = JSON.parse(JSON.stringify(media.toObject()));
     return { data: { ...plain, id: plain._id.toString() }, error: null };
   } catch (error: any) {
     return { error: error.message || error };
   }
 }
 
-export async function updateContentById(id: string, payload: any) {
+export async function updateMediaById(id: string, payload: any) {
   await dbConnect();
   try {
-    const content = await Content.findByIdAndUpdate(id, payload, { new: true }).lean();
-    if (!content) return { error: 'Content not found' };
-    const plain = JSON.parse(JSON.stringify(content));
+    const media = await Media.findByIdAndUpdate(id, payload, { new: true }).lean();
+    if (!media) return { error: 'Media not found' };
+    const plain = JSON.parse(JSON.stringify(media));
     return { data: { ...plain, id: plain._id.toString() }, error: null };
   } catch (error: any) {
     return { error: error.message || error };

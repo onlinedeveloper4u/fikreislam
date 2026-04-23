@@ -10,7 +10,7 @@ import { z } from 'zod';
 import { formatBytes } from '@/lib/utils';
 import { Upload, FileText, Loader2 } from 'lucide-react';
 import { useUpload } from '@/contexts/UploadContextTypes';
-import { MetadataCombobox } from './MetadataCombobox';
+import { MetadataCombobox } from '../shared/MetadataCombobox';
 import { getLanguages } from '@/actions/metadata';
 
 const ALLOWED_BOOK_TYPES = ['application/pdf', 'application/epub+zip', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];

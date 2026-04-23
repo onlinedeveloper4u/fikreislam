@@ -13,12 +13,12 @@ interface AnalyticsSummary {
   totalViews: number;
   totalDownloads: number;
   totalPlays: number;
-  totalContent: number;
+  totalMedia: number;
   bookCount: number;
   audioCount: number;
   videoCount: number;
   recentActivity: { date: string; count: number }[];
-  topContent: { id: string; title: string; type: string; views: number }[];
+  topMedia: { id: string; title: string; type: string; views: number }[];
 }
 
 type TimeRange = '7d' | '30d' | '90d' | 'all';
@@ -81,13 +81,13 @@ export function AdminAnalytics() {
     { label: "کل مناظر", value: analytics.totalViews, icon: Eye, color: 'text-blue-500' },
     { label: "حاصل شدہ", value: analytics.totalDownloads, icon: Download, color: 'text-green-500' },
     { label: "سنے گئے", value: analytics.totalPlays, icon: Play, color: 'text-purple-500' },
-    { label: "مواد", value: analytics.totalContent, icon: FileText, color: 'text-primary' },
+    { label: "کل میڈیا", value: analytics.totalMedia, icon: FileText, color: 'text-primary' },
   ];
 
   const typeIcons = {
     book: FileText,
-    audio: Music,
-    video: Video,
+    'آڈیو': Music,
+    'ویڈیو': Video,
   };
 
   return (
@@ -135,7 +135,7 @@ export function AdminAnalytics() {
       <div className="grid md:grid-cols-2 gap-6">
         <Card className="border-border/50 bg-card/50 backdrop-blur">
           <CardHeader>
-            <CardTitle className="text-lg">{"مواد کی تفصیل"}</CardTitle>
+            <CardTitle className="text-lg">{"میڈیا کی تفصیل"}</CardTitle>
             <CardDescription>{"قسم کے لحاظ سے"}</CardDescription>
           </CardHeader>
           <CardContent>
@@ -169,18 +169,18 @@ export function AdminAnalytics() {
           <CardHeader>
             <CardTitle className="text-lg flex items-center gap-2">
               <TrendingUp className="h-5 w-5" />
-              {"مقبول مواد"}
+              {"مقبول میڈیا"}
             </CardTitle>
-            <CardDescription>{"سب سے زیادہ دیکھا جانے والا مواد"}</CardDescription>
+            <CardDescription>{"سب سے زیادہ دیکھا جانے والا میڈیا"}</CardDescription>
           </CardHeader>
           <CardContent>
-            {analytics.topContent.length === 0 ? (
+            {analytics.topMedia.length === 0 ? (
               <p className="text-sm text-muted-foreground text-center py-4">
                 {"ابھی تک کوئی ڈیٹا دستیاب نہیں ہے"}
               </p>
             ) : (
               <div className="space-y-3">
-                {analytics.topContent.map((item, index) => {
+                {analytics.topMedia.map((item, index) => {
                   const TypeIcon = typeIcons[item.type as keyof typeof typeIcons] || FileText;
                   return (
                     <div key={item.id} className="flex items-center gap-3">

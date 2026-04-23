@@ -5,15 +5,15 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
-import { Loader2, Plus, Trash2, Pencil, Check, X, FileAudio } from 'lucide-react';
-import { getAudioTypes, createAudioType, updateAudioType, deleteAudioType, getSpeakers } from '@/actions/metadata';
+import { Loader2, Plus, Trash2, Pencil, Check, X, LayoutGrid } from 'lucide-react';
+import { getMediaTypes, createMediaType, updateMediaType, deleteMediaType, getSpeakers } from '@/actions/metadata';
 
 interface Speaker {
     id: string;
     name: string;
 }
 
-interface AudioType {
+interface MediaType {
     id: string;
     name: string;
     speaker_id: string;
@@ -21,8 +21,8 @@ interface AudioType {
     updated_at: string;
 }
 
-export function AudioTypeManagement() {
-    const [audioTypes, setAudioTypes] = useState<AudioType[]>([]);
+export function MediaTypeManagement() {
+    const [mediaTypes, setMediaTypes] = useState<MediaType[]>([]);
     const [speakers, setSpeakers] = useState<Speaker[]>([]);
     const [loading, setLoading] = useState(true);
     const [actionLoading, setActionLoading] = useState<string | null>(null);
@@ -42,19 +42,19 @@ export function AudioTypeManagement() {
             setLoading(true);
             const [{ data: speakersData }, { data: typesData }] = await Promise.all([
                 getSpeakers(),
-                getAudioTypes()
+                getMediaTypes()
             ]);
 
             setSpeakers((speakersData as unknown as Speaker[]) || []);
             
             // Map the speaker name for frontend
             const speakerMap = new Map((speakersData as unknown as Speaker[] || []).map(s => [s.id, s.name]));
-            const mappedTypes = ((typesData as unknown as AudioType[]) || []).map(t => ({
+            const mappedTypes = ((typesData as unknown as MediaType[]) || []).map(t => ({
                 ...t,
                 speakers: { name: speakerMap.get(t.speaker_id) || 'نامعلوم' }
             }));
             
-            setAudioTypes(mappedTypes);
+            setMediaTypes(mappedTypes);
             if (speakersData && speakersData.length > 0 && !selectedSpeakerId) {
                 setSelectedSpeakerId((speakersData[0] as unknown as Speaker).id);
             }
@@ -66,13 +66,13 @@ export function AudioTypeManagement() {
         }
     };
 
-    const handleAddAudioType = async (e: React.FormEvent) => {
+    const handleAddMediaType = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!newName.trim() || !selectedSpeakerId) return;
 
         setActionLoading('add');
         try {
-            const exists = audioTypes.some(t =>
+            const exists = mediaTypes.some(t =>
                 t.name.toLowerCase() === newName.trim().toLowerCase() &&
                 t.speaker_id === selectedSpeakerId
             );
@@ -80,7 +80,7 @@ export function AudioTypeManagement() {
                 throw new Error("یہ نام اس مقرر کے لیے پہلے سے موجود ہے");
             }
 
-            const { error } = await createAudioType(newName.trim());
+            const { error } = await createMediaType(newName.trim());
             if (error) throw error;
 
             toast.success("کامیاب");
@@ -99,7 +99,7 @@ export function AudioTypeManagement() {
 
         setActionLoading(id);
         try {
-            const exists = audioTypes.some(t =>
+            const exists = mediaTypes.some(t =>
                 t.id !== id &&
                 t.name.toLowerCase() === editName.trim().toLowerCase() &&
                 t.speaker_id === initialSpeakerId
@@ -108,10 +108,10 @@ export function AudioTypeManagement() {
                 throw new Error("یہ نام اس مقرر کے لیے پہلے سے موجود ہے");
             }
 
-            const at = audioTypes.find(a => a.id === id);
+            const at = mediaTypes.find(a => a.id === id);
             const speakerName = at?.speakers.name;
 
-            const { error } = await updateAudioType(id, editName.trim(), speakerName);
+            const { error } = await updateMediaType(id, editName.trim(), speakerName);
             if (error) throw error;
 
             toast.success("کامیاب");
@@ -131,11 +131,11 @@ export function AudioTypeManagement() {
 
         setActionLoading(id);
         try {
-            const { error } = await deleteAudioType(id);
+            const { error } = await deleteMediaType(id);
             if (error) throw error;
 
             toast.success("کامیاب");
-            setAudioTypes(prev => prev.filter(t => t.id !== id));
+            setMediaTypes(prev => prev.filter(t => t.id !== id));
         } catch (error: any) {
             console.error('Delete error:', error);
             toast.error("ایک غلطی واقع ہوئی ہے");
@@ -152,27 +152,27 @@ export function AudioTypeManagement() {
         );
     }
 
-    // Group audio types by speaker
-    const groupedTypes = audioTypes.reduce((acc, type) => {
+    // Group media types by speaker
+    const groupedTypes = mediaTypes.reduce((acc, type) => {
         const speakerName = type.speakers?.name || 'نامعلوم';
         if (!acc[speakerName]) acc[speakerName] = [];
         acc[speakerName].push(type);
         return acc;
-    }, {} as Record<string, typeof audioTypes>);
+    }, {} as Record<string, typeof mediaTypes>);
 
     return (
         <Card>
             <CardHeader className="flex flex-row items-center gap-4">
                 <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                    <FileAudio className="h-5 w-5 text-primary" />
+                    <LayoutGrid className="h-5 w-5 text-primary" />
                 </div>
                 <div>
-                    <CardTitle>{"آڈیو کی اقسام"}</CardTitle>
-                    <CardDescription>{"مختلف مقررین کے لیے آڈیو کی اقسام (جیسے بیان، درس، تلاوت) کا نظم کریں۔"}</CardDescription>
+                    <CardTitle>{"میڈیا کی اقسام"}</CardTitle>
+                    <CardDescription>{"مختلف مقررین کے لیے میڈیا کی اقسام (جیسے بیان، درس، تلاوت، ویڈیو کلپ) کا نظم کریں۔"}</CardDescription>
                 </div>
             </CardHeader>
             <CardContent>
-                <form onSubmit={handleAddAudioType} className="flex flex-col md:flex-row gap-4 items-end mb-8 border-b pb-6 border-border/50">
+                <form onSubmit={handleAddMediaType} className="flex flex-col md:flex-row gap-4 items-end mb-8 border-b pb-6 border-border/50">
                     <div className="space-y-2 flex-1 w-full relative z-[51]">
                         <Label>{"مقرر"}</Label>
                         <Select value={selectedSpeakerId} onValueChange={setSelectedSpeakerId}>
@@ -193,7 +193,7 @@ export function AudioTypeManagement() {
                         <Input
                             value={newName}
                             onChange={(e) => setNewName(e.target.value)}
-                            placeholder={`نئی ${"آڈیو کی قسم"} درج کریں...`}
+                            placeholder={`نئی ${"میڈیا کی قسم"} درج کریں...`}
                             required
                         />
                     </div>

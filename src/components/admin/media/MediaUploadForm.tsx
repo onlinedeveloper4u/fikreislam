@@ -8,25 +8,29 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { toast } from 'sonner';
 import { z } from 'zod';
 import { formatBytes } from '@/lib/utils';
-import { Upload, Loader2, Headphones } from 'lucide-react';
+import { Upload, Loader2, Headphones, Video } from 'lucide-react';
 import { useUpload } from '@/contexts/UploadContextTypes';
 import { Checkbox } from '@/components/ui/checkbox';
-import { MetadataCombobox } from './MetadataCombobox';
-import { getSpeakers, getLanguages, getCategories, getAudioTypes } from '@/actions/metadata';
+import { MetadataCombobox } from '../shared/MetadataCombobox';
+import { getSpeakers, getLanguages, getCategories, getMediaTypes } from '@/actions/metadata';
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
 const ALLOWED_AUDIO_TYPES = ['audio/mpeg', 'audio/wav', 'audio/ogg', 'audio/mp4', 'audio/x-m4a'];
+const ALLOWED_VIDEO_TYPES = ['video/mp4', 'video/webm', 'video/quicktime'];
 const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
 const MAX_FILE_SIZE = 500 * 1024 * 1024; // 500MB
 const MAX_IMAGE_SIZE = 10 * 1024 * 1024; // 10MB
 
-interface AudioUploadFormProps {
+interface MediaUploadFormProps {
     onSuccess?: () => void;
+    initialType?: 'آڈیو' | 'ویڈیو';
 }
 
-export function AudioUploadForm({ onSuccess }: AudioUploadFormProps) {
+export function MediaUploadForm({ onSuccess, initialType = 'آڈیو' }: MediaUploadFormProps) {
     const { user } = useAuth();
-    const { uploadContent } = useUpload();
+    const { uploadMedia } = useUpload();
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [contentType, setContentType] = useState<'آڈیو' | 'ویڈیو'>(initialType);
     const [title, setTitle] = useState('');
     const [language, setLanguage] = useState('');
     const [file, setFile] = useState<File | null>(null);
@@ -35,39 +39,32 @@ export function AudioUploadForm({ onSuccess }: AudioUploadFormProps) {
     const [metadata, setMetadata] = useState<{
         speaker: string[];
         language: string[];
-        audio_type: string[];
+        media_type: string[];
         category: string[];
-    }>({ speaker: [], language: [], audio_type: [], category: [] });
+    }>({ speaker: [], language: [], media_type: [], category: [] });
 
     const [speaker, setSpeaker] = useState('');
-    const [audioType, setAudioType] = useState('');
+    const [mediaType, setMediaType] = useState('');
     const [categories, setCategories] = useState('');
 
     useEffect(() => {
         const fetchData = async () => {
-            const [{ data: speakers }, { data: languages }, { data: categoriesData }, { data: audioTypes }] = await Promise.all([
+            const [{ data: speakers }, { data: languages }, { data: categoriesData }, { data: mediaTypes }] = await Promise.all([
                 getSpeakers(),
                 getLanguages(),
                 getCategories(),
-                getAudioTypes(),
+                getMediaTypes(),
             ]);
 
             setMetadata({
                 speaker: speakers?.map(s => s.name) || [],
                 language: languages?.map(l => l.name) || [],
-                audio_type: audioTypes?.map(t => t.name) || [],
+                media_type: mediaTypes?.map(t => t.name) || [],
                 category: categoriesData?.map(c => c.name) || [],
             });
         };
         fetchData();
     }, []);
-
-    // Set a default speaker if list not empty to help user
-    useEffect(() => {
-        if (metadata.speaker.length > 0 && !speaker) {
-            // Option to set default or leave empty
-        }
-    }, [metadata.speaker]);
 
     const [durHours, setDurHours] = useState('');
     const [durMinutes, setDurMinutes] = useState('');
@@ -130,7 +127,7 @@ export function AudioUploadForm({ onSuccess }: AudioUploadFormProps) {
         );
     };
 
-    const audioSchema = useMemo(() => z.object({
+    const mediaSchema = useMemo(() => z.object({
         title: z.string().trim().min(1, "عنوان ضروری ہے"),
         language: z.string().min(1, "زبان ضروری ہے"),
     }), []);
@@ -140,29 +137,48 @@ export function AudioUploadForm({ onSuccess }: AudioUploadFormProps) {
         setFile(selectedFile);
         if (selectedFile) {
             setTitle(selectedFile.name.split('.').slice(0, -1).join('.'));
-            const audio = new Audio();
-            const objectUrl = URL.createObjectURL(selectedFile);
-            audio.src = objectUrl;
-            audio.onloadedmetadata = () => {
-                const duration = Math.floor(audio.duration);
-                setDurHours(Math.floor(duration / 3600).toString() || '');
-                setDurMinutes(Math.floor((duration % 3600) / 60).toString());
-                setDurSeconds((duration % 60).toString());
-                URL.revokeObjectURL(objectUrl);
-            };
+            
+            if (contentType === 'آڈیو') {
+                const audio = new Audio();
+                const objectUrl = URL.createObjectURL(selectedFile);
+                audio.src = objectUrl;
+                audio.onloadedmetadata = () => {
+                    const duration = Math.floor(audio.duration);
+                    setDurHours(Math.floor(duration / 3600).toString() || '');
+                    setDurMinutes(Math.floor((duration % 3600) / 60).toString());
+                    setDurSeconds((duration % 60).toString());
+                    URL.revokeObjectURL(objectUrl);
+                };
+            } else {
+                const video = document.createElement('video');
+                const objectUrl = URL.createObjectURL(selectedFile);
+                video.src = objectUrl;
+                video.onloadedmetadata = () => {
+                    const duration = Math.floor(video.duration);
+                    setDurHours(Math.floor(duration / 3600).toString() || '');
+                    setDurMinutes(Math.floor((duration % 3600) / 60).toString());
+                    setDurSeconds((duration % 60).toString());
+                    URL.revokeObjectURL(objectUrl);
+                };
+            }
         }
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!user) { toast.error("مواد شامل کرنے کے لیے آپ کا داخل ہونا ضروری ہے"); return; }
+        if (!user) { toast.error("میڈیا شامل کرنے کے لیے آپ کا داخل ہونا ضروری ہے"); return; }
         if (!file) { toast.error("براہ کرم شامل کرنے کے لیے فائل منتخب کریں"); return; }
 
-        const validation = audioSchema.safeParse({ title, language });
+        const validation = mediaSchema.safeParse({ title, language });
         if (!validation.success) { toast.error(validation.error.errors[0].message); return; }
 
         if (file.size > MAX_FILE_SIZE) { toast.error("فائل بہت بڑی ہے (زیادہ سے زیادہ 500 ایم بی)"); return; }
-        if (!ALLOWED_AUDIO_TYPES.includes(file.type)) { toast.error("آڈیو کے لیے غلط فائل کی قسم۔ قبول شدہ: .mp3, .wav, .ogg, .m4a"); return; }
+        
+        const allowedTypes = contentType === 'آڈیو' ? ALLOWED_AUDIO_TYPES : ALLOWED_VIDEO_TYPES;
+        if (!allowedTypes.includes(file.type)) { 
+            toast.error(`${contentType} کے لیے غلط فائل کی قسم`); 
+            return; 
+        }
 
         if (coverImage) {
             if (coverImage.size > MAX_IMAGE_SIZE) { toast.error("تصویر بہت بڑی ہے (زیادہ سے زیادہ 10 ایم بی)"); return; }
@@ -172,29 +188,26 @@ export function AudioUploadForm({ onSuccess }: AudioUploadFormProps) {
         const hasDuration = [durHours, durMinutes, durSeconds].some(p => p !== '' && p !== '0' && p !== '00');
         if (!hasDuration) { toast.error("دورانیہ ضروری ہے"); return; }
         if (!speaker) { toast.error("مقرر / بیان کنندہ ضروری ہے"); return; }
-        if (!audioType) { toast.error("آڈیو کی قسم ضروری ہے"); return; }
+        if (!mediaType) { toast.error("میڈیا کی قسم ضروری ہے"); return; }
 
         setIsSubmitting(true);
         try {
             const uploadData = {
                 title,
                 language,
-                contentType: 'audio' as const,
+                contentType: contentType,
                 duration: [durHours.padStart(2, '0') || '00', durMinutes.padStart(2, '0') || '00', durSeconds.padStart(2, '0') || '00'].join(':'),
                 venue: venueManual ? venueText : [venueDistrict, venueTehsil, venueCity, venueArea].filter(Boolean).join(', '),
                 speaker,
-                audioType,
+                mediaType,
                 categoriesValue: categories,
                 gDate: gYear && gMonth && gDay ? `${gYear}-${gMonth.padStart(2, '0')}-${gDay.padStart(2, '0')}` : null,
                 hDay: hDay ? parseInt(hDay) : null,
                 hMonth: hMonth ? parseInt(hMonth) : null,
                 hYear: hYear ? parseInt(hYear) : null,
-                description: '',
-                author: '',
-                tags: [],
             };
 
-            uploadContent(uploadData, file, coverImage);
+            uploadMedia(uploadData, file, coverImage);
             toast.info("پس منظر میں شامل ہونا شروع ہو گیا ہے");
             if (onSuccess) onSuccess();
         } catch (error: any) {
@@ -206,15 +219,46 @@ export function AudioUploadForm({ onSuccess }: AudioUploadFormProps) {
 
     return (
         <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="flex flex-col items-center justify-center p-4 bg-primary/5 rounded-xl border border-primary/10 gap-4">
+                <Label className="text-lg font-bold">{"میڈیا کی قسم منتخب کریں"}</Label>
+                <RadioGroup 
+                    value={contentType} 
+                    onValueChange={(val: any) => {
+                        setContentType(val);
+                        setFile(null); // Clear file when type changes
+                    }}
+                    className="flex gap-8"
+                >
+                    <div className="flex items-center space-x-2 space-x-reverse">
+                        <RadioGroupItem value="آڈیو" id="type-audio" />
+                        <Label htmlFor="type-audio" className="cursor-pointer flex items-center gap-2">
+                            <Headphones className="h-4 w-4" /> {"آڈیو"}
+                        </Label>
+                    </div>
+                    <div className="flex items-center space-x-2 space-x-reverse">
+                        <RadioGroupItem value="ویڈیو" id="type-video" />
+                        <Label htmlFor="type-video" className="cursor-pointer flex items-center gap-2">
+                            <Video className="h-4 w-4" /> {"ویڈیو"}
+                        </Label>
+                    </div>
+                </RadioGroup>
+            </div>
+
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
                 <div className="space-y-2 md:col-span-3">
-                    <Label htmlFor="audio-file">{"مواد کی فائل"} <span className="text-destructive">*</span></Label>
+                    <Label htmlFor="media-file">{"میڈیا کی فائل"} <span className="text-destructive">*</span></Label>
                     <div className="border-2 border-dashed border-border rounded-lg px-4 text-center hover:border-primary/50 transition-colors h-[110px] flex items-center justify-center">
-                        <input id="audio-file" type="file" accept=".mp3,.wav,.ogg,.m4a" onChange={handleFileChange} className="hidden" />
-                        <label htmlFor="audio-file" className="cursor-pointer w-full text-sm text-muted-foreground flex flex-col items-center gap-1">
-                            <Headphones className="h-5 w-5" />
+                        <input 
+                            id="media-file" 
+                            type="file" 
+                            accept={contentType === 'آڈیو' ? ".mp3,.wav,.ogg,.m4a" : ".mp4,.webm,.mov"} 
+                            onChange={handleFileChange} 
+                            className="hidden" 
+                        />
+                        <label htmlFor="media-file" className="cursor-pointer w-full text-sm text-muted-foreground flex flex-col items-center gap-1">
+                            {contentType === 'آڈیو' ? <Headphones className="h-5 w-5" /> : <Video className="h-5 w-5" />}
                             <span className="max-w-[80%] truncate text-center font-medium">
-                                {file ? (file.name.includes('.') ? file.name.substring(0, file.name.lastIndexOf('.')) : file.name) : `${"آڈیو"} شامل کرنے کے لیے یہاں دبائیں`}
+                                {file ? (file.name.includes('.') ? file.name.substring(0, file.name.lastIndexOf('.')) : file.name) : `${contentType} شامل کرنے کے لیے یہاں دبائیں`}
                                 {file && <span className="ml-1 text-[10px] text-muted-foreground">({file.name.split('.').pop()?.toUpperCase()})</span>}
                             </span>
                             {file && <span className="text-[10px] text-primary/70">
@@ -231,8 +275,8 @@ export function AudioUploadForm({ onSuccess }: AudioUploadFormProps) {
                 <div className="space-y-2 md:col-span-1 flex flex-col items-center">
                     <Label className="text-[10px]">{"سرورق کی تصویر"}</Label>
                     <div className="border-2 border-dashed border-border rounded-full hover:border-primary/50 h-[110px] w-[110px] flex items-center justify-center overflow-hidden relative">
-                        <input id="audio-cover" type="file" accept="image/*" onChange={(e) => setCoverImage(e.target.files?.[0] || null)} className="hidden" />
-                        <label htmlFor="audio-cover" className="cursor-pointer w-full h-full flex items-center justify-center">
+                        <input id="media-cover" type="file" accept="image/*" onChange={(e) => setCoverImage(e.target.files?.[0] || null)} className="hidden" />
+                        <label htmlFor="media-cover" className="cursor-pointer w-full h-full flex items-center justify-center">
                             {coverImage ? <img src={URL.createObjectURL(coverImage)} className="w-full h-full object-cover" /> : <Upload className="h-5 w-5" />}
                         </label>
                     </div>
@@ -241,8 +285,8 @@ export function AudioUploadForm({ onSuccess }: AudioUploadFormProps) {
 
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <div className="space-y-2 md:col-span-3">
-                    <Label htmlFor="audio-title">{"عنوان"} <span className="text-destructive">*</span></Label>
-                    <Input id="audio-title" value={title} onChange={(e) => setTitle(e.target.value)} placeholder={"عنوان درج کریں"} required className="h-12 bg-background/50 border-border/40 hover:bg-background/80 transition-all px-4" />
+                    <Label htmlFor="media-title">{"عنوان"} <span className="text-destructive">*</span></Label>
+                    <Input id="media-title" value={title} onChange={(e) => setTitle(e.target.value)} placeholder={"عنوان درج کریں"} required className="h-12 bg-background/50 border-border/40 hover:bg-background/80 transition-all px-4" />
                 </div>
                 <div className="space-y-2">
                     <Label>{"دورانیہ"} <span className="text-destructive">*</span></Label>
@@ -260,8 +304,8 @@ export function AudioUploadForm({ onSuccess }: AudioUploadFormProps) {
                     <MetadataCombobox options={metadata.speaker} value={speaker} onChange={setSpeaker} />
                 </div>
                 <div className="space-y-2">
-                    <Label>{"آڈیو کی قسم"} <span className="text-destructive">*</span></Label>
-                    <MetadataCombobox options={metadata.audio_type} value={audioType} onChange={setAudioType} />
+                    <Label>{"میڈیا کی قسم"} <span className="text-destructive">*</span></Label>
+                    <MetadataCombobox options={metadata.media_type} value={mediaType} onChange={setMediaType} />
                 </div>
                 <div className="space-y-2">
                     <Label>{"زبان"} <span className="text-destructive">*</span></Label>
