@@ -22,7 +22,7 @@ interface BookUploadFormProps {
 
 export function BookUploadForm({ onSuccess }: BookUploadFormProps) {
     const { user } = useAuth();
-    const { uploadContent } = useUpload();
+    const { uploadMedia } = useUpload();
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [title, setTitle] = useState('');
     const [description, setDescription] = useState('');
@@ -67,7 +67,7 @@ export function BookUploadForm({ onSuccess }: BookUploadFormProps) {
                 contentType: 'book' as const,
             };
 
-            uploadContent(uploadData, file, coverImage);
+            uploadMedia(uploadData, file, coverImage);
             toast.info("پس منظر میں شامل ہونا شروع ہو گیا ہے");
             if (onSuccess) onSuccess();
         } catch (error: any) {

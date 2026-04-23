@@ -26,7 +26,7 @@ interface BookEditDialogProps {
 }
 
 export function BookEditDialog({ content, open, onOpenChange, onSuccess }: BookEditDialogProps) {
-    const { editContent } = useUpload();
+    const { editMedia } = useUpload();
 
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [title, setTitle] = useState('');
@@ -92,7 +92,7 @@ export function BookEditDialog({ content, open, onOpenChange, onSuccess }: BookE
                 status: content.status === 'rejected' ? 'pending' : content.status,
             };
 
-            editContent(content.id, content.status, updatePayload, newFile, newCoverImage, content.title, content.file_url, 'book');
+            editMedia(content.id, content.status, updatePayload, newFile, newCoverImage, content.title, content.file_url, 'book');
             toast.info("پس منظر میں شامل ہونا شروع ہو گیا ہے");
             onSuccess();
             onOpenChange(false);
