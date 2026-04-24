@@ -4,6 +4,7 @@ import { getMedia, updateMediaStatus } from '@/actions/media';
 import { resolveItemPageUrl } from '@/lib/storage';
 import { extractIAIdentifier } from '@/lib/ia-utils';
 import { deleteIAItem } from '@/actions/internetArchive';
+import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
