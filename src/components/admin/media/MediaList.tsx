@@ -174,6 +174,9 @@ export function MediaList() {
                 <DialogTitle>
                   {"نیا میڈیا شامل کریں"}
                 </DialogTitle>
+                <DialogDescription className="sr-only">
+                  {"نیا میڈیا شامل کرنے کے لیے فارم پُر کریں"}
+                </DialogDescription>
               </DialogHeader>
 
               {(uploadType === 'آڈیو' || uploadType === 'ویڈیو') && (
@@ -236,13 +239,13 @@ export function MediaList() {
 
           return (
             <Card key={item.id} className="border-border/50 bg-card/50">
-              <CardContent className="flex items-center justify-between p-4 gap-4">
+              <CardContent className="flex flex-col sm:flex-row sm:items-center justify-between p-4 gap-4">
                 <div className="flex items-center gap-3 min-w-0 flex-1">
                   <div className="w-10 h-10 rounded bg-muted flex items-center justify-center shrink-0">
                     <TypeIcon className="h-5 w-5 text-muted-foreground" />
                   </div>
-                  <div className="min-w-0">
-                    <p className="font-medium text-foreground truncate">{item.title}</p>
+                  <div className="min-w-0 flex-1">
+                    <p className="font-medium text-foreground truncate sm:whitespace-normal">{item.title}</p>
                     <p className="text-xs text-muted-foreground">
                       {item.type === 'آڈیو'
                         ? (item.speaker || "مقرر")
@@ -252,71 +255,74 @@ export function MediaList() {
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2 shrink-0">
-                  <Badge className={statusCfg.color}>
+                <div className="flex items-center gap-2 shrink-0 flex-wrap justify-end">
+                  <Badge className={cn("text-[10px] sm:text-xs px-2 py-0", statusCfg.color)}>
                     <StatusIcon className="h-3 w-3 mr-1" />
                     {statusCfg.label}
                   </Badge>
 
-                  {item.file_url && (
-                    <Button variant="ghost" size="icon" asChild title={"فائل دیکھیں"}>
-                      <a href={resolveItemPageUrl(item.file_url)} target="_blank" rel="noopener noreferrer">
-                        <ExternalLink className="h-4 w-4" />
-                      </a>
-                    </Button>
-                  )}
-
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => setEditingItem(item)}
-                    title={"ترمیم"}
-                  >
-                    <Pencil className="h-4 w-4" />
-                  </Button>
-
-                  <Select
-                    value={item.status}
-                    onValueChange={(v: MediaStatus) => handleStatusChange(item.id, v)}
-                    disabled={actionLoading === item.id}
-                  >
-                    <SelectTrigger className="w-28">
-                      {actionLoading === item.id ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <SelectValue />
-                      )}
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="شائع شدہ">{"شائع شدہ"}</SelectItem>
-                      <SelectItem value="غیر شائع شدہ">{"غیر شائع شدہ"}</SelectItem>
-                    </SelectContent>
-                  </Select>
-
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" title={"حذف کریں"}>
-                        <Trash2 className="h-4 w-4" />
+                  <div className="flex items-center gap-1">
+                    {item.file_url && (
+                      <Button variant="ghost" size="icon" asChild title={"فائل دیکھیں"} className="h-8 w-8">
+                        <a href={resolveItemPageUrl(item.file_url)} target="_blank" rel="noopener noreferrer">
+                          <ExternalLink className="h-4 w-4" />
+                        </a>
                       </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>{"حذف کریں"}</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          {`کیا آپ واقعی "${item.title}" کو حذف کرنا چاہتے ہیں؟`}
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>{"منسوخ"}</AlertDialogCancel>
-                        <AlertDialogAction
-                          onClick={() => handleDelete(item.id)}
-                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                        >
-                          {"حذف کریں"}
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
+                    )}
+
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => setEditingItem(item)}
+                      title={"ترمیم"}
+                      className="h-8 w-8"
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+
+                    <Select
+                      value={item.status}
+                      onValueChange={(v: MediaStatus) => handleStatusChange(item.id, v)}
+                      disabled={actionLoading === item.id}
+                    >
+                      <SelectTrigger className="w-[110px] h-8 text-xs">
+                        {actionLoading === item.id ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <SelectValue />
+                        )}
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="شائع شدہ">{"شائع شدہ"}</SelectItem>
+                        <SelectItem value="غیر شائع شدہ">{"غیر شائع شدہ"}</SelectItem>
+                      </SelectContent>
+                    </Select>
+
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive h-8 w-8" title={"حذف کریں"}>
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent className="w-[90vw] max-w-md rounded-xl">
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>{"حذف کریں"}</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            {`کیا آپ واقعی "${item.title}" کو حذف کرنا چاہتے ہیں؟`}
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter className="flex-row gap-2 justify-end mt-4">
+                          <AlertDialogCancel className="mt-0">{"منسوخ"}</AlertDialogCancel>
+                          <AlertDialogAction
+                            onClick={() => handleDelete(item.id)}
+                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                          >
+                            {"حذف کریں"}
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  </div>
                 </div>
               </CardContent>
             </Card>

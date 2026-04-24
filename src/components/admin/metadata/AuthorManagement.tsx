@@ -164,7 +164,7 @@ export function AuthorManagement() {
 
                 <div className="grid gap-2">
                     {authors.map((item) => (
-                        <div key={item.id} className="flex items-center justify-between p-3 bg-muted/20 border rounded-md group">
+                        <div key={item.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-3 bg-muted/20 border rounded-md group gap-3">
                             {editingId === item.id ? (
                                 <div className="flex-1 space-y-2">
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
@@ -192,7 +192,7 @@ export function AuthorManagement() {
                                             </p>
                                         )}
                                     </div>
-                                    <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <div className="flex gap-1 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
                                         <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => {
                                             setEditingId(item.id);
                                             setEditName(item.name);

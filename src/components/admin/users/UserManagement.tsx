@@ -6,6 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { toast } from 'sonner';
 import { User, Shield, Loader2, Users, Mail } from 'lucide-react';
 import { getUsersWithRoles, updateUserRole } from '@/actions/auth';
+import { cn } from '@/lib/utils';
 
 type AppRole = 'admin' | 'user';
 
@@ -93,25 +94,25 @@ export function UserManagement() {
         </p>
       </div>
 
-      <div className="grid gap-4">
+      <div className="flex flex-col gap-4 w-full">
         {users.map((user) => {
           const config = roleConfig[user.user_role] || roleConfig.user;
           const RoleIcon = config.icon;
 
           return (
-            <Card key={user.id} className="border-border/50 bg-card/50">
-              <CardContent className="flex items-center justify-between p-4">
-                <div className="flex items-center gap-4">
-                  <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center">
-                    <User className="h-5 w-5 text-muted-foreground" />
+            <Card key={user.id} className="border-border/50 bg-card/50 overflow-hidden w-full">
+              <CardContent className="flex flex-col sm:flex-row sm:items-center justify-between p-4 gap-4 w-full">
+                <div className="flex items-center gap-3 w-full sm:w-auto min-w-0">
+                  <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                    <User className="h-5 w-5 text-primary" />
                   </div>
-                  <div>
-                    <p className="font-medium text-foreground">
+                  <div className="min-w-0 flex-1">
+                    <p className="font-medium text-foreground truncate font-sans">
                       {user.full_name}
                     </p>
                     <div className="flex flex-col gap-0.5">
-                      <p className="text-xs text-muted-foreground flex items-center gap-1">
-                        <Mail className="h-3 w-3" /> {user.email}
+                      <p className="text-xs text-muted-foreground flex items-center gap-1 truncate font-sans">
+                        <Mail className="h-3 w-3 shrink-0" /> {user.email}
                       </p>
                       <p className="text-[10px] text-muted-foreground opacity-70">
                         {`شامل ہوئے ${new Date(user.created_at).toLocaleDateString()}`}
@@ -120,9 +121,9 @@ export function UserManagement() {
                   </div>
                 </div>
 
-                <div className="flex items-center gap-3">
-                  <Badge className={config.color}>
-                    <RoleIcon className="h-3 w-3 mr-1" />
+                <div className="flex items-center justify-between sm:justify-end gap-3 w-full sm:w-auto border-t sm:border-0 pt-3 sm:pt-0 shrink-0">
+                  <Badge className={cn("px-2 py-0.5 text-[10px] sm:text-xs font-medium whitespace-nowrap", config.color)}>
+                    <RoleIcon className="h-3 w-3 ml-1" />
                     {config.label}
                   </Badge>
 
@@ -131,9 +132,9 @@ export function UserManagement() {
                     onValueChange={(value: AppRole) => handleRoleChange(user.id, value)}
                     disabled={updatingId === user.id}
                   >
-                    <SelectTrigger className="w-32">
+                    <SelectTrigger className="w-24 sm:w-28 h-8 text-[10px] sm:text-xs">
                       {updatingId === user.id ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
+                        <Loader2 className="h-3 w-3 animate-spin" />
                       ) : (
                         <SelectValue />
                       )}

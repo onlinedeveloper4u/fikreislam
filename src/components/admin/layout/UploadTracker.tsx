@@ -49,32 +49,33 @@ export function UploadTracker() {
 
     return (
         <div className="space-y-4">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
-                    <h3 className="text-lg font-medium">شامل کرنے کی صورتحال</h3>
+                    <h3 className="text-lg font-medium">{"شامل کرنے کی صورتحال"}</h3>
                     <p className="text-sm text-muted-foreground">
-                        اپنے پس منظر میں شامل ہونے والے میڈیا کی نگرانی کریں
+                        {"اپنے پس منظر میں شامل ہونے والے میڈیا کی نگرانی کریں"}
                     </p>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
                     <Button
                         variant="outline"
                         size="sm"
                         onClick={clearSuccess}
                         disabled={!activeUploads.some(u => u.status === 'completed')}
+                        className="flex-1 sm:flex-none text-[10px] sm:text-xs h-8"
                     >
-                        <CheckCircle2 className="h-4 w-4 mr-2" />
-                        صرف کامیاب صاف کریں
+                        <CheckCircle2 className="h-3 w-3 mr-1.5" />
+                        {"صرف کامیاب صاف کریں"}
                     </Button>
                     <Button
                         variant="outline"
                         size="sm"
                         onClick={clearAll}
                         disabled={activeUploads.length === 0}
-                        className="text-red-500 hover:text-red-600 hover:bg-red-50"
+                        className="flex-1 sm:flex-none text-red-500 hover:text-red-600 hover:bg-red-50 text-[10px] sm:text-xs h-8"
                     >
-                        <Trash2 className="h-4 w-4 mr-2" />
-                        تمام اشیاء صاف کریں
+                        <Trash2 className="h-3 w-3 mr-1.5" />
+                        {"تمام اشیاء صاف کریں"}
                     </Button>
                 </div>
             </div>
@@ -90,7 +91,7 @@ export function UploadTracker() {
                             <Button
                                 variant="ghost"
                                 size="icon"
-                                className="absolute top-2 left-2 opacity-0 group-hover:opacity-100 transition-opacity h-8 w-8 text-muted-foreground hover:text-red-500 hover:bg-red-50"
+                                className="absolute top-2 left-2 sm:opacity-0 group-hover:opacity-100 transition-opacity h-8 w-8 text-muted-foreground hover:text-red-500 hover:bg-red-50"
                                 onClick={() => removeUpload(upload.id)}
                                 title="حذف کریں"
                             >
@@ -98,11 +99,11 @@ export function UploadTracker() {
                             </Button>
                             <div className="flex items-start justify-between gap-4">
                                 <div className="flex-1 min-w-0">
-                                    <div className="flex items-center gap-2 mb-1">
-                                        <h4 className="font-semibold truncate">{upload.title}</h4>
+                                    <div className="flex flex-wrap items-center gap-2 mb-1.5">
+                                        <h4 className="font-semibold truncate max-w-[200px] sm:max-w-none font-sans">{upload.title}</h4>
                                         {getStatusBadge(upload.status)}
                                     </div>
-                                    <p className="text-xs text-muted-foreground truncate mb-4">
+                                    <p className="text-[10px] sm:text-xs text-muted-foreground truncate mb-4 font-sans opacity-70">
                                         {upload.fileName} • {new Date(upload.startTime).toLocaleTimeString('ur-PK', { hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: true })}
                                     </p>
 

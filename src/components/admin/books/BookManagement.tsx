@@ -261,14 +261,14 @@ export function BookManagement() {
                     <div key={work.id}>
                         <Card className="border-border/50 bg-card/50">
                             <CardContent className="p-4">
-                                <div className="flex items-center justify-between gap-4">
+                                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                                     <div className="flex items-center gap-3 min-w-0 flex-1">
                                         <div className="w-10 h-10 rounded bg-muted flex items-center justify-center shrink-0">
                                             <BookOpen className="h-5 w-5 text-muted-foreground" />
                                         </div>
-                                        <div className="min-w-0">
-                                            <p className="font-medium text-foreground truncate">{work.primaryTitle}</p>
-                                            <p className="text-xs text-muted-foreground">
+                                        <div className="min-w-0 flex-1">
+                                            <p className="font-medium text-foreground truncate font-sans">{work.primaryTitle}</p>
+                                            <p className="text-xs text-muted-foreground truncate font-sans">
                                                 {work.authors.map(a => a.name).join('، ') || 'نامعلوم مصنف'}
                                                 {' • '}
                                                 {work.originalLanguage?.name || '—'}
@@ -276,26 +276,26 @@ export function BookManagement() {
                                         </div>
                                     </div>
 
-                                    <div className="flex items-center gap-2 shrink-0">
-                                        <Badge variant="outline" className="text-xs">
+                                    <div className="flex items-center gap-1 sm:gap-2 shrink-0 self-end sm:self-auto border-t sm:border-0 pt-2 sm:pt-0 w-full sm:w-auto justify-end">
+                                        <Badge variant="outline" className="text-[10px] sm:text-xs">
                                             {work.type === 'book' ? 'کتاب' : work.type === 'article' ? 'مقالہ' : work.type === 'fatwa' ? 'فتویٰ' : 'دیگر'}
                                         </Badge>
-                                        <Badge className="bg-primary/10 text-primary text-xs">
-                                            <BookCopy className="h-3 w-3 mr-1" />
+                                        <Badge className="bg-primary/10 text-primary text-[10px] sm:text-xs">
+                                            <BookCopy className="h-3 w-3 ml-1" />
                                             {work.publicationsCount} {"اشاعت"}
                                         </Badge>
 
-                                        <Button variant="ghost" size="icon" title="اشاعتیں دیکھیں" onClick={() => handleExpandWork(work.id)}>
+                                        <Button variant="ghost" size="icon" className="h-8 w-8" title="اشاعتیں دیکھیں" onClick={() => handleExpandWork(work.id)}>
                                             {expandedWork === work.id ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
                                         </Button>
 
-                                        <Button variant="ghost" size="icon" title="ترمیم" onClick={() => { setEditingWork(work); setWorkDialogOpen(true); }}>
+                                        <Button variant="ghost" size="icon" className="h-8 w-8" title="ترمیم" onClick={() => { setEditingWork(work); setWorkDialogOpen(true); }}>
                                             <Pencil className="h-4 w-4" />
                                         </Button>
 
                                         <AlertDialog>
                                             <AlertDialogTrigger asChild>
-                                                <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" title="حذف کریں">
+                                                <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" title="حذف کریں">
                                                     <Trash2 className="h-4 w-4" />
                                                 </Button>
                                             </AlertDialogTrigger>
@@ -408,14 +408,16 @@ export function BookManagement() {
                                                     {pub.iaIdentifiers.length > 0 && (
                                                         <div className="flex flex-wrap gap-2 mt-2">
                                                             {pub.iaIdentifiers.map((ia) => (
-                                                                <div key={ia.volume} className="flex items-center gap-1 bg-background/80 border rounded px-2 py-1 text-xs">
+                                                                <div key={ia.volume} className="flex flex-col sm:flex-row sm:items-center gap-1 bg-background/80 border rounded px-2 py-1.5 sm:py-1 text-[10px] sm:text-xs w-full sm:w-auto">
                                                                     <span className="font-medium">{"جلد"} {ia.volume}:</span>
-                                                                    <a href={`https://archive.org/details/${ia.identifier}`} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline inline-flex items-center gap-0.5">
-                                                                        <Eye className="h-3 w-3" /> {"پڑھیں"}
-                                                                    </a>
-                                                                    <a href={`https://archive.org/download/${ia.identifier}`} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline inline-flex items-center gap-0.5">
-                                                                        <Download className="h-3 w-3" /> {"ڈاؤنلوڈ"}
-                                                                    </a>
+                                                                    <div className="flex gap-2">
+                                                                        <a href={`https://archive.org/details/${ia.identifier}`} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline inline-flex items-center gap-0.5">
+                                                                            <Eye className="h-3 w-3" /> {"پڑھیں"}
+                                                                        </a>
+                                                                        <a href={`https://archive.org/download/${ia.identifier}`} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline inline-flex items-center gap-0.5">
+                                                                            <Download className="h-3 w-3" /> {"ڈاؤنلوڈ"}
+                                                                        </a>
+                                                                    </div>
                                                                 </div>
                                                             ))}
                                                         </div>

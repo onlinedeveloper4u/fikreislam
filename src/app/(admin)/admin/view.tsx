@@ -54,8 +54,8 @@ export function DashboardView({ activeTab }: DashboardViewProps) {
 
   return (
     <NextDashboardLayout activeTab={activeTab}>
-      <div className="space-y-6">
-        <h1 className="text-2xl font-bold font-urdu">
+      <div className="space-y-6 w-full overflow-x-hidden">
+        <h1 className="text-2xl font-bold font-urdu hidden md:block">
           {tabTitles[activeTab] || "ڈیش بورڈ"}
         </h1>
         <Suspense fallback={<LoadingSpinner size="lg" />}>

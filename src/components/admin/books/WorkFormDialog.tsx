@@ -5,7 +5,7 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
-    Dialog, DialogContent, DialogHeader, DialogTitle,
+    Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle,
 } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import { Loader2, Save, X, Plus } from 'lucide-react';
@@ -197,6 +197,9 @@ export function WorkFormDialog({ open, onOpenChange, editingWork, onSuccess }: W
             <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
                     <DialogTitle>{editingWork ? "تصنیف میں ترمیم کریں" : "نئی تصنیف شامل کریں"}</DialogTitle>
+                    <DialogDescription className="sr-only">
+                        {"تصنیف کی معلومات درج کرنے کے لیے فارم استعمال کریں"}
+                    </DialogDescription>
                 </DialogHeader>
                 <form onSubmit={handleSubmit} className="space-y-5">
                     {/* Primary Title */}

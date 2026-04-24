@@ -8,6 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import {
     Dialog,
     DialogContent,
+    DialogDescription,
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
@@ -108,6 +109,9 @@ export function BookEditDialog({ content, open, onOpenChange, onSuccess }: BookE
             <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
                     <DialogTitle>{"مواد میں ترمیم کریں"} (کتاب)</DialogTitle>
+                    <DialogDescription className="sr-only">
+                        {"کتاب کی معلومات تبدیل کرنے کے لیے فارم استعمال کریں"}
+                    </DialogDescription>
                 </DialogHeader>
                 <form onSubmit={handleSubmit} className="space-y-4">
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">

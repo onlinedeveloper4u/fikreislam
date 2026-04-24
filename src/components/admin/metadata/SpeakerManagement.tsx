@@ -145,7 +145,7 @@ export function SpeakerManagement() {
 
                 <div className="grid gap-2">
                     {speakers.map((item) => (
-                        <div key={item.id} className="flex items-center justify-between p-3 bg-muted/20 border rounded-md group">
+                        <div key={item.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-3 bg-muted/20 border rounded-md group gap-3">
                             {editingId === item.id ? (
                                 <div className="flex-1 flex gap-2">
                                     <Input
@@ -164,7 +164,7 @@ export function SpeakerManagement() {
                             ) : (
                                 <>
                                     <span className="font-medium">{item.name}</span>
-                                    <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <div className="flex gap-1 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
                                         <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => { setEditingId(item.id); setEditName(item.name); }}>
                                             <Pencil className="h-4 w-4" />
                                         </Button>

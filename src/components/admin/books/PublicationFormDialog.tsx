@@ -5,7 +5,7 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import {
-    Dialog, DialogContent, DialogHeader, DialogTitle,
+    Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle,
 } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import { Loader2, Save, X, Upload, FileText, CheckCircle, Plus } from 'lucide-react';
@@ -270,6 +270,9 @@ export function PublicationFormDialog({ open, onOpenChange, workId, editingPub, 
             <DialogContent className="sm:max-w-[650px] max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
                     <DialogTitle>{editingPub ? "اشاعت میں ترمیم کریں" : "نئی اشاعت شامل کریں"}</DialogTitle>
+                    <DialogDescription className="sr-only">
+                        {"اشاعت کی معلومات درج کرنے کے لیے فارم استعمال کریں"}
+                    </DialogDescription>
                 </DialogHeader>
                 <form onSubmit={handleSubmit} className="space-y-5">
                     {/* Title */}

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import {
-    Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
+    Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -87,6 +87,9 @@ export function QuickAddMetadataDialog({ type, open, onOpenChange, onSuccess, in
             <DialogContent className="sm:max-w-[425px]">
                 <DialogHeader>
                     <DialogTitle>{getTitle()}</DialogTitle>
+                    <DialogDescription className="sr-only">
+                        {"نئی معلومات شامل کرنے کے لیے فارم استعمال کریں"}
+                    </DialogDescription>
                 </DialogHeader>
                 <form onSubmit={handleSubmit} className="space-y-4 py-4">
                     <div className="space-y-2">

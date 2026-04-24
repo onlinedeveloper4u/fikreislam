@@ -111,19 +111,19 @@ export function AdminAnalytics() {
         </Select>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {statCards.map((stat) => {
           const Icon = stat.icon;
           return (
             <Card key={stat.label} className="border-border/50 bg-card/50 backdrop-blur">
-              <CardContent className="p-4">
-                <div className="flex items-center gap-3">
-                  <div className={`p-2 rounded-lg bg-muted ${stat.color}`}>
-                    <Icon className="h-5 w-5" />
+              <CardContent className="p-4 sm:p-6">
+                <div className="flex items-center gap-4">
+                  <div className={`p-3 rounded-xl bg-muted ${stat.color} shrink-0`}>
+                    <Icon className="h-6 w-6" />
                   </div>
-                  <div>
-                    <p className="text-2xl font-bold">{stat.value}</p>
-                    <p className="text-xs text-muted-foreground">{stat.label}</p>
+                  <div className="min-w-0">
+                    <p className="text-2xl sm:text-3xl font-bold truncate">{stat.value}</p>
+                    <p className="text-xs sm:text-sm text-muted-foreground font-urdu">{stat.label}</p>
                   </div>
                 </div>
               </CardContent>
