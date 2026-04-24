@@ -151,7 +151,7 @@ export async function getUsersWithRoles() {
 export async function updateUserRole(userId: string, newRole: 'owner' | 'admin' | 'user') {
   await dbConnect();
   try {
-    const session = await getUserSession();
+    const session = await getUserSession() as any;
     if (!session || !isSuperAdmin(session.role as string)) {
       return { error: new Error('صرف سپر ایڈمن کردار تبدیل کر سکتا ہے') };
     }
@@ -228,7 +228,7 @@ export async function resetPassword(token: string, newPasswordHash: string) {
 export async function updateProfile(data: { fullName?: string, password?: string }) {
   await dbConnect();
   try {
-    const session = await getUserSession();
+    const session = await getUserSession() as any;
     if (!session || !session.userId) {
       return { error: new Error('Unauthorized') };
     }
