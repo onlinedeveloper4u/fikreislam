@@ -11,6 +11,10 @@ const JWT_SECRET = new TextEncoder().encode(
   process.env.JWT_SECRET
 );
 
+function isSuperAdmin(role: string) {
+  return role === 'owner';
+}
+
 export async function getUserSession() {
   const cookieStore = await cookies();
   const token = cookieStore.get('session')?.value;
@@ -18,7 +22,10 @@ export async function getUserSession() {
 
   try {
     const { payload } = await jwtVerify(token, JWT_SECRET);
-    return payload; // { userId, email, role, fullName }
+    return {
+      ...payload,
+      isSuperAdmin: isSuperAdmin(payload.role as string)
+    }; // { userId, email, role, fullName, isSuperAdmin }
   } catch (error) {
     return null;
   }
@@ -108,7 +115,8 @@ export async function signIn(email: string, passwordHash: string) {
         id: user._id.toString(), 
         email: user.email, 
         fullName: user.fullName,
-        role: user.role
+        role: user.role,
+        isSuperAdmin: isSuperAdmin(user.role)
       },
       error: null 
     };
@@ -140,9 +148,14 @@ export async function getUsersWithRoles() {
   }
 }
 
-export async function updateUserRole(userId: string, newRole: 'admin' | 'user') {
+export async function updateUserRole(userId: string, newRole: 'owner' | 'admin' | 'user') {
   await dbConnect();
   try {
+    const session = await getUserSession();
+    if (!session || !isSuperAdmin(session.role as string)) {
+      return { error: new Error('صرف سپر ایڈمن کردار تبدیل کر سکتا ہے') };
+    }
+
     const user = await User.findByIdAndUpdate(userId, { role: newRole }, { new: true });
     return { data: user, error: null };
   } catch (error: any) {

@@ -3,12 +3,13 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
 import { getUserSession, signUp as serverSignUp, signIn as serverSignIn, signOut as serverSignOut } from "@/actions/auth";
 
-type AppRole = 'admin' | 'user';
+type AppRole = 'owner' | 'admin' | 'user';
 
 interface User {
   id: string;
   email?: string;
   fullName?: string;
+  isSuperAdmin?: boolean;
 }
 
 interface AuthContextType {
@@ -44,7 +45,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser({
         id: payload.userId as string,
         email: payload.email as string,
-        fullName: payload.fullName as string
+        fullName: payload.fullName as string,
+        isSuperAdmin: payload.isSuperAdmin as boolean
       });
       setRole(payload.role as AppRole);
       setSession(payload);
@@ -70,7 +72,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const res = await serverSignIn(email, password);
     if (!res.error && res.user) {
       const u = res.user;
-      setUser({ id: u.id, email: u.email, fullName: u.fullName });
+      setUser({ id: u.id, email: u.email, fullName: u.fullName, isSuperAdmin: u.isSuperAdmin });
       setRole(u.role);
       setSession(u);
     }

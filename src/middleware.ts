@@ -24,8 +24,9 @@ export async function middleware(req: NextRequest) {
 
   try {
     const { payload } = await jwtVerify(token, JWT_SECRET);
+    const role = payload.role as string;
 
-    if (payload.role !== 'admin') {
+    if (role !== 'admin' && role !== 'owner') {
       return NextResponse.redirect(new URL('/login', req.url));
     }
 
