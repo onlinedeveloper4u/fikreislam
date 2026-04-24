@@ -40,7 +40,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   async function refreshSession() {
-    const payload = await getUserSession();
+    const payload = await getUserSession() as any;
     if (payload) {
       setUser({
         id: payload.userId as string,
