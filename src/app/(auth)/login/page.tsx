@@ -5,8 +5,8 @@ import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Mail, Lock, LogIn, Loader2, AlertCircle, Eye, EyeOff } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { signIn } from '@/actions/auth';
 import { toast } from 'sonner';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -15,6 +15,7 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
+  const { signIn: authSignIn } = useAuth();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -22,7 +23,7 @@ export default function LoginPage() {
     setError(null);
 
     try {
-      const result = await signIn(email, password);
+      const result = await authSignIn(email, password);
       if (result.error) {
         setError("غلط ای میل یا پاس ورڈ درج کیا گیا ہے۔");
         toast.error("لاگ ان ناکام ہو گیا");

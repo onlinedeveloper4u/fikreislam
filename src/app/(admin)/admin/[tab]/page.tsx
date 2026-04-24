@@ -20,6 +20,7 @@ export async function generateMetadata({
     'media-types': "میڈیا کی قسم",
     'categories': "زمرہ",
     'books': "کتب کا انتظام",
+    'settings': "ترتیبات",
   };
   
   return {

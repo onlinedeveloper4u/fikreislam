@@ -15,6 +15,7 @@ const MediaTypeManagement = lazy(() => import("@/components/admin/media/MediaTyp
 const CategoryManagement = lazy(() => import("@/components/admin/metadata/CategoryManagement").then(m => ({ default: m.CategoryManagement })));
 const BookManagement = lazy(() => import("@/components/admin/books/BookManagement").then(m => ({ default: m.BookManagement })));
 const UploadTracker = lazy(() => import("@/components/admin/layout/UploadTracker").then(m => ({ default: m.UploadTracker })));
+const ProfileSettings = lazy(() => import("@/components/admin/settings/ProfileSettings").then(m => ({ default: m.ProfileSettings })));
 
 interface DashboardViewProps {
   activeTab: string;
@@ -32,6 +33,7 @@ const tabTitles: Record<string, string> = {
   'media-types': "میڈیا کی قسم",
   'categories': "زمرہ",
   'books': "کتب کا انتظام",
+  'settings': "ترتیبات",
 };
 
 export function DashboardView({ activeTab }: DashboardViewProps) {
@@ -48,6 +50,7 @@ export function DashboardView({ activeTab }: DashboardViewProps) {
       case 'media-types': return <MediaTypeManagement />;
       case 'categories': return <CategoryManagement />;
       case 'books': return <BookManagement />;
+      case 'settings': return <ProfileSettings />;
       default: return <AdminAnalytics />;
     }
   };

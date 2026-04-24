@@ -31,14 +31,25 @@ import {
   Globe,
   Music,
   LayoutGrid,
+  Settings,
+  ChevronUp,
+  UserCircle,
 } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+} from '@/components/ui/dropdown-menu';
+import Image from 'next/image';
 
 interface DashboardSidebarProps {
   activeTab: string;
 }
 
 export function NextDashboardSidebar({ activeTab }: DashboardSidebarProps) {
-  const { signOut } = useAuth();
+  const { user, signOut } = useAuth();
   const { dir } = useLanguage();
   const pathname = usePathname();
   const router = useRouter();
@@ -70,21 +81,28 @@ export function NextDashboardSidebar({ activeTab }: DashboardSidebarProps) {
 
   return (
     <Sidebar collapsible="icon" side={dir === 'rtl' ? 'right' : 'left'}>
-      <SidebarHeader className="border-b border-sidebar-border">
-        <div className="flex items-center gap-2 group-data-[collapsible=icon]:justify-center px-2 py-2">
-          <div className="flex items-center gap-2 group-data-[collapsible=icon]:hidden">
-            <Link href="/admin" className="flex items-center gap-2">
-              <div className="flex flex-col">
-                <span className="font-display text-sm font-semibold text-sidebar-foreground">
-                  {"ڈیش بورڈ"}
-                </span>
-                <span className="text-xs text-sidebar-foreground/70 capitalize flex items-center gap-1">
-                  {"منتظم"}
-                </span>
-              </div>
-            </Link>
+      <SidebarHeader className="border-b border-sidebar-border h-20 flex items-center">
+        <div className="flex items-center gap-3 w-full px-4 overflow-hidden">
+          <Link href="/admin" className="flex items-center gap-3 min-w-0">
+            <div className="relative h-12 w-12 shrink-0">
+              <Image
+                src="/logo.png"
+                alt="Logo"
+                fill
+                sizes="48px"
+                className="object-contain"
+                priority
+              />
+            </div>
+            <div className="flex flex-col min-w-0 group-data-[collapsible=icon]:hidden pt-1">
+              <span className="text-lg text-sidebar-foreground/60 font-medium uppercase tracking-wider">
+                {"انتظامی پینل"}
+              </span>
+            </div>
+          </Link>
+          <div className="ms-auto group-data-[collapsible=icon]:hidden">
+            <SidebarTrigger className="h-8 w-8" />
           </div>
-          <SidebarTrigger className="group-data-[collapsible=icon]:block" />
         </div>
       </SidebarHeader>
 
@@ -158,25 +176,50 @@ export function NextDashboardSidebar({ activeTab }: DashboardSidebarProps) {
         </SidebarGroup>
       </SidebarContent>
 
-      <SidebarFooter className="border-t border-sidebar-border">
+      <SidebarFooter className="border-t border-sidebar-border p-2">
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton asChild tooltip={"واپس ہوم پیج پر جائیں"}>
-              <Link href="/">
-                <Home className="h-4 w-4" />
-                <span>{"واپس ہوم پیج پر جائیں"}</span>
-              </Link>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-          <SidebarMenuItem>
-            <SidebarMenuButton
-              onClick={handleSignOut}
-              tooltip={"باہر نکلیں"}
-              className="text-destructive hover:text-destructive hover:bg-destructive/10"
-            >
-              <LogOut className={`h-4 w-4 ${dir === 'rtl' ? 'rotate-180' : ''}`} />
-              <span>{"باہر نکلیں"}</span>
-            </SidebarMenuButton>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <SidebarMenuButton size="lg" className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                    <UserCircle className="h-5 w-5" />
+                  </div>
+                  <div className="grid flex-1 text-right text-sm leading-tight group-data-[collapsible=icon]:hidden mr-2">
+                    <span className="truncate font-semibold">{user?.fullName || "صارف"}</span>
+                    <span className="truncate text-xs text-muted-foreground">{user?.email}</span>
+                  </div>
+                  <ChevronUp className="ms-auto h-4 w-4 group-data-[collapsible=icon]:hidden" />
+                </SidebarMenuButton>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent
+                side="top"
+                className="w-[--radix-dropdown-menu-trigger-width] min-w-56 rounded-lg"
+                align="start"
+                sideOffset={4}
+              >
+                <DropdownMenuItem asChild>
+                  <Link href="/admin/settings" className="flex items-center gap-2 w-full cursor-pointer">
+                    <Settings className="h-4 w-4" />
+                    <span>{"ترتیبات"}</span>
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href="/" className="flex items-center gap-2 w-full cursor-pointer">
+                    <Home className="h-4 w-4" />
+                    <span>{"واپس ہوم پیج پر جائیں"}</span>
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={handleSignOut}
+                  className="flex items-center gap-2 text-destructive focus:text-destructive cursor-pointer"
+                >
+                  <LogOut className={`h-4 w-4 ${dir === 'rtl' ? 'rotate-180' : ''}`} />
+                  <span>{"باہر نکلیں"}</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarFooter>

@@ -24,6 +24,32 @@ export async function getUserSession() {
   }
 }
 
+async function setSessionCookie(user: any) {
+  // Ensure we have plain values even if user is a Mongoose document
+  const userId = user._id ? user._id.toString() : user.id;
+  const email = user.email;
+  const role = user.role;
+  const fullName = user.fullName || user.full_name || '';
+
+  const token = await new SignJWT({
+    userId,
+    email,
+    role,
+    fullName
+  })
+    .setProtectedHeader({ alg: 'HS256' })
+    .setExpirationTime('7d')
+    .sign(JWT_SECRET);
+
+  const cookieStore = await cookies();
+  cookieStore.set('session', token, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    path: '/'
+  });
+}
+
 export async function signUp(email: string, passwordHash: string, fullName: string) {
   await dbConnect();
 
@@ -43,25 +69,19 @@ export async function signUp(email: string, passwordHash: string, fullName: stri
       role: 'user'
     });
 
-    const token = await new SignJWT({
-      userId: user._id.toString(),
-      email: user.email,
-      role: user.role,
-      fullName: user.fullName
-    })
-      .setProtectedHeader({ alg: 'HS256' })
-      .setExpirationTime('7d')
-      .sign(JWT_SECRET);
+    await setSessionCookie(user);
 
-    const cookieStore = await cookies();
-    cookieStore.set('session', token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      path: '/'
-    });
-
-    return { session: { user: { id: user._id.toString(), email } }, error: null };
+    return { 
+      session: { 
+        user: { 
+          id: user._id.toString(), 
+          email: user.email, 
+          fullName: user.fullName,
+          role: user.role
+        } 
+      }, 
+      error: null 
+    };
   } catch (error: any) {
     return { session: null, error };
   }
@@ -81,25 +101,17 @@ export async function signIn(email: string, passwordHash: string) {
       return { error: new Error('Invalid credentials') };
     }
 
-    const token = await new SignJWT({
-      userId: user._id.toString(),
-      email: user.email,
-      role: user.role,
-      fullName: user.fullName
-    })
-      .setProtectedHeader({ alg: 'HS256' })
-      .setExpirationTime('7d')
-      .sign(JWT_SECRET);
+    await setSessionCookie(user);
 
-    const cookieStore = await cookies();
-    cookieStore.set('session', token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      path: '/'
-    });
-
-    return { error: null };
+    return { 
+      user: { 
+        id: user._id.toString(), 
+        email: user.email, 
+        fullName: user.fullName,
+        role: user.role
+      },
+      error: null 
+    };
   } catch (error: any) {
     return { error };
   }
@@ -195,6 +207,35 @@ export async function resetPassword(token: string, newPasswordHash: string) {
     }
 
     return { success: true };
+  } catch (error: any) {
+    return { error };
+  }
+}
+
+export async function updateProfile(data: { fullName?: string, password?: string }) {
+  await dbConnect();
+  try {
+    const session = await getUserSession();
+    if (!session || !session.userId) {
+      return { error: new Error('Unauthorized') };
+    }
+
+    const updates: any = {};
+    if (data.fullName) updates.fullName = data.fullName;
+    if (data.password) {
+      const salt = await bcrypt.genSalt(10);
+      updates.passwordHash = await bcrypt.hash(data.password, salt);
+    }
+
+    const user = await User.findByIdAndUpdate(session.userId, updates, { new: true });
+    if (!user) {
+      return { error: new Error('User not found') };
+    }
+
+    // Re-issue session cookie with new data (e.g. updated fullName)
+    await setSessionCookie(user);
+
+    return { success: true, data: { fullName: user.fullName } };
   } catch (error: any) {
     return { error };
   }
