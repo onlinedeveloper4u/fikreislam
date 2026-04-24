@@ -81,9 +81,9 @@ export function NextDashboardSidebar({ activeTab }: DashboardSidebarProps) {
 
   return (
     <Sidebar collapsible="icon" side={dir === 'rtl' ? 'right' : 'left'}>
-      <SidebarHeader className="border-b border-sidebar-border h-20 flex items-center">
-        <div className="flex items-center gap-3 w-full px-4 overflow-hidden">
-          <Link href="/admin" className="flex items-center gap-3 min-w-0">
+      <SidebarHeader className="border-b border-sidebar-border h-20 flex items-center justify-center">
+        <div className="flex items-center justify-between w-full px-4 group-data-[collapsible=icon]:px-0 group-data-[collapsible=icon]:justify-center">
+          <Link href="/admin" className="flex items-center gap-3 min-w-0 group-data-[collapsible=icon]:hidden">
             <div className="relative h-12 w-12 shrink-0">
               <Image
                 src="/logo.png"
@@ -94,15 +94,13 @@ export function NextDashboardSidebar({ activeTab }: DashboardSidebarProps) {
                 priority
               />
             </div>
-            <div className="flex flex-col min-w-0 group-data-[collapsible=icon]:hidden pt-1">
+            <div className="flex flex-col min-w-0 pt-1">
               <span className="text-lg text-sidebar-foreground/60 font-medium uppercase tracking-wider">
                 {"انتظامی پینل"}
               </span>
             </div>
           </Link>
-          <div className="ms-auto group-data-[collapsible=icon]:hidden">
-            <SidebarTrigger className="h-8 w-8" />
-          </div>
+          <SidebarTrigger className="h-8 w-8" />
         </div>
       </SidebarHeader>
 
