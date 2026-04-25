@@ -109,7 +109,9 @@ export function NextDashboardSidebar({ activeTab }: DashboardSidebarProps) {
           <SidebarGroupLabel>{"تجزیات اور نظام"}</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {systemItems.map((item) => (
+              {systemItems
+                .filter(item => item.id !== 'users' || user?.isSuperAdmin)
+                .map((item) => (
                 <SidebarMenuItem key={item.id}>
                   <SidebarMenuButton
                     isActive={pathname === item.path}
@@ -127,29 +129,32 @@ export function NextDashboardSidebar({ activeTab }: DashboardSidebarProps) {
           </SidebarGroupContent>
         </SidebarGroup>
 
-        <SidebarSeparator />
-
-        <SidebarGroup>
-          <SidebarGroupLabel>{"میٹا ڈیٹا اور زمرہ جات"}</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {taxonomyItems.map((item) => (
-                <SidebarMenuItem key={item.id}>
-                  <SidebarMenuButton
-                    isActive={pathname === item.path}
-                    asChild
-                    tooltip={item.title}
-                  >
-                    <Link href={item.path}>
-                      <item.icon className="h-4 w-4" />
-                      <span>{item.title}</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
+        {user?.isSuperAdmin && (
+          <>
+            <SidebarSeparator />
+            <SidebarGroup>
+              <SidebarGroupLabel>{"میٹا ڈیٹا اور زمرہ جات"}</SidebarGroupLabel>
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  {taxonomyItems.map((item) => (
+                    <SidebarMenuItem key={item.id}>
+                      <SidebarMenuButton
+                        isActive={pathname === item.path}
+                        asChild
+                        tooltip={item.title}
+                      >
+                        <Link href={item.path}>
+                          <item.icon className="h-4 w-4" />
+                          <span>{item.title}</span>
+                        </Link>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  ))}
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+          </>
+        )}
 
         <SidebarGroup>
           <SidebarGroupLabel>{"میڈیا کا انتظام"}</SidebarGroupLabel>

@@ -30,6 +30,23 @@ export async function middleware(req: NextRequest) {
       return NextResponse.redirect(new URL('/login', req.url));
     }
 
+    // Protect Super Admin specific routes
+    const superAdminRoutes = [
+      '/admin/users',
+      '/admin/speakers',
+      '/admin/authors',
+      '/admin/publishers',
+      '/admin/languages',
+      '/admin/media-types',
+      '/admin/categories',
+    ];
+
+    const isSuperAdminRoute = superAdminRoutes.some(route => pathname.startsWith(route));
+    if (isSuperAdminRoute && role !== 'owner') {
+      // Redirect regular admins to dashboard if they try to access super admin routes
+      return NextResponse.redirect(new URL('/admin/analytics', req.url));
+    }
+
     return NextResponse.next();
   } catch (error) {
     // Invalid token
