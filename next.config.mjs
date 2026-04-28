@@ -6,11 +6,11 @@ const nextConfig = {
     remotePatterns: [
       {
         protocol: 'https',
-        hostname: 'lh3.googleusercontent.com',
+        hostname: 'archive.org',
       },
       {
         protocol: 'https',
-        hostname: 'drive.google.com',
+        hostname: 's3.us.archive.org',
       },
     ],
   },
@@ -40,6 +40,7 @@ const nextConfig = {
   },
   // Keep heavy Node.js-only packages out of the SWC bundle analysis
   serverExternalPackages: ['mongoose', 'bcryptjs'],
+  allowedDevOrigins: ['mbp22.local'],
 }
 
 export default nextConfig

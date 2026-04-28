@@ -3,6 +3,7 @@
 import { motion, Variants } from "framer-motion";
 import Image from "next/image";
 import { Book, Headphones, Video, Sparkles, Search, Heart, Globe, BookOpen } from "lucide-react";
+import { PublicContentSection } from "@/components/home/PublicContentSection";
 
 const containerVariants: Variants = {
   hidden: { opacity: 0 },
@@ -120,6 +121,9 @@ export const HomeView = () => {
         </div>
         <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-background to-transparent" />
       </section>
+
+      {/* Main Content Section */}
+      <PublicContentSection />
 
       {/* Features Section */}
       <section className="py-24 bg-background relative overflow-hidden">
