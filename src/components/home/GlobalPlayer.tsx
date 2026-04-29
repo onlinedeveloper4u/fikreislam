@@ -12,7 +12,8 @@ export const GlobalPlayer = () => {
         isPlaying, 
         playbackRate, 
         currentTime, 
-        duration, 
+        duration,
+        volume,
         isMinimized,
         isLooping,
         togglePlay,
@@ -20,6 +21,7 @@ export const GlobalPlayer = () => {
         skip,
         seek,
         setRate,
+        setVolume,
         setMinimized,
         close
     } = usePlayer();
@@ -54,6 +56,8 @@ export const GlobalPlayer = () => {
                 onSkip={skip}
                 isLooping={isLooping}
                 toggleLoop={toggleLoop}
+                volume={volume}
+                onVolumeChange={setVolume}
                 onDownload={handleDownload}
             />
 
@@ -67,6 +71,8 @@ export const GlobalPlayer = () => {
                 type={activeItem.type}
                 playbackRate={playbackRate}
                 onRateChange={setRate}
+                volume={volume}
+                onVolumeChange={setVolume}
             />
         </>
     );

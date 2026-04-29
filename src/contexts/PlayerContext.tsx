@@ -25,6 +25,7 @@ interface PlayerContextType {
   playbackRate: number;
   currentTime: number;
   duration: number;
+  volume: number;
   isMinimized: boolean;
   isLooping: boolean;
   play: (item: ContentItem) => void;
@@ -34,6 +35,7 @@ interface PlayerContextType {
   skip: (seconds: number) => void;
   seek: (time: number) => void;
   setRate: (rate: number) => void;
+  setVolume: (volume: number) => void;
   setMinimized: (minimized: boolean) => void;
   close: () => void;
 }
@@ -46,6 +48,7 @@ export const PlayerProvider = ({ children }: { children: React.ReactNode }) => {
   const [playbackRate, setPlaybackRate] = useState(1);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
+  const [volume, setVolumeState] = useState(1);
   const [isMinimized, setIsMinimized] = useState(true);
   const [isLooping, setIsLooping] = useState(false);
   
@@ -88,6 +91,7 @@ export const PlayerProvider = ({ children }: { children: React.ReactNode }) => {
         
         audioRef.current.src = url;
         audioRef.current.playbackRate = playbackRate;
+        audioRef.current.volume = volume;
         if (isPlaying) {
             audioRef.current.play().catch(console.error);
         }
@@ -99,6 +103,12 @@ export const PlayerProvider = ({ children }: { children: React.ReactNode }) => {
         audioRef.current.playbackRate = playbackRate;
     }
   }, [playbackRate]);
+
+  useEffect(() => {
+    if (audioRef.current) {
+        audioRef.current.volume = volume;
+    }
+  }, [volume]);
 
   const play = useCallback((item: ContentItem) => {
     setActiveItem(item);
@@ -144,6 +154,10 @@ export const PlayerProvider = ({ children }: { children: React.ReactNode }) => {
     setPlaybackRate(rate);
   }, []);
 
+  const setVolume = useCallback((val: number) => {
+    setVolumeState(val);
+  }, []);
+
   const setMinimized = useCallback((minimized: boolean) => {
     setIsMinimized(minimized);
   }, []);
@@ -163,6 +177,7 @@ export const PlayerProvider = ({ children }: { children: React.ReactNode }) => {
       playbackRate,
       currentTime,
       duration,
+      volume,
       isMinimized,
       isLooping,
       play,
@@ -172,6 +187,7 @@ export const PlayerProvider = ({ children }: { children: React.ReactNode }) => {
       skip,
       seek,
       setRate,
+      setVolume,
       setMinimized,
       close
     }}>
