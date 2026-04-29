@@ -4,7 +4,8 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Music, Video, BookOpen, Search, Download, Play,
-  Calendar, Loader2, Clock, User, Filter, X
+  Calendar, Loader2, Clock, User, Filter, X,
+  LayoutGrid
 } from 'lucide-react';
 import { getApprovedMedia } from '@/actions/media';
 import { getWorks } from '@/actions/books';
@@ -16,7 +17,7 @@ import { resolveItemPageUrl, resolveExternalUrl } from '@/lib/storage';
 import Image from 'next/image';
 import { usePlayer } from '@/contexts/PlayerContext';
 
-type ContentType = 'audio' | 'video' | 'book';
+type ContentType = 'audio' | 'video' | 'book' | 'all';
 
 interface ContentItem {
   id: string;
@@ -33,7 +34,7 @@ interface ContentItem {
 }
 
 export const PublicContentSection = () => {
-  const [activeTab, setActiveTab] = useState<ContentType>('audio');
+  const [activeTab, setActiveTab] = useState<ContentType>('all');
   const [items, setItems] = useState<ContentItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -47,7 +48,50 @@ export const PublicContentSection = () => {
   const loadContent = async () => {
     setLoading(true);
     try {
-      if (activeTab === 'book') {
+      if (activeTab === 'all') {
+        const [mediaRes, booksRes] = await Promise.all([
+          getApprovedMedia(100),
+          getWorks()
+        ]);
+
+        let allItems: ContentItem[] = [];
+
+        if (mediaRes.data) {
+          allItems = [...allItems, ...mediaRes.data.map((m: any) => ({
+            id: m.id,
+            title: m.title,
+            type: m.type === 'آڈیو' ? 'audio' : 'video' as ContentType,
+            author: m.speaker,
+            description: m.description,
+            cover_image_url: m.cover_image_url,
+            file_url: m.file_url,
+            file_size: m.file_size,
+            duration: m.duration,
+            date: m.created_at,
+            language: m.language,
+          }))];
+        }
+
+        if (booksRes.data) {
+          allItems = [...allItems, ...booksRes.data.map((w: any) => ({
+            id: w.id,
+            title: w.primaryTitle,
+            type: 'book' as ContentType,
+            author: w.authors?.map((a: any) => a.name).join(', '),
+            description: w.titles?.[0] || '',
+            date: w.createdAt,
+          }))];
+        }
+
+        // Sort by date (most recent first)
+        allItems.sort((a, b) => {
+          const dateA = a.date ? new Date(a.date).getTime() : 0;
+          const dateB = b.date ? new Date(b.date).getTime() : 0;
+          return dateB - dateA;
+        });
+
+        setItems(allItems);
+      } else if (activeTab === 'book') {
         const { data, error } = await getWorks();
         if (data) {
           setItems(data.map((w: any) => ({
@@ -60,7 +104,7 @@ export const PublicContentSection = () => {
           })));
         }
       } else {
-        const typeMap = { 'audio': 'آڈیو', 'video': 'ویڈیو' };
+        const typeMap: Record<string, string> = { 'audio': 'آڈیو', 'video': 'ویڈیو' };
         const { data, error } = await getApprovedMedia();
         if (data) {
           setItems(data
@@ -141,11 +185,11 @@ export const PublicContentSection = () => {
   };
 
   return (
-    <section className="py-24 bg-background relative overflow-hidden">
-      <div className="absolute inset-0 islamic-pattern opacity-[0.03]" />
+    <section className="py-16 bg-background relative overflow-hidden">
+      <div className="absolute inset-0 islamic-pattern opacity-[0.03]" suppressHydrationWarning />
 
       <div className="container mx-auto px-4 relative z-10">
-        <div className="text-center mb-16">
+        <div className="text-center mb-10">
           <motion.h2
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -168,14 +212,16 @@ export const PublicContentSection = () => {
         <div className="flex flex-col md:flex-row gap-6 mb-12 items-center justify-between">
           <div className="flex p-1.5 bg-muted/50 rounded-2xl glass border border-border/50">
             {[
+              { id: 'all', label: 'تمام', icon: LayoutGrid },
               { id: 'audio', label: 'آڈیو', icon: Music },
               { id: 'video', label: 'ویڈیو', icon: Video },
               { id: 'book', label: 'کتب', icon: BookOpen },
             ].map((tab) => (
               <button
                 key={tab.id}
+                suppressHydrationWarning
                 onClick={() => setActiveTab(tab.id as ContentType)}
-                className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-medium transition-all ${activeTab === tab.id
+                className={`flex items-center gap-1.5 md:gap-2 px-3 md:px-6 py-2 md:py-2.5 rounded-xl text-xs md:text-sm font-medium transition-all ${activeTab === tab.id
                     ? 'bg-primary text-primary-foreground shadow-lg'
                     : 'text-muted-foreground hover:text-foreground hover:bg-background/50'
                   }`}
@@ -212,26 +258,27 @@ export const PublicContentSection = () => {
             variants={containerVariants}
             initial="hidden"
             animate="visible"
-            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-10"
+            className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-10"
           >
             {filteredItems.map((item, index) => (
               <motion.div key={item.id} variants={itemVariants}>
-                <Card className="group border-none bg-card/40 glass-dark hover-lift overflow-hidden h-full flex flex-col rounded-[2.5rem] shadow-2xl transition-all duration-700">
-                  <div className="aspect-[1/1.2] relative bg-muted/20 overflow-hidden">
+                <Card className="group border-none bg-card/40 glass-dark hover-lift overflow-hidden h-full flex flex-col rounded-2xl md:rounded-[2.5rem] shadow-xl md:shadow-2xl transition-all duration-700">
+                  <div className="aspect-square relative bg-[#f0f4f4] overflow-hidden rounded-t-2xl md:rounded-t-[2.5rem]">
                     {item.cover_image_url ? (
                       <Image
                         src={resolveExternalUrl(item.cover_image_url)}
                         alt={item.title}
                         fill
+                        unoptimized
                         sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                         priority={index < 4}
                         className="object-cover group-hover:scale-105 transition-transform duration-1000"
                       />
                     ) : (
-                      <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/10 to-primary/20">
-                        {item.type === 'audio' ? <Music className="h-20 w-20 text-primary/20" /> :
-                          item.type === 'video' ? <Video className="h-20 w-20 text-primary/20" /> :
-                            <BookOpen className="h-20 w-20 text-primary/20" />}
+                      <div className="w-full h-full flex items-center justify-center bg-[#f0f4f4]">
+                        {item.type === 'audio' ? <Music className="h-20 w-20 text-[#166534]/20" /> :
+                          item.type === 'video' ? <Video className="h-20 w-20 text-[#166534]/20" /> :
+                            <BookOpen className="h-20 w-20 text-[#166534]/20" />}
                       </div>
                     )}
 
@@ -240,54 +287,50 @@ export const PublicContentSection = () => {
                         whileHover={{ scale: 1.1 }}
                         whileTap={{ scale: 0.9 }}
                         onClick={() => handlePlay(item)}
-                        className="w-24 h-24 rounded-full bg-primary/90 text-white flex items-center justify-center shadow-2xl backdrop-blur-sm cursor-pointer hover:bg-primary transition-colors"
+                        className="w-14 h-14 md:w-24 md:h-24 rounded-full bg-[#166534] text-white flex items-center justify-center shadow-2xl cursor-pointer transition-colors"
                       >
-                        <Play className="h-10 w-10 fill-current ml-1" />
+                        <Play className="h-6 w-6 md:h-10 md:w-10 fill-current ml-0.5 md:ml-1" />
                       </motion.div>
                     </div>
 
                     {item.language && (
-                      <div className="absolute top-6 right-6">
-                        <Badge className="bg-primary text-primary-foreground font-urdu text-lg px-5 py-2 rounded-2xl shadow-lg border-none">
+                      <div className="absolute top-2 right-2 md:top-6 md:right-6">
+                        <Badge className="bg-[#166534] text-white font-urdu text-xs md:text-lg px-2 py-1 md:px-5 md:py-2 rounded-lg md:rounded-2xl shadow-lg border-none">
                           {item.language}
                         </Badge>
                       </div>
                     )}
+
+                    {/* Info Bar at the bottom of the image */}
+                    <div className="absolute bottom-0 left-0 right-0 bg-[#717474]/60 backdrop-blur-sm px-3 py-2 md:px-6 md:py-3 flex justify-between items-center text-white font-bold">
+                      <div className="flex items-center gap-1.5 md:gap-2">
+                        <span className="text-[10px] md:text-sm">{item.date ? new Date(item.date).getFullYear() : '2026'}</span>
+                        <Calendar className="h-3 w-3 md:h-4 md:w-4" />
+                      </div>
+                      <div className="flex items-center gap-1.5 md:gap-2">
+                        <span className="text-[10px] md:text-sm">{formatDuration(item.duration)}</span>
+                        <Clock className="h-3 w-3 md:h-4 md:w-4" />
+                      </div>
+                    </div>
                   </div>
 
-                  <div className="bg-foreground/5 backdrop-blur-md px-8 py-4 flex justify-between items-center border-y border-border/10">
-                    <div className="flex items-center gap-2 text-muted-foreground font-bold">
-                      <span className="text-sm">{item.date ? new Date(item.date).getFullYear() : '2026'}</span>
-                      <Calendar className="h-4 w-4" />
-                    </div>
-                    <div className="flex items-center gap-2 text-muted-foreground font-bold">
-                      <span className="text-sm">{formatDuration(item.duration)}</span>
-                      <Clock className="h-4 w-4" />
-                    </div>
-                  </div>
-
-                  <CardContent className="p-8 flex-1 flex flex-col justify-between">
-                    <div className="mb-8">
-                      <h3 className="font-urdu text-3xl font-bold text-foreground text-right leading-relaxed group-hover:text-primary transition-colors">
+                  <CardContent className="p-3 md:p-5 flex-1 flex flex-col justify-between bg-white">
+                    <div className="mb-3 md:mb-4">
+                      <h3 className="font-urdu text-base md:text-xl lg:text-2xl font-bold text-[#1a1a1a] text-center leading-relaxed group-hover:text-[#166534] transition-colors line-clamp-2">
                         {item.title}
                       </h3>
-                      {item.author && (
-                        <p className="text-sm text-primary/60 text-right font-bold mt-2">
-                          {item.author}
-                        </p>
-                      )}
                     </div>
 
                     {/* Download Button */}
                     <Button
                       variant="outline"
-                      className="w-full h-16 rounded-[1.5rem] border-2 border-border/30 hover:border-primary/50 hover:bg-primary/5 group/btn transition-all duration-300 flex items-center justify-between px-8"
+                      className="w-full h-10 md:h-12 rounded-full border border-[#e5e7eb] hover:border-[#166534]/50 hover:bg-[#166534]/5 group/btn transition-all duration-300 flex items-center justify-center gap-2 md:gap-4 px-4 md:px-8"
                       onClick={() => handleDownload(item.file_url, item.title)}
                     >
-                      <Download className="h-6 w-6 text-muted-foreground group-hover/btn:text-primary transition-colors" />
-                      <div className="flex items-center gap-2 font-bold text-lg text-foreground">
-                        <span>{formatFileSize(item.file_size).unit}</span>
+                      <Download className="h-4 w-4 md:h-6 md:w-6 text-[#9ca3af] group-hover/btn:text-[#166534] transition-colors" />
+                      <div className="flex items-center gap-1 md:gap-2 font-bold text-[10px] md:text-lg text-[#374151]">
                         <span>{formatFileSize(item.file_size).size}</span>
+                        <span className="font-urdu">{formatFileSize(item.file_size).unit}</span>
                       </div>
                     </Button>
                   </CardContent>
