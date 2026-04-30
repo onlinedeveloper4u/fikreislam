@@ -15,26 +15,14 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { resolveItemPageUrl, resolveExternalUrl } from '@/lib/storage';
 import Image from 'next/image';
-import { usePlayer } from '@/contexts/PlayerContext';
+import { usePlayer, type ContentItem, type ContentType } from '@/contexts/PlayerContext';
 
-type ContentType = 'audio' | 'video' | 'book' | 'all';
+type FilterType = ContentType | 'all';
 
-interface ContentItem {
-  id: string;
-  title: string;
-  type: ContentType;
-  author?: string;
-  description?: string;
-  cover_image_url?: string;
-  file_url?: string;
-  file_size?: number;
-  duration?: string;
-  date?: string;
-  language?: string;
-}
+
 
 export const PublicContentSection = () => {
-  const [activeTab, setActiveTab] = useState<ContentType>('all');
+  const [activeTab, setActiveTab] = useState<FilterType>('all');
   const [items, setItems] = useState<ContentItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -112,7 +100,7 @@ export const PublicContentSection = () => {
             .map((m: any) => ({
               id: m.id,
               title: m.title,
-              type: activeTab,
+              type: activeTab as ContentType,
               author: m.speaker,
               description: m.description,
               cover_image_url: m.cover_image_url,
@@ -220,7 +208,7 @@ export const PublicContentSection = () => {
               <button
                 key={tab.id}
                 suppressHydrationWarning
-                onClick={() => setActiveTab(tab.id as ContentType)}
+                onClick={() => setActiveTab(tab.id as FilterType)}
                 className={`flex items-center gap-1.5 md:gap-2 px-3 md:px-6 py-2 md:py-2.5 rounded-xl text-xs md:text-sm font-medium transition-all ${activeTab === tab.id
                     ? 'bg-primary text-primary-foreground shadow-lg'
                     : 'text-muted-foreground hover:text-foreground hover:bg-background/50'
