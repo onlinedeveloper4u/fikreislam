@@ -54,12 +54,12 @@ export const UploadProvider: React.FC<{ children: React.ReactNode }> = ({ childr
             delete abortControllers.current[id];
         }
         setActiveUploads(prev => prev.map(u => u.id === id ? { ...u, status: 'cancelled' as const } : u));
-        toast.info("Action cancelled");
+        toast.info("عمل منسوخ کر دیا گیا");
     }, []);
 
     const uploadMedia = useCallback(async (formData: any, mainFile: File, coverFile: File | null) => {
         if (!user) {
-            toast.error("You must be logged in to upload media");
+            toast.error("میڈیا شامل کرنے کے لیے آپ کا لاگ ان ہونا ضروری ہے");
             return;
         }
 
@@ -75,7 +75,8 @@ export const UploadProvider: React.FC<{ children: React.ReactNode }> = ({ childr
             progress: 0,
             status: 'preparing',
             startTime,
-            type: 'upload'
+            type: 'upload',
+            contentType: formData.contentType
         };
 
         setActiveUploads(prev => [newUpload, ...prev]);
@@ -102,7 +103,7 @@ export const UploadProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
             if (!iaResponse.ok) {
                 const err = await iaResponse.json();
-                throw new Error(err.error || "IA Upload Failed");
+                throw new Error(err.error || "انٹرنیٹ آرکائیو پر فائل بھیجنے میں ناکامی");
             }
 
             const iaResult = await iaResponse.json();
@@ -164,7 +165,7 @@ export const UploadProvider: React.FC<{ children: React.ReactNode }> = ({ childr
             if (dbError) throw dbError;
 
             updateUpload(uploadId, { progress: 100, status: 'completed' });
-            toast.success(`شامل مکمل: ${formData.title}`);
+            toast.success(`${formData.contentType} کامیابی سے شامل ہو گئی: ${formData.title}`);
 
         } catch (err: any) {
             if (err.name === 'AbortError' || err.message === 'Aborted') return;
@@ -180,7 +181,7 @@ export const UploadProvider: React.FC<{ children: React.ReactNode }> = ({ childr
                 : errorMsg;
 
             updateUpload(uploadId, { status: 'error', error: finalMsg });
-            toast.error(`شامل کرنے میں ناکامی: ${formData.title}`);
+            toast.error(`${formData.contentType} شامل کرنے میں ناکامی: ${formData.title}`);
         } finally {
             delete abortControllers.current[uploadId];
         }
@@ -213,7 +214,8 @@ export const UploadProvider: React.FC<{ children: React.ReactNode }> = ({ childr
             progress: 0,
             status: 'preparing',
             startTime,
-            type: 'edit'
+            type: 'edit',
+            contentType: contentType
         };
 
         setActiveUploads(prev => [newUpload, ...prev]);
@@ -266,7 +268,7 @@ export const UploadProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
                 if (!iaResponse.ok) {
                     const err = await iaResponse.json();
-                    throw new Error(err.error || "IA Update Failed");
+                    throw new Error(err.error || "انٹرنیٹ آرکائیو پر تبدیلی کرنے میں ناکامی");
                 }
 
                 const iaResult = await iaResponse.json();
@@ -321,18 +323,19 @@ export const UploadProvider: React.FC<{ children: React.ReactNode }> = ({ childr
             if (dbError) throw dbError;
 
             updateUpload(uploadId, { progress: 100, status: 'completed' });
-            toast.success("میڈیا کامیابی سے تبدیل ہو گیا!");
+            toast.success(`${contentType} میں کامیابی سے تبدیلی کر دی گئی ہے: ${updatePayload.title}`);
 
         } catch (err: any) {
             if (err.name === 'AbortError' || err.message === 'Aborted') return;
             console.error('Background edit error:', err);
-            updateUpload(uploadId, { status: 'error', error: err.message || 'Unknown error' });
+            updateUpload(uploadId, { status: 'error', error: err.message || 'نامعلوم غلطی' });
+            toast.error(`${contentType} میں تبدیلی کرنے میں ناکامی: ${updatePayload.title}`);
         } finally {
             delete abortControllers.current[uploadId];
         }
     }, [user, updateUpload]);
 
-    const deleteMediaWrapper = useCallback(async (id: string, title: string, fileUrl: string | null, coverImageUrl: string | null) => {
+    const deleteMediaWrapper = useCallback(async (id: string, title: string, fileUrl: string | null, coverImageUrl: string | null, contentType: string) => {
         const uploadId = crypto.randomUUID();
         const startTime = Date.now();
 
@@ -343,7 +346,8 @@ export const UploadProvider: React.FC<{ children: React.ReactNode }> = ({ childr
             progress: 0,
             status: 'deleting',
             startTime,
-            type: 'delete'
+            type: 'delete',
+            contentType: contentType
         };
 
         setActiveUploads(prev => [newDelete, ...prev]);
@@ -361,11 +365,11 @@ export const UploadProvider: React.FC<{ children: React.ReactNode }> = ({ childr
             await deleteMediaById(id);
 
             updateUpload(uploadId, { progress: 100, status: 'completed' });
-            toast.success(`میڈیا کامیابی سے حذف کر دیا گیا: ${title}`);
+            toast.success(`میڈیا کامیابی سے حذف کر دیا گیا ہے: ${title}`);
 
         } catch (err: any) {
             console.error('Delete error:', err);
-            updateUpload(uploadId, { status: 'error', error: err.message || 'Unknown error' });
+            updateUpload(uploadId, { status: 'error', error: err.message || 'نامعلوم غلطی' });
         }
     }, [updateUpload]);
 

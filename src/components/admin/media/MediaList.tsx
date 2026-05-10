@@ -126,10 +126,10 @@ export function MediaList() {
         m.id === id ? { ...m, status: newStatus } : m
       ));
 
-      toast.success("کامیاب");
+      toast.success("میڈیا کی حالت کامیابی سے تبدیل کر دی گئی ہے");
     } catch (error: any) {
       console.error('Error updating status:', error);
-      toast.error("کردار تبدیل کرنے میں ناکامی");
+      toast.error("میڈیا کی حالت تبدیل کرنے میں ناکامی");
     } finally {
       setActionLoading(null);
     }
@@ -139,7 +139,7 @@ export function MediaList() {
     const item = media.find(m => m.id === id);
     if (!item) return;
 
-    await deleteMedia(item.id, item.title, item.file_url, item.cover_image_url);
+    await deleteMedia(item.id, item.title, item.file_url, item.cover_image_url, item.type);
     setMedia(prev => prev.filter(m => m.id !== id));
   };
 

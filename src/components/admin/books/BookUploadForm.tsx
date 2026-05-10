@@ -64,11 +64,11 @@ export function BookUploadForm({ onSuccess }: BookUploadFormProps) {
                 author,
                 language,
                 tags: tags.split(',').map(t => t.trim()).filter(Boolean),
-                contentType: 'book' as const,
+                contentType: 'کتاب' as const,
             };
 
             uploadMedia(uploadData, file, coverImage);
-            toast.info("پس منظر میں شامل ہونا شروع ہو گیا ہے");
+            toast.info("کتاب پس منظر میں شامل ہونا شروع ہو گئی ہے");
             if (onSuccess) onSuccess();
         } catch (error: any) {
             toast.error(error.message || "ایک غلطی واقع ہوئی ہے");

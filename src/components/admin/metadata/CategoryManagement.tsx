@@ -54,7 +54,7 @@ export function CategoryManagement() {
             const { error } = await createCategory(newName.trim());
             if (error) throw error;
 
-            toast.success("کامیاب");
+            toast.success(`زمرہ کامیابی سے شامل کر دیا گیا ہے: ${newName.trim()}`);
             setNewName('');
             fetchCategories();
         } catch (error: any) {
@@ -78,7 +78,7 @@ export function CategoryManagement() {
             const { error } = await updateCategory(id, editName.trim());
             if (error) throw error;
 
-            toast.success("کامیاب");
+            toast.success(`زمرہ کی معلومات کامیابی سے تبدیل کر دی گئی ہیں: ${editName.trim()}`);
             setEditingId(null);
             setEditName('');
             fetchCategories();
@@ -98,7 +98,7 @@ export function CategoryManagement() {
             const { error } = await deleteCategory(id);
             if (error) throw error;
 
-            toast.success("کامیاب");
+            toast.success("زمرہ کامیابی سے حذف کر دیا گیا ہے");
             setCategories(prev => prev.filter(c => c.id !== id));
         } catch (error: any) {
             console.error('Delete error:', error);

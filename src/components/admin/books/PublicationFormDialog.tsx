@@ -249,11 +249,11 @@ export function PublicationFormDialog({ open, onOpenChange, workId, editingPub, 
             if (editingPub) {
                 const { error } = await updatePublication(editingPub.id, payload);
                 if (error) throw new Error(error);
-                toast.success("اشاعت کامیابی سے تبدیل ہو گئی");
+                toast.success(`اشاعت میں کامیابی سے تبدیلی کر دی گئی ہے: ${title}`);
             } else {
                 const { error } = await createPublication(payload);
                 if (error) throw new Error(error);
-                toast.success("اشاعت کامیابی سے شامل ہو گئی");
+                toast.success(`اشاعت کامیابی سے شامل کر دی گئی ہے: ${title}`);
             }
 
             onSuccess();

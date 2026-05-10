@@ -54,7 +54,7 @@ export function PublisherManagement() {
             const { error } = await createPublisher({ name: newName.trim(), country: newCountry.trim() || undefined });
             if (error) throw error;
 
-            toast.success("کامیاب");
+            toast.success(`ناشر کامیابی سے شامل کر دیا گیا ہے: ${newName.trim()}`);
             setNewName(''); setNewCountry('');
             fetchPublishers();
         } catch (error: any) {
@@ -75,7 +75,7 @@ export function PublisherManagement() {
             const { error } = await updatePublisher(id, { name: editName.trim(), country: editCountry.trim() || undefined });
             if (error) throw error;
 
-            toast.success("کامیاب");
+            toast.success(`ناشر کی معلومات کامیابی سے تبدیل کر دی گئی ہیں: ${editName.trim()}`);
             setEditingId(null);
             fetchPublishers();
         } catch (error: any) {
@@ -93,7 +93,7 @@ export function PublisherManagement() {
             const { error } = await deletePublisher(id);
             if (error) throw error;
 
-            toast.success("کامیاب");
+            toast.success("ناشر کامیابی سے حذف کر دیا گیا ہے");
             setPublishers(prev => prev.filter(p => p.id !== id));
         } catch (error: any) {
             toast.error("ایک غلطی واقع ہوئی ہے");

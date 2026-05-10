@@ -54,7 +54,7 @@ export function LanguageManagement() {
             const { error } = await createLanguage(newName.trim());
             if (error) throw error;
 
-            toast.success("کامیاب");
+            toast.success(`زبان کامیابی سے شامل کر دی گئی ہے: ${newName.trim()}`);
             setNewName('');
             fetchLanguages();
         } catch (error: any) {
@@ -78,7 +78,7 @@ export function LanguageManagement() {
             const { error } = await updateLanguage(id, editName.trim());
             if (error) throw error;
 
-            toast.success("کامیاب");
+            toast.success(`زبان کی معلومات کامیابی سے تبدیل کر دی گئی ہیں: ${editName.trim()}`);
             setEditingId(null);
             setEditName('');
             fetchLanguages();
@@ -98,7 +98,7 @@ export function LanguageManagement() {
             const { error } = await deleteLanguage(id);
             if (error) throw error;
 
-            toast.success("کامیاب");
+            toast.success("زبان کامیابی سے حذف کر دی گئی ہے");
             setLanguages(prev => prev.filter(l => l.id !== id));
         } catch (error: any) {
             console.error('Delete error:', error);

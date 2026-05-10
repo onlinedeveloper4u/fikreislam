@@ -65,7 +65,7 @@ export function AuthorManagement() {
             });
             if (error) throw error;
 
-            toast.success("کامیاب");
+            toast.success(`مصنف کامیابی سے شامل کر دیا گیا ہے: ${newName.trim()}`);
             setNewName(''); setNewDeen(''); setNewMazhab(''); setNewFiqh('');
             fetchAuthors();
         } catch (error: any) {
@@ -91,7 +91,7 @@ export function AuthorManagement() {
             });
             if (error) throw error;
 
-            toast.success("کامیاب");
+            toast.success(`مصنف کی معلومات کامیابی سے تبدیل کر دی گئی ہیں: ${editName.trim()}`);
             setEditingId(null);
             fetchAuthors();
         } catch (error: any) {
@@ -109,7 +109,7 @@ export function AuthorManagement() {
             const { error } = await deleteAuthor(id);
             if (error) throw error;
 
-            toast.success("کامیاب");
+            toast.success("مصنف کامیابی سے حذف کر دیا گیا ہے");
             setAuthors(prev => prev.filter(a => a.id !== id));
         } catch (error: any) {
             toast.error("ایک غلطی واقع ہوئی ہے");

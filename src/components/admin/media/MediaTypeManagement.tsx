@@ -83,7 +83,7 @@ export function MediaTypeManagement() {
             const { error } = await createMediaType(newName.trim());
             if (error) throw error;
 
-            toast.success("کامیاب");
+            toast.success(`میڈیا کی قسم کامیابی سے شامل کر دی گئی ہے: ${newName.trim()}`);
             setNewName('');
             fetchData();
         } catch (error: any) {
@@ -114,7 +114,7 @@ export function MediaTypeManagement() {
             const { error } = await updateMediaType(id, editName.trim(), speakerName);
             if (error) throw error;
 
-            toast.success("کامیاب");
+            toast.success(`میڈیا کی قسم کامیابی سے تبدیل کر دی گئی ہے: ${editName.trim()}`);
             setEditingId(null);
             setEditName('');
             fetchData();
@@ -134,7 +134,7 @@ export function MediaTypeManagement() {
             const { error } = await deleteMediaType(id);
             if (error) throw error;
 
-            toast.success("کامیاب");
+            toast.success("میڈیا کی قسم کامیابی سے حذف کر دی گئی ہے");
             setMediaTypes(prev => prev.filter(t => t.id !== id));
         } catch (error: any) {
             console.error('Delete error:', error);

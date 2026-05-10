@@ -177,12 +177,12 @@ export function WorkFormDialog({ open, onOpenChange, editingWork, onSuccess }: W
             if (editingWork) {
                 const { error } = await updateWork(editingWork.id, payload);
                 if (error) throw new Error(error);
-                toast.success("تصنیف کامیابی سے تبدیل ہو گئی");
+                toast.success(`تصنیف میں کامیابی سے تبدیلی کر دی گئی ہے: ${payload.primaryTitle}`);
                 onSuccess();
             } else {
                 const { data, error } = await createWork(payload);
                 if (error) throw new Error(error);
-                toast.success("تصنیف کامیابی سے شامل ہو گئی");
+                toast.success(`تصنیف کامیابی سے شامل کر دی گئی ہے: ${payload.primaryTitle}`);
                 onSuccess(data?.id);
             }
         } catch (error: any) {

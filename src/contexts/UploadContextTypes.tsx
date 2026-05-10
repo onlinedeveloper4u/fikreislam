@@ -13,13 +13,14 @@ export interface ActiveUpload {
     error?: string;
     startTime: number;
     type?: 'upload' | 'edit' | 'delete';
+    contentType?: string;
 }
 
 export interface UploadContextType {
     activeUploads: ActiveUpload[];
     uploadMedia: (formData: any, mainFile: File, coverFile: File | null) => Promise<void>;
     editMedia: (mediaId: string, currentStatus: string, updatePayload: any, newMainFile: File | null, newCoverFile: File | null, mediaTitle: string, currentFileUrl: string | null, contentType: string) => Promise<void>;
-    deleteMedia: (id: string, title: string, fileUrl: string | null, coverImageUrl: string | null) => Promise<void>;
+    deleteMedia: (id: string, title: string, fileUrl: string | null, coverImageUrl: string | null, contentType: string) => Promise<void>;
     cancelUpload: (id: string) => void;
     clearCompleted: () => void;
     clearAll: () => void;

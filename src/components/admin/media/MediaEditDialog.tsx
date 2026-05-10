@@ -200,7 +200,7 @@ export function MediaEditDialog({ media, open, onOpenChange, onSuccess }: MediaE
             };
 
             editMedia(media.id, media.status, updatePayload, newFile, newCoverImage, media.title, media.file_url, media.type);
-            toast.info("پس منظر میں شامل ہونا شروع ہو گیا ہے");
+            toast.info("پس منظر میں تبدیلی ہونا شروع ہو گئی ہے");
             onSuccess();
             onOpenChange(false);
         } catch (e: any) {

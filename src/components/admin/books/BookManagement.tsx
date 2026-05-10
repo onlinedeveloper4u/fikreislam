@@ -135,7 +135,7 @@ export function BookManagement() {
             }
             const { error } = await deleteWork(work.id);
             if (error) throw error;
-            toast.success("تصنیف اور تمام اشاعتیں حذف ہو گئیں");
+            toast.success(`تصنیف اور اس کی تمام اشاعتیں کامیابی سے حذف کر دی گئی ہیں: ${work.primaryTitle}`);
             fetchWorks();
             if (expandedWork === work.id) {
                 setExpandedWork(null);
@@ -153,7 +153,7 @@ export function BookManagement() {
             }
             const { error } = await deletePublication(pub.id);
             if (error) throw error;
-            toast.success("اشاعت حذف ہو گئی");
+            toast.success(`اشاعت کامیابی سے حذف کر دی گئی ہے: ${pub.title}`);
             // Refresh publications list
             if (expandedWork) {
                 handleExpandWork(expandedWork);

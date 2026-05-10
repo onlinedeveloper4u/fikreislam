@@ -54,7 +54,7 @@ export function SpeakerManagement() {
             const { error } = await createSpeaker(newName.trim());
             if (error) throw error;
 
-            toast.success("کامیاب");
+            toast.success(`مقرر کامیابی سے شامل کر دیا گیا ہے: ${newName.trim()}`);
             setNewName('');
             fetchSpeakers();
         } catch (error: any) {
@@ -78,7 +78,7 @@ export function SpeakerManagement() {
             const { error } = await updateSpeaker(id, editName.trim());
             if (error) throw error;
 
-            toast.success("کامیاب");
+            toast.success(`مقرر کی معلومات کامیابی سے تبدیل کر دی گئی ہیں: ${editName.trim()}`);
             setEditingId(null);
             setEditName('');
             fetchSpeakers();
@@ -98,7 +98,7 @@ export function SpeakerManagement() {
             const { error } = await deleteSpeaker(id);
             if (error) throw error;
 
-            toast.success("کامیاب");
+            toast.success("مقرر کامیابی سے حذف کر دیا گیا ہے");
             setSpeakers(prev => prev.filter(s => s.id !== id));
         } catch (error: any) {
             console.error('Delete error:', error);
