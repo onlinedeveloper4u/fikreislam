@@ -126,10 +126,10 @@ export function MediaList() {
         m.id === id ? { ...m, status: newStatus } : m
       ));
 
-      toast.success("میڈیا کی حالت کامیابی سے تبدیل کر دی گئی ہے");
+      toast.success(`${item?.type || 'میڈیا'} کی حالت کامیابی سے تبدیل کر دی گئی ہے`);
     } catch (error: any) {
       console.error('Error updating status:', error);
-      toast.error("میڈیا کی حالت تبدیل کرنے میں ناکامی");
+      toast.error(`${item?.type || 'میڈیا'} کی حالت تبدیل کرنے میں ناکامی`);
     } finally {
       setActionLoading(null);
     }

@@ -365,7 +365,7 @@ export const UploadProvider: React.FC<{ children: React.ReactNode }> = ({ childr
             await deleteMediaById(id);
 
             updateUpload(uploadId, { progress: 100, status: 'completed' });
-            toast.success(`میڈیا کامیابی سے حذف کر دیا گیا ہے: ${title}`);
+            toast.success(`${contentType} کامیابی سے حذف کر دیا گیا ہے: ${title}`);
 
         } catch (err: any) {
             console.error('Delete error:', err);
