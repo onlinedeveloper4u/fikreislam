@@ -33,7 +33,9 @@ export async function triggerIADerive(identifier: string) {
 
 export async function deleteIAItem(identifier: string) {
     try {
-        return { data: await deleteIAItemLib(identifier), error: null };
+        const deleted = await deleteIAItemLib(identifier);
+        if (!deleted) return { data: false, error: 'Invalid Internet Archive identifier' };
+        return { data: deleted, error: null };
     } catch (e: any) {
         return { error: e.message || e };
     }

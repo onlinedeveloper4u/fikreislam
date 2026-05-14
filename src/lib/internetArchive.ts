@@ -1,5 +1,5 @@
 import 'server-only';
-import { extractIAIdentifier } from './ia-utils';
+import { extractIAIdentifier, normalizeIAIdentifier } from './ia-utils';
 
 /**
  * Internet Archive integration — Python Backend Proxy
@@ -57,6 +57,7 @@ export interface IAUploadResult {
 }
 
 export { extractIAIdentifier };
+export { normalizeIAIdentifier };
 
 /**
  * Update metadata via Python backend.
@@ -204,16 +205,28 @@ export async function deleteIAFile(iaUrl: string): Promise<boolean> {
  * Delete all files in an IA item via the Python backend.
  */
 export async function deleteIAItem(identifier: string): Promise<boolean> {
-    if (!identifier) return false;
+    const normalizedIdentifier = normalizeIAIdentifier(identifier);
+    if (!normalizedIdentifier) {
+        console.error('Invalid IA item identifier for delete:', identifier);
+        return false;
+    }
     try {
         const response = await backendFetch('/item', {
             method: 'DELETE',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ identifier }),
+            body: JSON.stringify({
+                identifier: normalizedIdentifier,
+                confirm: true,
+            }),
         });
+        if (!response.ok) {
+            const err = await response.text().catch(() => '');
+            console.error('IA item delete failed:', response.status, err);
+            throw new Error(err || `IA item delete failed with status ${response.status}`);
+        }
         return response.ok;
     } catch (error) {
         console.error('Error deleting IA item:', error);
-        return false;
+        throw error;
     }
 }

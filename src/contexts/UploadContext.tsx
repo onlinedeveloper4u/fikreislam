@@ -280,7 +280,10 @@ export const UploadProvider: React.FC<{ children: React.ReactNode }> = ({ childr
                     // But if we used existingIdentifier, we just uploaded a new file to the same bucket.
                     if (!existingIdentifier && currentFileUrl?.startsWith('ia://')) {
                         const oldId = extractIAIdentifier(currentFileUrl);
-                        if (oldId) await deleteIAItem(oldId);
+                        if (oldId) {
+                            const deleteResult = await deleteIAItem(oldId);
+                            if (deleteResult.error) throw new Error(deleteResult.error);
+                        }
                     }
                 }
                 if (newCoverFile) coverUrlPath = iaResult.coverIaUrl;
@@ -357,7 +360,8 @@ export const UploadProvider: React.FC<{ children: React.ReactNode }> = ({ childr
                 updateUpload(uploadId, { progress: 30 });
                 const identifier = extractIAIdentifier(fileUrl);
                 if (identifier) {
-                    await deleteIAItem(identifier);
+                    const deleteResult = await deleteIAItem(identifier);
+                    if (deleteResult.error) throw new Error(deleteResult.error);
                 }
             }
 

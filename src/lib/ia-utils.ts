@@ -25,6 +25,18 @@ export function extractIAIdentifier(url: string | null): string | undefined {
 }
 
 /**
+ * Normalize either a bare IA identifier or an IA/archive.org URL to a safe item id.
+ */
+export function normalizeIAIdentifier(value: string | null): string | undefined {
+    if (!value) return undefined;
+    const trimmed = value.trim();
+    const extracted = extractIAIdentifier(trimmed);
+    const identifier = decodeURIComponent(extracted || trimmed).trim();
+    if (!identifier || identifier.includes('/') || /\s/.test(identifier)) return undefined;
+    return identifier;
+}
+
+/**
  * Resolve an ia:// URL to a public download URL.
  */
 export function resolveIADownloadUrl(iaUrl: string): string {

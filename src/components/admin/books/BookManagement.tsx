@@ -58,6 +58,7 @@ export function BookManagement() {
     const [languageFilter, setLanguageFilter] = useState<string>('all');
     const [authorFilter, setAuthorFilter] = useState<string>('all');
     const [categoryFilter, setCategoryFilter] = useState<string>('all');
+    const [sortBy, setSortBy] = useState<'newest' | 'oldest' | 'title' | 'publications'>('newest');
 
     // Expanded publications per work
     const [expandedWork, setExpandedWork] = useState<string | null>(null);
@@ -129,7 +130,8 @@ export function BookManagement() {
             if (pubs) {
                 for (const pub of pubs) {
                     for (const ia of pub.iaIdentifiers) {
-                        await deleteIAItem(ia.identifier);
+                        const deleteResult = await deleteIAItem(ia.identifier);
+                        if (deleteResult.error) throw new Error(deleteResult.error);
                     }
                 }
             }
@@ -149,7 +151,8 @@ export function BookManagement() {
     const handleDeletePublication = async (pub: PublicationItem) => {
         try {
             for (const ia of pub.iaIdentifiers) {
-                await deleteIAItem(ia.identifier);
+                const deleteResult = await deleteIAItem(ia.identifier);
+                if (deleteResult.error) throw new Error(deleteResult.error);
             }
             const { error } = await deletePublication(pub.id);
             if (error) throw error;
@@ -173,6 +176,11 @@ export function BookManagement() {
         const matchesAuthor = authorFilter === 'all' || w.authors.some(a => a.id === authorFilter);
         const matchesCategory = categoryFilter === 'all' || w.categories.some(c => c.id === categoryFilter);
         return matchesSearch && matchesType && matchesLanguage && matchesAuthor && matchesCategory;
+    }).sort((a, b) => {
+        if (sortBy === 'oldest') return new Date(a.createdAt || 0).getTime() - new Date(b.createdAt || 0).getTime();
+        if (sortBy === 'title') return a.primaryTitle.localeCompare(b.primaryTitle, 'ur');
+        if (sortBy === 'publications') return b.publicationsCount - a.publicationsCount;
+        return new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime();
     });
 
     if (loading) {
@@ -247,6 +255,17 @@ export function BookManagement() {
                         {allCategories.map(c => (
                             <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
                         ))}
+                    </SelectContent>
+                </Select>
+                <Select value={sortBy} onValueChange={(value) => setSortBy(value as typeof sortBy)}>
+                    <SelectTrigger className="w-full sm:w-36">
+                        <SelectValue placeholder={"ترتیب"} />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="newest">{"نئی پہلے"}</SelectItem>
+                        <SelectItem value="oldest">{"پرانی پہلے"}</SelectItem>
+                        <SelectItem value="title">{"عنوان"}</SelectItem>
+                        <SelectItem value="publications">{"زیادہ اشاعتیں"}</SelectItem>
                     </SelectContent>
                 </Select>
             </div>

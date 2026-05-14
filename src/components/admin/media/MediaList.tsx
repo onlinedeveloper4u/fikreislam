@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { useUpload } from '@/contexts/UploadContextTypes';
 import { getMedia, updateMediaStatus } from '@/actions/media';
 import { resolveItemPageUrl } from '@/lib/storage';
@@ -69,12 +70,20 @@ interface Media {
 }
 
 export function MediaList() {
+  const searchParams = useSearchParams();
   const [media, setMedia] = useState<Media[]>([]);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState<MediaStatus | 'تمام'>('تمام');
+  const [statusFilter, setStatusFilter] = useState<MediaStatus | 'تمام'>(() =>
+    searchParams.get('status') === 'unpublished' ? 'غیر شائع شدہ' : 'تمام'
+  );
   const [typeFilter, setTypeFilter] = useState<MediaType | 'تمام'>('تمام');
+  const [issueFilter, setIssueFilter] = useState<'all' | 'missing-cover' | 'missing-metadata' | 'missing-file'>(() => {
+    const issue = searchParams.get('issue');
+    return issue === 'missing-cover' || issue === 'missing-metadata' || issue === 'missing-file' ? issue : 'all';
+  });
+  const [sortBy, setSortBy] = useState<'newest' | 'oldest' | 'title' | 'status'>('newest');
   const [isUploadOpen, setIsUploadOpen] = useState(false);
   const [uploadType, setUploadType] = useState<MediaType>('آڈیو');
   const [editingItem, setEditingItem] = useState<Media | null>(null);
@@ -111,11 +120,14 @@ export function MediaList() {
 
   const handleStatusChange = async (id: string, newStatus: MediaStatus) => {
     setActionLoading(id);
+    const item = media.find(m => m.id === id);
     try {
-      const item = media.find(m => m.id === id);
       if (newStatus === 'غیر شائع شدہ' && item?.file_url?.startsWith('ia://')) {
         const identifier = extractIAIdentifier(item.file_url);
-        if (identifier) await deleteIAItem(identifier);
+        if (identifier) {
+          const iaResult = await deleteIAItem(identifier);
+          if (iaResult.error) throw new Error(iaResult.error);
+        }
       }
 
       const { error } = await updateMediaStatus(id, newStatus);
@@ -148,7 +160,23 @@ export function MediaList() {
       item.title.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesStatus = statusFilter === 'تمام' || item.status === statusFilter;
     const matchesType = typeFilter === 'تمام' || item.type === typeFilter;
-    return matchesSearch && matchesStatus && matchesType;
+    const matchesIssue =
+      issueFilter === 'all' ||
+      (issueFilter === 'missing-cover' && !item.cover_image_url) ||
+      (issueFilter === 'missing-file' && !item.file_url) ||
+      (issueFilter === 'missing-metadata' && (
+        !item.language ||
+        !item.speaker ||
+        !item.media_type ||
+        !item.categories ||
+        item.categories.length === 0
+      ));
+    return matchesSearch && matchesStatus && matchesType && matchesIssue;
+  }).sort((a, b) => {
+    if (sortBy === 'oldest') return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+    if (sortBy === 'title') return a.title.localeCompare(b.title, 'ur');
+    if (sortBy === 'status') return a.status.localeCompare(b.status, 'ur');
+    return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
   });
 
   if (loading) {
@@ -223,6 +251,28 @@ export function MediaList() {
             <SelectItem value="تمام">{"تمام"}</SelectItem>
             <SelectItem value="آڈیو">{"آڈیو"}</SelectItem>
             <SelectItem value="ویڈیو">{"ویڈیو"}</SelectItem>
+          </SelectContent>
+        </Select>
+        <Select value={issueFilter} onValueChange={(v) => setIssueFilter(v as any)}>
+          <SelectTrigger className="w-full sm:w-44">
+            <SelectValue placeholder={"مسئلہ"} />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">{"تمام ریکارڈز"}</SelectItem>
+            <SelectItem value="missing-cover">{"کور تصویر غائب"}</SelectItem>
+            <SelectItem value="missing-metadata">{"میٹا ڈیٹا نامکمل"}</SelectItem>
+            <SelectItem value="missing-file">{"فائل غائب"}</SelectItem>
+          </SelectContent>
+        </Select>
+        <Select value={sortBy} onValueChange={(v) => setSortBy(v as any)}>
+          <SelectTrigger className="w-full sm:w-36">
+            <SelectValue placeholder={"ترتیب"} />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="newest">{"نئے پہلے"}</SelectItem>
+            <SelectItem value="oldest">{"پرانے پہلے"}</SelectItem>
+            <SelectItem value="title">{"عنوان"}</SelectItem>
+            <SelectItem value="status">{"حالت"}</SelectItem>
           </SelectContent>
         </Select>
       </div>

@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useUpload } from '@/contexts/UploadContextTypes';
 import {
   Sidebar,
   SidebarContent,
@@ -42,6 +43,7 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
+import { Badge } from '@/components/ui/badge';
 import Image from 'next/image';
 
 interface DashboardSidebarProps {
@@ -51,8 +53,16 @@ interface DashboardSidebarProps {
 export function NextDashboardSidebar({ activeTab }: DashboardSidebarProps) {
   const { user, signOut } = useAuth();
   const { dir } = useLanguage();
+  const { activeUploads } = useUpload();
   const pathname = usePathname();
   const router = useRouter();
+
+  const activeUploadCount = activeUploads.filter(upload =>
+    ['preparing', 'uploading', 'database', 'deleting'].includes(upload.status)
+  ).length;
+  const uploadIssueCount = activeUploads.filter(upload =>
+    upload.status === 'error' || upload.status === 'interrupted'
+  ).length;
 
   const systemItems = [
     { id: 'analytics', title: "تجزیات", icon: BarChart3, path: '/admin/analytics' },
@@ -121,6 +131,14 @@ export function NextDashboardSidebar({ activeTab }: DashboardSidebarProps) {
                     <Link href={item.path}>
                       <item.icon className="h-4 w-4" />
                       <span>{item.title}</span>
+                      {item.id === 'uploads' && (activeUploadCount > 0 || uploadIssueCount > 0) && (
+                        <Badge
+                          variant={uploadIssueCount > 0 ? 'destructive' : 'secondary'}
+                          className="ms-auto h-5 min-w-5 justify-center px-1.5 text-[10px] group-data-[collapsible=icon]:hidden"
+                        >
+                          {uploadIssueCount > 0 ? uploadIssueCount : activeUploadCount}
+                        </Badge>
+                      )}
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>

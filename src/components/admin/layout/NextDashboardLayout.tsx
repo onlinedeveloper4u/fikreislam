@@ -2,6 +2,7 @@ import { ReactNode } from 'react';
 import { SidebarProvider, SidebarInset, SidebarTrigger } from '@/components/ui/sidebar';
 import { NextDashboardSidebar } from './NextDashboardSidebar';
 import { Separator } from '@/components/ui/separator';
+import { UploadStatusStrip } from './UploadStatusStrip';
 
 interface DashboardLayoutProps {
   children: ReactNode;
@@ -20,6 +21,7 @@ const tabTitles: Record<string, string> = {
     'media-types': "میڈیا کی قسم",
     'categories': "زمرہ",
     'books': "کتب کا انتظام",
+    'settings': "ترتیبات",
 };
 
 export function NextDashboardLayout({ children, activeTab }: DashboardLayoutProps) {
@@ -34,6 +36,7 @@ export function NextDashboardLayout({ children, activeTab }: DashboardLayoutProp
             {tabTitles[activeTab] || "ڈیش بورڈ"}
           </h1>
         </header>
+        <UploadStatusStrip />
         <main className="flex-1 p-4 md:p-6">
           {children}
         </main>
